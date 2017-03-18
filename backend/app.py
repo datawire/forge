@@ -44,12 +44,11 @@ def create():
 def get():
     return (jsonify([s.json() for s in SERVICES.values()]), 200)
 
+def next_num(n):
+    return (n + random.uniform(0, 10))*random.uniform(0.9, 1.1)
+
 def sim(stats):
-    prev = stats.good + stats.bad + stats.slow
-    next = (prev + random.uniform(0, 10))*random.uniform(0.9, 1.1)
-    bad = random.uniform(0, 0.01)
-    slow = random.uniform(0, 0.01)
-    return Stats(good=next*(1-bad-slow), bad=next*bad, slow=next*slow)
+    return Stats(good=next_num(stats.good), bad=0.5*next_num(stats.bad), slow=0.5*next_num(stats.slow))
 
 def background():
     count = 0

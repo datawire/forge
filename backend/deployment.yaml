@@ -15,7 +15,7 @@ spec:
       name: blackbird
     spec:
       containers:
-      - image: gcr.io/datawire-sandbox/blackbird:v5
+      - image: gcr.io/datawire-sandbox/blackbird:v6
         imagePullPolicy: IfNotPresent
         name: blackbird
         resources: {}
