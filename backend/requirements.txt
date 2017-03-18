@@ -1,0 +1,5 @@
+eventlet
+flask
+flask-cors
+flask-socketio
+pyrsistent

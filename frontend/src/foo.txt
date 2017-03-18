@@ -1,0 +1,107 @@
+org.yml:
+  url-prefix: http://example.org
+  default-update-strategy: ???
+
+
+initial commit:
+
+  svc.yml:
+    name: foo
+    url: foo
+    requires: postgres
+
+  code:
+    return "Hello World"
+
+create postgres instance
+create kube external service for postgres instance
+create deployment.yaml
+create service.yaml
+create namespace
+create ingress.yaml for "http://example.org/foo"
+
+second commit:
+
+  svc.yml:
+    name: foo
+    url: foo
+    requires: postgres
+
+  code:
+    return slowQuery()
+
+if (update-strategy == rolling) {
+   apply deployment.yaml
+} else {
+   ...
+}
+
+third commit:
+
+  svc.yml:
+    name: foo
+    url: foo
+    requires: postgres, redis
+
+  code:
+    return cachedQuery()
+
+create redis instance
+
+if (...) {...} // same as the pure code update
+
+
+=================================
+
+org.yml:
+  url-prefix: http://example.org
+  default-update-strategy: ???
+
+
+initial commit:
+
+  svc.yml:
+    name: foo
+    url: foo
+    requires: postgres
+
+  code:
+    return "Hello World"
+
+feed github url to deployd
+
+deployd is going to churn a bit and then tell me my build is broken because no resources exist
+
+(build is flagged as broken because no resources exist)
+
+go to UI and somehow create a postgress instance
+
+second commit:
+
+  svc.yml:
+    name: foo
+    url: foo
+    requires: postgres
+
+  code:
+    return slowQuery()
+
+if (update-strategy == rolling) {
+   apply deployment.yaml
+} else {
+   ...
+}
+
+third commit:
+
+  svc.yml:
+    name: foo
+    url: foo
+    requires: postgres, redis
+
+  code:
+    return cachedQuery()
+
+create redis instance
+
+if (...) {...} // same as the pure code update

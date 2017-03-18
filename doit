@@ -1,0 +1,56 @@
+#!/usr/bin/python
+
+import os, sys, yaml, collections
+
+_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
+
+def dict_representer(dumper, data):
+    return dumper.represent_dict(data.iteritems())
+
+def dict_constructor(loader, node):
+    return collections.OrderedDict(loader.construct_pairs(node))
+
+yaml.add_representer(collections.OrderedDict, dict_representer)
+yaml.add_constructor(_mapping_tag, dict_constructor)
+
+def run(wd, cmd):
+    status = os.system("cd %s && %s" % (wd, cmd))
+    if (status != 0):
+        raise Exception("command failed[%s]: %s" % (status, cmd))
+
+base = os.path.abspath(os.path.dirname(__file__))
+backend = os.path.join(base, "backend")
+frontend = os.path.join(base, "frontend")
+
+run(frontend, "npm run build")
+run(base, "rm -rf backend/static/* && cp -r frontend/build/* backend/static")
+
+deployment = os.path.join(backend, "deployment.yaml")
+metadata = os.path.join(base, "metadata.yaml")
+
+with open(metadata) as f:
+    md = yaml.load(f)
+    image = md["image"]
+    md["version"] += 1
+    version = md["version"]
+
+tag = "%s:v%s" % (image, version)
+
+run(backend, "docker build . -t %s" % tag)
+run(backend, "gcloud docker -- push %s" % tag)
+
+with open(metadata, "write") as f:
+    yaml.dump(md, f)
+
+with open(deployment) as f:
+    stuff = yaml.load(f)
+    assert stuff["kind"] == "Deployment", "not a deployment"
+    container = stuff["spec"]["template"]["spec"]["containers"][0]
+    old = container["image"]
+    print "updated from %s to %s" % (old, tag)
+    container["image"] = tag
+
+with open(deployment, "write") as f:
+    yaml.dump(stuff, f)
+
+run(backend, "kubectl apply -f deployment.yaml")
