@@ -4,84 +4,70 @@ import "../node_modules/react-vis/dist/style.css"
 import "../semantic/dist/semantic.min.css"
 import io from 'socket.io-client'
 
-import { Image, Header, Card, Dimmer, Segment, Loader, Progress, Grid, Menu, Button, Icon, Input, Modal, Message, Step } from 'semantic-ui-react'
+import { Form, Image, Header, Card, Grid, Menu, Button, Icon, Input, Modal, Message } from 'semantic-ui-react'
 
 class CreateService extends Component {
 
   constructor(props) {
     super(props)
     this.state = {
-      step: 0
+      open: false,
+      name: '',
+      owner: ''
     }
+    this.name = this.name.bind(this)
+    this.owner = this.owner.bind(this)
+    this.open = this.open.bind(this)
+    this.create = this.create.bind(this)
+    this.close = this.close.bind(this)
   }
 
-  go(e) {
-    if (e.key === 'Enter') {
-      this.setState({step: this.state.step + 1,
-                     service: e.target.value})
-      this.timerID = setInterval(() => this.step(), 250)
-    }
+  name(e) {
+    this.setState({name: e.target.value})
   }
 
-  step() {
-    if (this.state.step < 6) {
-      this.setState({step: this.state.step + 1})
-    } else {
-      clearInterval(this.timerID)
-    }
+  owner(e) {
+    this.setState({owner: e.target.value})
+  }
+
+  open() {
+    this.setState({open: true})
+  }
+
+  create(e) {
+    let params = new URLSearchParams()
+    params.append('name', this.state.name)
+    params.append('owner', this.state.owner)
+    let url = this.props.url + '/create?' + params.toString()
+    fetch(url).then(this.close)
+  }
+
+  close() {
+    this.setState({open: false, name: '', owner: ''})
   }
 
   render() {
-    if (this.state.step === 0) {
-      return (
-        <Input fluid icon='github' iconPosition='left'
-               label={{tag: true, content: 'Create Service'}} labelPosition='right'
-               placeholder='http://github.com/organization/servicename'
-               onKeyPress={(e) => this.go(e)} />
-      )
-    } else {
-      var steps = [
-        {icon: "server", title: "Deployment", desc: "Kubernetes deployment manifest"},
-        {icon: "sitemap", title: "Service", desc: "Kubernetes service manifest"},
-        {icon: "find", title: "Ingress", desc: "Kubernetes ingress resource"},
-        {icon: "database", title: "Postgres", desc: "Creating postgres dependency"},
-        {icon: "cubes", title: "Redis", desc: "Creating redis dependency"}
-      ]
-      var stack = []
-      for (var i = 0; i < Math.min(this.state.step, 5); i++) {
-        var active = (i===this.state.step - 1)
-        stack.push(
-          <Step key={steps[i].title} completed={!active} active={active}>
-            <Icon name={steps[i].icon}/>
-            <Step.Content>
-              <Step.Title>{steps[i].title}</Step.Title>
-              <Step.Description>{steps[i].desc}</Step.Description>
-            </Step.Content>
-          </Step>
-        )
-      }
-
-      var done = (this.state.step === 6)
-      return (
-        <Grid>
-          <Grid.Row columns={1}>
-            <Grid.Column>
-              <Progress percent={this.state.step*100/6}/>
-            </Grid.Column>
-          </Grid.Row>
-          <Grid.Row columns={2}>
-            <Grid.Column>
-              <Step.Group fluid vertical>
-                {stack}
-              </Step.Group>
-            </Grid.Column>
-            <Grid.Column verticalAlign="middle">
-              <Segment><Dimmer active={!done}><Loader disabled={done} active={!done}>Creating...</Loader></Dimmer><Button onClick={() => this.props.onDone(this.state.service)} fluid>Dismiss</Button></Segment>
-            </Grid.Column>
-          </Grid.Row>
-        </Grid>
-      )
-    }
+    return (
+        <Modal open={this.state.open} trigger={this.props.trigger}
+               onOpen={() => this.setState({open: true})}
+               onClose={this.close}>
+          <Modal.Header>Create a Service</Modal.Header>
+          <Modal.Content>
+            <Form as='div'>
+              <Form.Field>
+                <label>Service Name</label>
+                <Input placeholder='name' value={this.state.name} onChange={this.name}/>
+              </Form.Field>
+              <Form.Field>
+                <label>Service Owner</label>
+                <Input placeholder='owner' value={this.state.owner} onChange={this.owner}/>
+              </Form.Field>
+              <Button primary onClick={this.create}>Create</Button>
+              <Button secondary onClick={this.close}>Cancel</Button>
+            </Form>
+          </Modal.Content>
+        </Modal>
+    )
   }
 }
 
@@ -159,7 +145,6 @@ class App extends Component {
     super(props)
     this.state = {
       count: 0,
-      open: false,
       services: []
     }
     this.url = 'http://' + window.location.hostname + ':' + window.location.port
@@ -205,15 +190,6 @@ class App extends Component {
     this.setState({services: this.state.services})
   }
 
-  create() {
-    this.setState({open: true})
-  }
-
-  created(service) {
-    this.setState({open: false})
-    this.update({name: service, owner: 'hodor@org.io', stats: {good: 0.0, bad: 0.0, slow: 0.0}})
-  }
-
   render() {
     let services = []
     for (let srv of this.state.services) {
@@ -241,16 +217,12 @@ class App extends Component {
               <Menu vertical>
                 <Menu.Item name='settings'>Settings</Menu.Item>
                 <Menu.Item name='admin'>Administration</Menu.Item>
-                <Menu.Item name='create' onClick={()=>this.create()}>Create Service</Menu.Item>
+                <CreateService url={this.url} trigger={<Menu.Item name='create'>Create Service</Menu.Item>}/>
                 <Menu.Item name='search'><Input icon='search' placeholder='Search services...'/></Menu.Item>
               </Menu>
             </Grid.Column>
             <Grid.Column width={13}>
               <ServiceGroup>{services}</ServiceGroup>
-              <Modal open={this.state.open}>
-                <Modal.Header>Create a Service</Modal.Header>
-                <Modal.Content><CreateService onDone={(service) => this.created(service)}/></Modal.Content>
-              </Modal>
             </Grid.Column>
           </Grid.Row>
         </Grid>
