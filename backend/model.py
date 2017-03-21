@@ -40,7 +40,8 @@ class Service(object):
         self.stats = Stats(good=0.0, bad=0.0, slow=0.0)
 
     def json(self):
-        return {'name': self.name, 'owner': self.owner, 'stats': self.stats.serialize()}
+        return {'name': self.name, 'owner': self.owner, 'stats': self.stats.serialize(),
+                'tasks': [t.serialize() for t in self.tasks()]}
 
     def add(self, descriptor):
         self.update = descriptor
@@ -60,7 +61,7 @@ class Service(object):
                 if resource not in self.update.resources:
                     yield Task(type='orphan', resource=resource)
             if self.update.artifact != current_artifact:
-                yield Task(type='deploy', resource=s.update.artifact)
+                yield Task(type='deploy', resource=self.update.artifact)
 
     def go(self):
         self.updating = True

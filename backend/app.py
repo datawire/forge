@@ -3,7 +3,7 @@
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, send_from_directory, request, jsonify
+from flask import Flask, send_from_directory, request, jsonify, json
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import time
@@ -83,6 +83,17 @@ def create():
     service = Service(name, owner)
     SERVICES[name] = service
     socketio.emit('dirty', service.json())
+    return ('', 204)
+
+@app.route('/update')
+def update():
+    name = request.args["name"]
+    descriptor = json.loads(request.args["descriptor"])
+    print descriptor
+    artifact = descriptor["artifact"]
+    resources = [Resource(name=r["name"], type=r["type"])
+                 for r in descriptor["resources"]]
+    SERVICES[name].add(Descriptor(artifact=artifact, resources=resources))
     return ('', 204)
 
 @app.route('/get')
