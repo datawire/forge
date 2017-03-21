@@ -3,3 +3,4 @@ flask
 flask-cors
 flask-socketio
 pyrsistent
+yaml
