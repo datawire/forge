@@ -221,6 +221,14 @@ def handle_state(path):
 
     return jsonify(rc.toDict())
 
+@app.route('/feedback', methods=[ 'POST' ])
+def handle_feedback():
+    rc = RichStatus.fromError("unsupported")
+
+    logging.debug("feedback request: %s" % request.get_json(force=True))
+
+    return jsonify(rc.toDict())
+
 def next_num(n):
     return (n + random.uniform(0, 10))*random.uniform(0.9, 1.1)
 
