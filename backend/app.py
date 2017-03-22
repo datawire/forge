@@ -3,6 +3,7 @@
 import eventlet
 eventlet.monkey_patch()
 
+import logging
 from flask import Flask, send_from_directory, request, jsonify, json
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -42,6 +43,18 @@ requires:
     params:
       allocated_storage: 20
 """)
+
+logging.basicConfig(
+    # filename=logPath,
+    level=logging.INFO, # if appDebug else logging.INFO,
+    format="%(asctime)s skunkworks 0.0.1 %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+logging.info("MCP initializing on %s (resolved %s)" % (MyHostName, MyResolvedName))
+
+socketio_logger = logging.getLogger('socketio')
+socketio_logger.setLevel(logging.WARNING)
 
 app = Flask(__name__, static_url_path='')
 CORS(app)
@@ -114,7 +127,7 @@ def background():
         if SERVICES:
             nup = random.randint(0, len(SERVICES))
             for i in range(nup):
-                service = random.choice(SERVICES.values())
+                service = random.choice(list(SERVICES.values()))
                 service.stats = sim(service.stats)
                 socketio.emit('dirty', service.json())
         time.sleep(1.0)
@@ -126,4 +139,4 @@ def setup():
 
 if __name__ == "__main__":
     setup()
-    socketio.run(app, host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
