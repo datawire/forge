@@ -4,11 +4,15 @@ import eventlet
 eventlet.monkey_patch()
 
 import logging
+import socket
+import time
+
+import dpath
+import yaml
+
 from flask import Flask, send_from_directory, request, jsonify, json
 from flask_cors import CORS
 from flask_socketio import SocketIO
-import time
-import yaml
 
 service_spec = yaml.load("""---
 name: hellomd
@@ -44,6 +48,9 @@ requires:
       allocated_storage: 20
 """)
 
+MyHostName = socket.gethostname()
+MyResolvedName = socket.gethostbyname(socket.gethostname())
+
 logging.basicConfig(
     # filename=logPath,
     level=logging.INFO, # if appDebug else logging.INFO,
@@ -72,6 +79,47 @@ from model import *
 
 SERVICES = OrderedDict()
 
+class RichStatus (object):
+    def __init__(self, ok, **kwargs):
+        self.ok = ok
+        self.info = kwargs
+        self.info['hostname'] = MyHostName
+        self.info['resolvedname'] = MyResolvedName
+
+    # Remember that __getattr__ is called only as a last resort if the key
+    # isn't a normal attr.
+    def __getattr__(self, key):
+        return self.info.get(key)
+
+    def __nonzero__(self):
+        return self.ok
+
+    def __str__(self):
+        attrs = ["%=%s" % (key, self.info[key]) for key in sorted(self.info.keys())]
+        astr = " ".join(attrs)
+
+        if astr:
+            astr = " " + astr
+
+        return "<RichStatus %s%s>" % ("OK" if self else "BAD", astr)
+
+    def toDict(self):
+        d = { 'ok': self.ok }
+
+        for key in self.info.keys():
+            d[key] = self.info[key]
+
+        return d
+
+    @classmethod
+    def fromError(self, error, **kwargs):
+        kwargs['error'] = error
+        return RichStatus(False, **kwargs)
+
+    @classmethod
+    def OK(self, **kwargs):
+        return RichStatus(True, **kwargs)
+
 def populate():
     for svc in (Service('auth', 'alice@org.io'),
                 Service('users', 'bob@org.io'),
@@ -88,6 +136,15 @@ def get_deployment(deployment_id):
         'fabric':  {}
     })
 
+
+def dpath_get(obj, glob, default=None):
+    try:
+        return dpath.util.get(obj, glob)
+    except KeyError:
+        return default
+
+def dpath_set(obj, glob, value):
+    return dpath.util.new(obj, glob, value)
 
 @app.route('/create')
 def create():
@@ -112,6 +169,57 @@ def update():
 @app.route('/get')
 def get():
     return (jsonify([s.json() for s in SERVICES.values()]), 200)
+
+STATE = {}
+
+@app.route('/state', methods=[ 'PUT', 'GET' ])
+def handle_state_root():
+    global STATE
+    
+    rc = RichStatus.fromError("impossible error")
+    logging.debug("handle_state_root: method %s" % request.method)
+    
+    rc = RichStatus.fromError("impossible error")
+
+    try:
+        if request.method == 'GET':
+            rc = RichStatus.OK(state=STATE)
+        elif request.method == 'PUT':
+            STATE = request.get_json(force=True)
+
+            logging.debug('state now %s', STATE)
+
+            rc = RichStatus.OK(state=STATE)
+    except Exception as e:
+        rc = RichStatus.fromError("%s all state failed: %s" % (request.method, e))
+
+    return jsonify(rc.toDict())
+
+@app.route('/state/<path:path>', methods=[ 'PUT', 'GET', 'DELETE' ])
+def handle_state(path):
+    rc = RichStatus.fromError("impossible error")
+
+    try:
+        if request.method == 'GET':
+            rc = RichStatus.OK(state=dpath.util.search(STATE, path))
+        elif request.method == 'PUT':
+            value = request.get_json(force=True)
+
+            dpath_set(STATE, path, value)
+
+            logging.debug('state now %s', STATE)
+
+            rc = RichStatus.OK(state=dpath.util.search(STATE, path))
+        elif request.method == 'DELETE':
+            try:
+                dpath.util.delete(STATE, path)
+                rc = RichStatus.OK(deleted=path)
+            except dpath.exceptions.PathNotFound:
+                rc = RichStatus.fromError("path %s not found to delete" % path)
+    except Exception as e:
+        rc = RichStatus.fromError("%s %s failed: %s" % (request.method, path, e))
+
+    return jsonify(rc.toDict())
 
 def next_num(n):
     return (n + random.uniform(0, 10))*random.uniform(0.9, 1.1)
