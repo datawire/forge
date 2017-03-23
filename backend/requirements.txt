@@ -4,3 +4,4 @@ flask-cors
 flask-socketio
 pyrsistent
 pyyaml
+dpath

@@ -1,3 +1,5 @@
+import sys
+
 from pyrsistent import PClass, PRecord, field, pvector_field
 
 """
@@ -8,6 +10,10 @@ registry is to compute the delta between the currently running
 descriptor and the update.
 
 """
+
+if sys.version_info.major == 3:
+    from builtins import str
+    basestring = str
 
 class Resource(PRecord):
     name = field(type=basestring)
@@ -76,10 +82,10 @@ if __name__ == '__main__':
     s = Service("foo", "bar")
     s.add(Descriptor(artifact="v1", resources=[Resource(name='db', type='postgres')]))
     for t in s.tasks():
-        print t
+        print(t)
     s.go()
     s.done()
-    print '--'
+    print('--')
     s.add(Descriptor(artifact="v2", resources=[Resource(name='db', type='redis')]))
     for t in s.tasks():
-        print t
+        print(t)
