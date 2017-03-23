@@ -76,6 +76,17 @@ def get_deployment(deployment_id):
     })
 
 
+GITHUB = []
+
+@app.route('/githook')
+def githook():
+    GITHUB.append(request.json)
+    return ('', 204)
+
+@app.route('/gitevents')
+def gitevents():
+    return (jsonify(GITHUB), 200)
+
 @app.route('/create')
 def create():
     name = request.args["name"]
@@ -88,12 +99,13 @@ def create():
 @app.route('/update')
 def update():
     name = request.args["name"]
+    service = SERVICES[name]
     descriptor = json.loads(request.args["descriptor"])
-    print descriptor
     artifact = descriptor["artifact"]
     resources = [Resource(name=r["name"], type=r["type"])
                  for r in descriptor["resources"]]
-    SERVICES[name].add(Descriptor(artifact=artifact, resources=resources))
+    service.add(Descriptor(artifact=artifact, resources=resources))
+    socketio.emit('dirty', service.json())
     return ('', 204)
 
 @app.route('/get')

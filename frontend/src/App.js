@@ -73,13 +73,14 @@ class CreateService extends Component {
 
 import {RadialChart} from 'react-vis'
 
+const chart = 100
 const rateStyle = {
   position: 'absolute',
-  width: 100,
-  height: 100,
+  width: chart,
+  height: chart,
   textAlign: 'center',
   verticalAlign: 'middle',
-  lineHeight: '100px'
+  lineHeight: chart.toString() + 'px'
 }
 
 function abbrev(mag) {
@@ -119,11 +120,18 @@ class ServiceCard extends Component {
     return (<Card key={this.props.name} raised>
               <Card.Content>
                 <div style={{float: 'right'}}>
-            <Header style={rateStyle}>{rate !== 0 ? format(rate) : "--"}</Header>
-                  <RadialChart width={100} height={100} innerRadius={25} colorType='literal' data={data} />
+                  <Header style={rateStyle}>{rate !== 0 ? format(rate) : "--"}</Header>
+                  <RadialChart width={chart} height={chart} innerRadius={chart/4} colorType='literal' data={data} />
                 </div>
                 <Card.Header>{this.props.name}</Card.Header>
                 <Card.Meta>{this.props.owner}</Card.Meta>
+                <div style={{marginTop: "22px"}}>
+                  <Button.Group>
+                    <Button icon='configure'/>
+                    <Button icon='dashboard'/>
+                    <Button icon='tasks' disabled={this.props.tasks.length === 0}/>
+                  </Button.Group>
+                </div>
               </Card.Content>
             </Card>)
   }
@@ -180,6 +188,7 @@ class App extends Component {
       if (service.name === srv.name) {
         service.owner = srv.owner
         service.stats = srv.stats
+        service.tasks = srv.tasks
         found = true
         break
       }
