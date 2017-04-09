@@ -139,7 +139,7 @@ def get_deployment(deployment_id):
 
 GITHUB = []
 
-@app.route('/githook')
+@app.route('/githook', methods=['POST'])
 def githook():
     GITHUB.append(request.json)
     return ('', 204)
