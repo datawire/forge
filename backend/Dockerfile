@@ -1,7 +1,7 @@
 # Run server
-FROM ubuntu:latest
-RUN apt-get update -y
-RUN apt-get install -y python-pip python-dev build-essential
+FROM alpine:latest
+RUN apk update
+RUN apk add docker python py2-pip py2-gevent
 COPY . /app
 WORKDIR /app
 RUN pip install -r requirements.txt
