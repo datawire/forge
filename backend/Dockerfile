@@ -1,7 +1,7 @@
 # Run server
 FROM alpine:latest
 RUN apk update
-RUN apk add curl python py2-pip py2-gevent
+RUN apk add docker python py2-pip py2-gevent
 COPY . /app
 WORKDIR /app
 RUN pip install -r requirements.txt

@@ -20,7 +20,7 @@ spec:
       - name: docker-directory
         hostPath: {path: /var/lib/docker}
       containers:
-      - image: gcr.io/datawire-sandbox/blackbird:v16
+      - image: gcr.io/datawire-sandbox/blackbird:v17
         imagePullPolicy: IfNotPresent
         name: blackbird
         resources: {}
