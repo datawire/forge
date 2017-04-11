@@ -2,6 +2,7 @@ eventlet
 flask
 flask-cors
 flask-socketio
+requests
 pyrsistent
 pyyaml
 dpath

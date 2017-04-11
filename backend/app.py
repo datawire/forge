@@ -9,6 +9,7 @@ import time
 
 import dpath
 import yaml
+import requests
 
 from flask import Flask, send_from_directory, request, jsonify, json
 from flask_cors import CORS
@@ -48,8 +49,12 @@ requires:
       allocated_storage: 20
 """)
 
-MyHostName = socket.gethostname()
-MyResolvedName = socket.gethostbyname(socket.gethostname())
+try:
+    MyHostName = socket.gethostname()
+    MyResolvedName = socket.gethostbyname(socket.gethostname())
+except socket.gaierror:
+    MyHostName = "unknown"
+    MyResolvedName = "unknown"
 
 logging.basicConfig(
     # filename=logPath,
@@ -120,13 +125,24 @@ class RichStatus (object):
     def OK(self, **kwargs):
         return RichStatus(True, **kwargs)
 
-def populate():
+def populate2():
     for svc in (Service('auth', 'alice@org.io'),
                 Service('users', 'bob@org.io'),
                 Service('search', 'carol@org.io'),
                 Service('ratings', 'dan@org.io')):
         SERVICES[svc.name] = svc
 
+def populate():
+    SERVICES.clear()
+    r = requests.get("https://api.github.com/orgs/twitface/repos")
+    json = r.json()
+    print json
+    for repo in json:
+        name = repo["name"]
+        clone_url = repo["clone_url"]
+        owner = repo["owner"]["login"]
+        svc = Service(name, owner)
+        SERVICES[svc.name] = svc
 
 @app.route("/deployments/<deployment_id>")
 def get_deployment(deployment_id):
@@ -142,10 +158,12 @@ GITHUB = []
 @app.route('/githook', methods=['POST'])
 def githook():
     GITHUB.append(request.json)
+    populate()
     return ('', 204)
 
 @app.route('/gitevents')
 def gitevents():
+    populate()
     return (jsonify(GITHUB), 200)
 
 def dpath_get(obj, glob, default=None):
