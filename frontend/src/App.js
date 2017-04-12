@@ -172,6 +172,9 @@ class App extends Component {
     this.socket.on('dirty', (srv) => {
       this.update(srv)
     })
+    this.socket.on('deleted', (srv) => {
+      this.deleted(srv)
+    })
 
     fetch(this.url + '/get')
       .then((response) => response.json())
@@ -180,6 +183,16 @@ class App extends Component {
           this.update(svc)
         }
       })
+  }
+
+  deleted(srv) {
+    let services = []
+    for (let service of this.state.services) {
+      if (service.name !== srv.name) {
+        services.push(service)
+      }
+    }
+    this.setState({services: services})
   }
 
   update(srv) {
