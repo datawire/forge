@@ -102,6 +102,7 @@ def sync():
             socketio.emit('deleted', svc.json())
             shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
 
+    redeploy = []
     for svc in new.values():
         SERVICES[svc.name] = svc
         socketio.emit('dirty', svc.json())
@@ -113,6 +114,9 @@ def sync():
         else:
             result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
         if result.code: continue
+        redeploy.append((svc, wdir))
+
+    for svc, wdir in redeploy:
         deploy(svc, wdir)
 
 def deploy(svc, wdir):

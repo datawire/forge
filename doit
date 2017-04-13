@@ -22,8 +22,9 @@ base = os.path.abspath(os.path.dirname(__file__))
 backend = os.path.join(base, "backend")
 frontend = os.path.join(base, "frontend")
 
-run(frontend, "npm run build")
-run(base, "rm -rf backend/static/* && cp -r frontend/build/* backend/static")
+if len(sys.argv) > 1 and sys.argv[1] != "backend":
+    run(frontend, "npm run build")
+    run(base, "rm -rf backend/static/* && cp -r frontend/build/* backend/static")
 
 deployment = os.path.join(backend, "deployment.yaml")
 metadata = os.path.join(base, "metadata.yaml")
