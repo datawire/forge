@@ -8,12 +8,27 @@ import socket
 import time
 
 import dpath
-import yaml
+import os
 import requests
+import shutil
+import yaml, collections
 
 from flask import Flask, send_from_directory, request, jsonify, json
 from flask_cors import CORS
 from flask_socketio import SocketIO
+
+import util
+
+_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
+
+def dict_representer(dumper, data):
+    return dumper.represent_dict(data.iteritems())
+
+def dict_constructor(loader, node):
+    return collections.OrderedDict(loader.construct_pairs(node))
+
+yaml.add_representer(collections.OrderedDict, dict_representer)
+yaml.add_constructor(_mapping_tag, dict_constructor)
 
 try:
     MyHostName = socket.gethostname()
@@ -48,6 +63,9 @@ from collections import OrderedDict
 from model import *
 
 SERVICES = OrderedDict()
+WORK = os.path.join(os.path.dirname(__file__), "work")
+
+LOG = util.Worker()
 
 def sync():
     r = requests.get("https://api.github.com/orgs/twitface/repos")
@@ -58,15 +76,52 @@ def sync():
         clone_url = repo["clone_url"]
         owner = repo["owner"]["login"]
         svc = Service(name, owner)
+        svc.clone_url = clone_url
         new[svc.name] = svc
 
     for svc in SERVICES.values()[:]:
         if svc.name not in new:
             del SERVICES[svc.name]
             socketio.emit('deleted', svc.json())
+            shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
+
     for svc in new.values():
         SERVICES[svc.name] = svc
         socketio.emit('dirty', svc.json())
+        if not os.path.exists(WORK):
+            os.makedirs(WORK)
+        wdir = os.path.join(WORK, svc.name)
+        if (os.path.exists(wdir)):
+            result = LOG.call("git", "pull", cwd=wdir)
+        else:
+            result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
+        if result.code: continue
+        deploy(svc, wdir)
+
+def deploy(svc, wdir):
+    result = LOG.call("git", "rev-parse", "HEAD", cwd=wdir)
+    if result.code: return
+    svc.version = result.output.strip()
+    if (os.path.exists(os.path.join(wdir, "Dockerfile"))):
+        image = "gcr.io/datawire-sandbox/%s:%s" % (svc.name, svc.version)
+        result = LOG.call("docker", "build", ".", "-t", image, cwd=wdir)
+        if result.code: return
+        pwfile = os.environ.get("DOCKER_PASSWORD_FILE", "/etc/docker_password")
+        LOG.call("docker", "login", "-u", "_json_key", "-p", open(pwfile).read(), "https://us.gcr.io")
+        result = LOG.call("docker", "push", image)
+        if result.code: return
+        svc.image = image
+        deployment = os.path.join(wdir, "deployment")
+        if (os.path.exists(deployment)):
+            metadata = os.path.join(wdir, "metadata.yaml")
+            with open(metadata, "write") as f:
+                yaml.dump(svc.json(), f)
+            result = LOG.call("./deployment", "metadata.yaml", cwd=wdir)
+            if result.code: return
+            deployment_yaml = os.path.join(wdir, "deployment.yaml")
+            with open(deployment_yaml, "write") as y:
+                y.write(result.output)
+            result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
 
 GITHUB = []
 
@@ -80,6 +135,10 @@ def githook():
 def gitevents():
     sync()
     return (jsonify(GITHUB), 200)
+
+@app.route('/worklog')
+def worklog():
+    return (jsonify([r.json() for r in LOG.log]), 200)
 
 @app.route('/create')
 def create():
@@ -113,6 +172,7 @@ def sim(stats):
     return Stats(good=next_num(stats.good), bad=0.5*next_num(stats.bad), slow=0.5*next_num(stats.slow))
 
 def background():
+    sync()
     count = 0
     while True:
         count = count + 1
@@ -126,7 +186,6 @@ def background():
         time.sleep(1.0)
 
 def setup():
-    sync()
     print('spawning')
     eventlet.spawn(background)
 

@@ -43,10 +43,16 @@ class Service(object):
         # the target descriptor
         self.update = None
         self.updating = False
+        self.clone_url = None
+        self.version = None
+        self.image = None
         self.stats = Stats(good=0.0, bad=0.0, slow=0.0)
 
     def json(self):
-        return {'name': self.name, 'owner': self.owner, 'stats': self.stats.serialize(),
+        return {'name': self.name, 'owner': self.owner,
+                'clone_url': self.clone_url, 'version': self.version,
+                'image': self.image,
+                'stats': self.stats.serialize(),
                 'tasks': [t.serialize() for t in self.tasks()]}
 
     def add(self, descriptor):
