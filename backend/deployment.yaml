@@ -19,10 +19,10 @@ spec:
         hostPath: {path: /var/run/docker.sock}
       - name: docker-directory
         hostPath: {path: /var/lib/docker}
-      - name: docker_password
-        secret: {secretName: docker.password}
+      - name: docker-password
+        secret: {secretName: docker-password}
       containers:
-      - image: gcr.io/datawire-sandbox/blackbird:v19
+      - image: gcr.io/datawire-sandbox/blackbird:v22
         imagePullPolicy: IfNotPresent
         name: blackbird
         resources: {}
@@ -30,7 +30,7 @@ spec:
         volumeMounts:
         - {mountPath: /var/run/docker.sock, name: docker-sock, readOnly: false}
         - {mountPath: /var/lib/docker, name: docker-directory, readOnly: false}
-        - {mountPath: /etc/docker_password, name: docker_password, readOnly: True}
+        - {mountPath: /etc/docker_password, name: docker-password, readOnly: true}
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
