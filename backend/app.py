@@ -133,8 +133,12 @@ def githook():
 
 @app.route('/gitevents')
 def gitevents():
-    sync()
     return (jsonify(GITHUB), 200)
+
+@app.route('/sync')
+def do_sync():
+    sync()
+    return ('', 204)
 
 @app.route('/worklog')
 def worklog():
