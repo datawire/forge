@@ -22,7 +22,7 @@ spec:
       - name: docker-password
         secret: {secretName: docker-password}
       containers:
-      - image: gcr.io/datawire-sandbox/blackbird:v27
+      - image: gcr.io/datawire-sandbox/blackbird:v28
         imagePullPolicy: IfNotPresent
         name: blackbird
         env:
