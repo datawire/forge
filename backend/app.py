@@ -67,6 +67,23 @@ WORK = os.path.join(os.path.dirname(__file__), "work")
 
 LOG = util.Worker()
 
+import sys
+from eventlet.queue import Queue
+
+SYNC_QUEUE = Queue()
+
+def worker():
+    while True:
+        reason = SYNC_QUEUE.get()
+        try:
+            logging.info("waking up because %s" % reason)
+            sync()
+        except:
+            print sys.exc_info()
+
+def trigger(reason):
+    SYNC_QUEUE.put(reason)
+
 def sync():
     r = requests.get("https://api.github.com/orgs/twitface/repos")
     json = r.json()
@@ -128,7 +145,7 @@ GITHUB = []
 @app.route('/githook', methods=['POST'])
 def githook():
     GITHUB.append(request.json)
-    sync()
+    trigger('github hook')
     return ('', 204)
 
 @app.route('/gitevents')
@@ -137,7 +154,7 @@ def gitevents():
 
 @app.route('/sync')
 def do_sync():
-    sync()
+    trigger('manual trigger')
     return ('', 204)
 
 @app.route('/worklog')
@@ -176,7 +193,7 @@ def sim(stats):
     return Stats(good=next_num(stats.good), bad=0.5*next_num(stats.bad), slow=0.5*next_num(stats.slow))
 
 def background():
-    sync()
+    trigger('startup')
     count = 0
     while True:
         count = count + 1
@@ -192,6 +209,7 @@ def background():
 def setup():
     print('spawning')
     eventlet.spawn(background)
+    eventlet.spawn(worker)
 
 if __name__ == "__main__":
     setup()
