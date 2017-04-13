@@ -22,15 +22,17 @@ spec:
       - name: docker-password
         secret: {secretName: docker-password}
       containers:
-      - image: gcr.io/datawire-sandbox/blackbird:v22
+      - image: gcr.io/datawire-sandbox/blackbird:v25
         imagePullPolicy: IfNotPresent
         name: blackbird
+        env:
+        - {name: DOCKER_API_VERSION, value: '1.12'}
         resources: {}
         securityContext: {privileged: true}
         volumeMounts:
         - {mountPath: /var/run/docker.sock, name: docker-sock, readOnly: false}
         - {mountPath: /var/lib/docker, name: docker-directory, readOnly: false}
-        - {mountPath: /etc/docker_password, name: docker-password, readOnly: true}
+        - {mountPath: /etc/secrets, name: docker-password, readOnly: true}
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always

@@ -106,7 +106,7 @@ def deploy(svc, wdir):
         image = "gcr.io/datawire-sandbox/%s:%s" % (svc.name, svc.version)
         result = LOG.call("docker", "build", ".", "-t", image, cwd=wdir)
         if result.code: return
-        pwfile = os.environ.get("DOCKER_PASSWORD_FILE", "/etc/docker_password")
+        pwfile = os.environ.get("DOCKER_PASSWORD_FILE", "/etc/secrets/docker_password")
         LOG.call("docker", "login", "-u", "_json_key", "-p", open(pwfile).read(), "https://us.gcr.io")
         result = LOG.call("docker", "push", image)
         if result.code: return
