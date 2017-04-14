@@ -31,7 +31,7 @@ if len(sys.argv) > 1 and sys.argv[1] != "backend":
     run(base, "rm -rf backend/static/* && cp -r frontend/build/* backend/static")
 
 deployment = os.path.join(backend, "deployment.yaml")
-version = call("git", "rev-parse", "HEAD")
+version = call("git", "rev-parse", "HEAD").strip()
 image = "gcr.io/datawire-sandbox/blackbird:%s" % version
 
 run(backend, "docker build . -t %s" % image)
