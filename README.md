@@ -11,9 +11,10 @@ controller.
 
 ### Deploying
 
-The `doit` script has the code necessary to deploy the local code into
-whatever kubernetes cluster your kubectl happens to be point at. NOTE:
-This will create/overwrite a deployment and a service named blackbird.
+The `deploy` script has the code necessary to deploy the local code
+into whatever kubernetes cluster your kubectl happens to be point at.
+
+NOTE: This will create/overwrite a deployment and a service named blackbird.
 
 ### Running the frontend locally:
 
