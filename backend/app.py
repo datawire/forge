@@ -67,7 +67,7 @@ WORK = os.path.join(os.path.dirname(__file__), "work")
 
 LOG = util.Worker()
 
-import sys
+import sys, traceback
 from eventlet.queue import Queue
 
 SYNC_QUEUE = Queue()
@@ -79,7 +79,7 @@ def worker():
             logging.info("waking up because %s" % reason)
             sync()
         except:
-            print sys.exc_info()
+            logging.error("ERROR: %s" % traceback.format_exc())
 
 def trigger(reason):
     SYNC_QUEUE.put(reason)
