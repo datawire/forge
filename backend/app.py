@@ -101,6 +101,8 @@ def sync():
             del SERVICES[svc.name]
             socketio.emit('deleted', svc.json())
             shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
+        else:
+            new[svc.name] = svc.stats
 
     redeploy = []
     for svc in new.values():
