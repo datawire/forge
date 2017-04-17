@@ -79,7 +79,7 @@ def worker():
             logging.info("waking up because %s" % reason)
             sync()
         except:
-            logging.error("ERROR: %s" % traceback.format_exc())
+            logging.error(traceback.format_exc())
 
 def trigger(reason):
     SYNC_QUEUE.put(reason)
@@ -117,6 +117,8 @@ def sync():
             if result.code:
                 shutil.rmtree(wdir, ignore_errors=True)
                 clone = True
+        else:
+            clone = True
         if clone:
             result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
         if result.code: continue
