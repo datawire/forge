@@ -17,8 +17,6 @@ from flask import Flask, send_from_directory, request, jsonify, json
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-import util
-
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 def dict_representer(dumper, data):
@@ -58,14 +56,14 @@ socketio = SocketIO(app)
 def root():
     return send_from_directory('static', 'index.html')
 
-import random
+import random, workstream
 from collections import OrderedDict
 from model import *
 
 SERVICES = OrderedDict()
 WORK = os.path.join(os.path.dirname(__file__), "work")
 
-LOG = util.Worker()
+LOG = workstream.Workstream()
 
 import sys, traceback
 from eventlet.queue import Queue
@@ -194,7 +192,7 @@ def do_sync():
 
 @app.route('/worklog')
 def worklog():
-    return (jsonify([r.json() for r in LOG.log]), 200)
+    return (jsonify(LOG.json()), 200)
 
 @app.route('/create')
 def create():
