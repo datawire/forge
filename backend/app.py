@@ -111,9 +111,13 @@ def sync():
         if not os.path.exists(WORK):
             os.makedirs(WORK)
         wdir = os.path.join(WORK, svc.name)
+        clone = False
         if (os.path.exists(wdir)):
             result = LOG.call("git", "pull", cwd=wdir)
-        else:
+            if result.code:
+                shutil.rmtree(wdir, ignore_errors=True)
+                clone = True
+        if clone:
             result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
         if result.code: continue
         redeploy.append((svc, wdir))
