@@ -127,30 +127,53 @@ def sync():
     for svc, wdir in redeploy:
         deploy(svc, wdir)
 
+def dockerize(name, version, source, wdir):
+    dockerfile = os.path.join(wdir, source)
+    base = os.path.dirname(dockerfile)
+
+    image = "gcr.io/datawire-sandbox/%s:%s" % (name, version)
+    result = LOG.call("docker", "build", ".", "-t", image, cwd=base)
+    if result.code: return None
+    pwfile = os.environ.get("DOCKER_PASSWORD_FILE", "/etc/secrets/docker_password")
+    LOG.call("docker", "login", "-u", "_json_key", "-p", open(pwfile).read(), "gcr.io")
+    result = LOG.call("docker", "push", image)
+    if result.code: return None
+    return image
+
 def deploy(svc, wdir):
     result = LOG.call("git", "rev-parse", "HEAD", cwd=wdir)
     if result.code: return
     svc.version = result.output.strip()
-    if (os.path.exists(os.path.join(wdir, "Dockerfile"))):
-        image = "gcr.io/datawire-sandbox/%s:%s" % (svc.name, svc.version)
-        result = LOG.call("docker", "build", ".", "-t", image, cwd=wdir)
+    svc_yaml = os.path.join(wdir, "service.yaml")
+    if os.path.exists(svc_yaml):
+        with open(svc_yaml) as f:
+            svc_info = yaml.load(f)
+    else:
+        svc_info = {"containers": [{"name": svc.name, "source": "Dockerfile"}]}
+
+    containers = svc_info["containers"]
+
+    images = OrderedDict()
+    for info in containers:
+        logging.info("dockerizing %s" % info)
+        image = dockerize(info["name"], svc.version, info["source"], wdir)
+        if image is None:
+            return
+        images[info["name"]] = image
+
+    svc.images = images
+
+    deployment = os.path.join(wdir, "deployment")
+    if (os.path.exists(deployment)):
+        metadata = os.path.join(wdir, "metadata.yaml")
+        with open(metadata, "write") as f:
+            yaml.dump(svc.json(), f)
+        result = LOG.call("./deployment", "metadata.yaml", cwd=wdir)
         if result.code: return
-        pwfile = os.environ.get("DOCKER_PASSWORD_FILE", "/etc/secrets/docker_password")
-        LOG.call("docker", "login", "-u", "_json_key", "-p", open(pwfile).read(), "gcr.io")
-        result = LOG.call("docker", "push", image)
-        if result.code: return
-        svc.image = image
-        deployment = os.path.join(wdir, "deployment")
-        if (os.path.exists(deployment)):
-            metadata = os.path.join(wdir, "metadata.yaml")
-            with open(metadata, "write") as f:
-                yaml.dump(svc.json(), f)
-            result = LOG.call("./deployment", "metadata.yaml", cwd=wdir)
-            if result.code: return
-            deployment_yaml = os.path.join(wdir, "deployment.yaml")
-            with open(deployment_yaml, "write") as y:
-                y.write(result.output)
-            result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
+        deployment_yaml = os.path.join(wdir, "deployment.yaml")
+        with open(deployment_yaml, "write") as y:
+            y.write(result.output)
+        result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
 
 GITHUB = []
 
