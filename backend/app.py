@@ -177,8 +177,7 @@ def deploy(svc, wdir):
         result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
 
     if "prefix" in svc_info:
-        ambassador_url = "http://%s:%s/ambassador/%s" % (os.environ["AMBASSADOR_SERVICE_HOST"],
-                                                         os.environ["AMBASSADOR_SERVICE_PORT"])
+        ambassador_url = "http://%s:%s" % (os.environ["AMBASSADOR_SERVICE_HOST"], os.environ["AMBASSADOR_SERVICE_PORT"])
         LOG.call("curl", "-XPOST",
                  "-H", "Content-Type: application/json",
                  "-d", '{ "prefix": "/%s/" }' % svc_info["prefix"],
