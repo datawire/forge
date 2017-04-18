@@ -63,7 +63,10 @@ from model import *
 SERVICES = OrderedDict()
 WORK = os.path.join(os.path.dirname(__file__), "work")
 
-LOG = workstream.Workstream()
+def emitwork():
+    socketio.emit('work', LOG.json())
+
+LOG = workstream.Workstream(emitwork)
 
 import sys, traceback
 from eventlet.queue import Queue

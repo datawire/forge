@@ -4,7 +4,7 @@ import "../node_modules/react-vis/dist/style.css"
 import "../semantic/dist/semantic.min.css"
 import io from 'socket.io-client'
 
-import { Form, Image, Header, Card, Grid, Menu, Button, Icon, Input, Modal, Message } from 'semantic-ui-react'
+import { Accordion, Segment, Form, Image, Header, Card, Grid, Menu, Button, Icon, Input, Modal, Message } from 'semantic-ui-react'
 
 class CreateService extends Component {
 
@@ -153,12 +153,15 @@ class App extends Component {
     super(props)
     this.state = {
       count: 0,
-      services: []
+      services: [],
+      worklog: []
     }
     this.url = 'http://' + window.location.hostname + ':' + window.location.port
     if (process.env.NODE_ENV === 'development') {
       this.url = process.env.REACT_APP_BLACKBIRD_RTM
     }
+    this.poll = this.poll.bind(this)
+    this.on_poll = this.on_poll.bind(this)
   }
 
   componentDidMount() {
@@ -175,6 +178,9 @@ class App extends Component {
     this.socket.on('deleted', (srv) => {
       this.deleted(srv)
     })
+    this.socket.on('work', (log) => {
+      this.on_poll(log)
+    })
 
     fetch(this.url + '/get')
       .then((response) => response.json())
@@ -183,6 +189,22 @@ class App extends Component {
           this.update(svc)
         }
       })
+
+    this.poll()
+  }
+
+  poll() {
+    let url = this.url + '/worklog'
+    fetch(url)
+      .then((response) => response.json())
+      .then((result) => this.on_poll(result))
+  }
+
+  on_poll(result) {
+    if (result.length > 10) {
+      result = result.slice(result.length - 10, result.length)
+    }
+    this.setState({worklog: result})
   }
 
   deleted(srv) {
@@ -218,6 +240,11 @@ class App extends Component {
       services.push(<ServiceCard key={srv.name} {...srv}/>)
     }
 
+    let panels = [];
+    for (let item of this.state.worklog) {
+      panels.push({title: item.command.join(' '), content: item.output})
+    }
+
     let on = this.state.count % 2 === 0
     return (
       <div className="App">
@@ -242,6 +269,9 @@ class App extends Component {
                 <CreateService url={this.url} trigger={<Menu.Item name='create'>Create Service</Menu.Item>}/>
                 <Menu.Item name='search'><Input icon='search' placeholder='Search services...'/></Menu.Item>
               </Menu>
+              <Segment inverted>
+                <Accordion panels={panels} fluid inverted/>
+              </Segment>
             </Grid.Column>
             <Grid.Column width={13}>
               <ServiceGroup>{services}</ServiceGroup>

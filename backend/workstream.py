@@ -9,11 +9,17 @@ class Workitem(object):
     def pending(self):
         assert False, "must override"
 
+def elide(t):
+    if "PRIVATE" in t:
+        return "ELIDED"
+    else:
+        return t
+
 class Command(Workitem):
 
     def __init__(self, stream, command, context):
         Workitem.__init__(self, stream)
-        self.command = command
+        self.command = tuple(elide(t) for t in command)
         self.context = context
         self.created = time.time()
         self.started = None
