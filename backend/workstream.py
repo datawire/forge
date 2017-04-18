@@ -49,6 +49,7 @@ class Command(Workitem):
         p = Popen(self.command, stderr=STDOUT, stdout=PIPE, **self.context)
         for line in p.stdout:
             self.update(line)
+        p.wait()
         self.finish(p.returncode)
 
     def json(self):
