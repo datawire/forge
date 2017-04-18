@@ -147,7 +147,10 @@ def deploy(svc, wdir):
         with open(svc_yaml) as f:
             svc_info = yaml.load(f)
     else:
-        svc_info = {"containers": [{"name": svc.name, "source": "Dockerfile"}]}
+        svc_info = OrderedDict()
+
+    if "containers" not in svc_info:
+        svc_info["containers"] = [{"name": svc.name, "source": "Dockerfile"}]
 
     containers = svc_info["containers"]
 
@@ -172,6 +175,14 @@ def deploy(svc, wdir):
         with open(deployment_yaml, "write") as y:
             y.write(result.output)
         result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
+
+    if "prefix" in svc_info:
+        ambassador_url = "http://%s:%s/ambassador/%s" % (os.environ["AMBASSADOR_SERVICE_HOST"],
+                                                         os.environ["AMBASSADOR_SERVICE_PORT"])
+        LOG.call("curl", "-XPOST",
+                 "-H", "Content-Type: application/json",
+                 "-d", '{ "prefix": "/%s/" }' % svc_info["prefix"],
+                 "%s/ambassador/service/%s" % (ambassador_url, svc.name))
 
 GITHUB = []
 
