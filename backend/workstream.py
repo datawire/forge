@@ -19,7 +19,7 @@ class Command(Workitem):
 
     def __init__(self, stream, command, context):
         Workitem.__init__(self, stream)
-        self.command = tuple(elide(t) for t in command)
+        self.command = command
         self.context = context
         self.created = time.time()
         self.started = None
@@ -59,7 +59,7 @@ class Command(Workitem):
         self.finish(p.returncode)
 
     def json(self):
-        return {"command": self.command,
+        return {"command": tuple(elide(t) for t in self.command),
                 "context": self.context,
                 "code": self.code,
                 "output": self.output,
