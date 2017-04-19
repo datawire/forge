@@ -44,8 +44,9 @@ logging.basicConfig(
 
 logging.info("blackbird initializing on %s (resolved %s)" % (MyHostName, MyResolvedName))
 
-socketio_logger = logging.getLogger('socketio')
-socketio_logger.setLevel(logging.WARNING)
+NOISY = ('socketio', 'engineio')
+for n in NOISY:
+    logging.getLogger(n).setLevel(logging.WARNING)
 
 app = Flask(__name__, static_url_path='')
 CORS(app)
@@ -62,6 +63,8 @@ from model import *
 
 SERVICES = OrderedDict()
 WORK = os.path.join(os.path.dirname(__file__), "work")
+with open(os.environ.get("DOCKER_PASSWORD_FILE", "/etc/secrets/docker_password")) as f:
+    DOCKER_PASSWORD = f.read()
 
 def emitwork():
     socketio.emit('work', LOG.json())
@@ -87,9 +90,9 @@ def trigger(reason):
 
 def sync():
     r = requests.get("https://api.github.com/orgs/twitface/repos")
-    json = r.json()
+    repos = r.json()
     new = OrderedDict()
-    for repo in json:
+    for repo in repos:
         name = repo["name"]
         clone_url = repo["clone_url"]
         owner = repo["owner"]["login"]
@@ -123,28 +126,59 @@ def sync():
         if clone:
             result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
         if result.code: continue
+
         redeploy.append((svc, wdir))
 
     for svc, wdir in redeploy:
         deploy(svc, wdir)
 
+def image_exists(name, version):
+    result = LOG.call("curl", "-s", "-u", "_json_key:%s" % DOCKER_PASSWORD,
+                      "https://gcr.io/v2/datawire-sandbox/%s/manifests/%s" % (name, version))
+    if result.code: return False
+    stuff = json.loads(result.output)
+    if "errors" in stuff and stuff["errors"][0]["code"] == "MANIFEST_UNKNOWN":
+        return False
+    return True
+
 def dockerize(name, version, source, wdir):
     dockerfile = os.path.join(wdir, source)
     base = os.path.dirname(dockerfile)
-
     image = "gcr.io/datawire-sandbox/%s:%s" % (name, version)
+    logging.info("%s exists" % image)
+    if image_exists(name, version): return image
+
+    logging.info("dockerizing %s, %s -> %s" % (name, version, image))
+    if not os.path.exists(dockerfile):
+        logging.error("no such file: %s" % source)
+        return None
+
     result = LOG.call("docker", "build", ".", "-t", image, cwd=base)
     if result.code: return None
-    pwfile = os.environ.get("DOCKER_PASSWORD_FILE", "/etc/secrets/docker_password")
-    LOG.call("docker", "login", "-u", "_json_key", "-p", open(pwfile).read(), "gcr.io")
+    LOG.call("docker", "login", "-u", "_json_key", "-p", DOCKER_PASSWORD, "gcr.io")
     result = LOG.call("docker", "push", image)
     if result.code: return None
     return image
+
+AMBASSADOR_URL = "http://%s:%s" % (os.environ["AMBASSADOR_SERVICE_HOST"], os.environ["AMBASSADOR_SERVICE_PORT"])
+
+def route_exists(name, prefix):
+    result = LOG.call("curl", "-s", "%s/ambassador/service/%s" % (AMBASSADOR_URL, name))
+    if result.code:
+        return False
+    stuff = json.loads(result.output)
+    return stuff["ok"]
+
+def create_route(name, prefix):
+    LOG.call("curl", "-s", "-XPOST", "-H", "Content-Type: application/json",
+             "-d", '{ "prefix": "/%s/" }' % prefix,
+             "%s/ambassador/service/%s" % (AMBASSADOR_URL, name))
 
 def deploy(svc, wdir):
     result = LOG.call("git", "rev-parse", "HEAD", cwd=wdir)
     if result.code: return
     svc.version = result.output.strip()
+
     svc_yaml = os.path.join(wdir, "service.yaml")
     if os.path.exists(svc_yaml):
         with open(svc_yaml) as f:
@@ -159,7 +193,6 @@ def deploy(svc, wdir):
 
     images = OrderedDict()
     for info in containers:
-        logging.info("dockerizing %s" % info)
         image = dockerize(info["name"], svc.version, info["source"], wdir)
         if image is None:
             return
@@ -180,11 +213,9 @@ def deploy(svc, wdir):
         result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
 
     if "prefix" in svc_info:
-        ambassador_url = "http://%s:%s" % (os.environ["AMBASSADOR_SERVICE_HOST"], os.environ["AMBASSADOR_SERVICE_PORT"])
-        LOG.call("curl", "-XPOST",
-                 "-H", "Content-Type: application/json",
-                 "-d", '{ "prefix": "/%s/" }' % svc_info["prefix"],
-                 "%s/ambassador/service/%s" % (ambassador_url, svc.name))
+        name, prefix = svc.name, svc_info["prefix"]
+        if not route_exists(name, prefix):
+            create_route(name, prefix)
 
 GITHUB = []
 
@@ -259,4 +290,4 @@ def setup():
 
 if __name__ == "__main__":
     setup()
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000)
