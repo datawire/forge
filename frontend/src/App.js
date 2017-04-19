@@ -153,6 +153,7 @@ class App extends Component {
     super(props)
     this.state = {
       count: 0,
+      tab: 'services',
       services: [],
       worklog: []
     }
@@ -234,6 +235,10 @@ class App extends Component {
     this.setState({services: this.state.services})
   }
 
+  setTab(tab) {
+    this.setState({tab: tab})
+  }
+
   render() {
     let services = []
     for (let srv of this.state.services) {
@@ -242,7 +247,14 @@ class App extends Component {
 
     let panels = [];
     for (let item of this.state.worklog) {
-      panels.push({title: item.command.join(' '), content: item.output})
+      panels.push({key: panels.length.toString(), title: item.command.join(' '), content: item.output})
+    }
+
+    var tab;
+    if (this.state.tab === 'services') {
+      tab = (<ServiceGroup>{services}</ServiceGroup>)
+    } else {
+      tab = (<Segment inverted><Accordion panels={panels} fluid inverted/></Segment>)
     }
 
     let on = this.state.count % 2 === 0
@@ -269,12 +281,13 @@ class App extends Component {
                 <CreateService url={this.url} trigger={<Menu.Item name='create'>Create Service</Menu.Item>}/>
                 <Menu.Item name='search'><Input icon='search' placeholder='Search services...'/></Menu.Item>
               </Menu>
-              <Segment inverted>
-                <Accordion panels={panels} fluid inverted/>
-              </Segment>
             </Grid.Column>
             <Grid.Column width={13}>
-              <ServiceGroup>{services}</ServiceGroup>
+              <Menu attached='top' tabular>
+                <Menu.Item name='services' active={this.state.tab === 'services'} onClick={() => this.setTab('services')}/>
+                <Menu.Item name='log' active={this.state.tab === 'log'} onClick={() => this.setTab('log')}/>
+              </Menu>
+              <Segment attached='bottom'>{tab}</Segment>
             </Grid.Column>
           </Grid.Row>
         </Grid>

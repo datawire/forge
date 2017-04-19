@@ -39,8 +39,8 @@ run(backend, "docker push %s" % image)
 
 with open(deployment) as f:
     reified = f.read().replace("__IMAGE__", image)
-    with open(kube, "write") as f:
-        f.write(reified)
+with open(kube, "write") as f:
+    f.write(reified)
 
 print "deploying %s" % image
 run(backend, "kubectl apply -f %s" % kube)
