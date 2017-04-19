@@ -202,9 +202,6 @@ class App extends Component {
   }
 
   on_poll(result) {
-    if (result.length > 10) {
-      result = result.slice(result.length - 10, result.length)
-    }
     this.setState({worklog: result})
   }
 
@@ -254,7 +251,7 @@ class App extends Component {
     if (this.state.tab === 'services') {
       tab = (<ServiceGroup>{services}</ServiceGroup>)
     } else {
-      tab = (<Segment inverted><Accordion panels={panels} fluid inverted/></Segment>)
+      tab = (<div style={{overflow: 'scroll', height: '78vh'}}><Segment inverted><Accordion panels={panels} fluid inverted/></Segment></div>)
     }
 
     let on = this.state.count % 2 === 0
