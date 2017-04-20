@@ -74,21 +74,21 @@ LOG = workstream.Workstream(emitwork)
 import sys, traceback
 from eventlet.queue import Queue
 
-SYNC_QUEUE = Queue()
+WORK_QUEUE = Queue()
 
 def worker():
     while True:
-        reason = SYNC_QUEUE.get()
         try:
-            logging.info("waking up because %s" % reason)
-            sync()
+            fun, args = WORK_QUEUE.get()
+            logging.info("dispatching %s(%s)" % (fun.__name__, ", ".join(repr(a) for a in args)))
+            fun(*args)
         except:
             logging.error(traceback.format_exc())
 
-def trigger(reason):
-    SYNC_QUEUE.put(reason)
+def schedule(fun, *args):
+    WORK_QUEUE.put((fun, args))
 
-def sync():
+def sync(reason):
     r = requests.get("https://api.github.com/orgs/twitface/repos")
     repos = r.json()
     new = OrderedDict()
@@ -222,7 +222,7 @@ GITHUB = []
 @app.route('/githook', methods=['POST'])
 def githook():
     GITHUB.append(request.json)
-    trigger('github hook')
+    schedule(sync, 'github hook')
     return ('', 204)
 
 @app.route('/gitevents')
@@ -231,7 +231,7 @@ def gitevents():
 
 @app.route('/sync')
 def do_sync():
-    trigger('manual trigger')
+    schedule(sync, 'manual sync')
     return ('', 204)
 
 @app.route('/worklog')
@@ -270,7 +270,7 @@ def sim(stats):
     return Stats(good=next_num(stats.good), bad=0.5*next_num(stats.bad), slow=0.5*next_num(stats.slow))
 
 def background():
-    trigger('startup')
+    schedule(sync, 'startup')
     count = 0
     while True:
         count = count + 1
