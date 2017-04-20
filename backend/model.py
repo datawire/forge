@@ -48,6 +48,9 @@ class Service(object):
         self.images = None
         self.stats = Stats(good=0.0, bad=0.0, slow=0.0)
 
+    def __repr__(self):
+        return self.name
+
     def json(self):
         return {'name': self.name, 'owner': self.owner,
                 'clone_url': self.clone_url, 'version': self.version,

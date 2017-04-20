@@ -176,8 +176,8 @@ class App extends Component {
     this.socket.on('dirty', (srv) => {
       this.update(srv)
     })
-    this.socket.on('deleted', (srv) => {
-      this.deleted(srv)
+    this.socket.on('deleted', (name) => {
+      this.deleted(name)
     })
     this.socket.on('work', (log) => {
       this.on_poll(log)
@@ -205,10 +205,10 @@ class App extends Component {
     this.setState({worklog: result})
   }
 
-  deleted(srv) {
+  deleted(name) {
     let services = []
     for (let service of this.state.services) {
-      if (service.name !== srv.name) {
+      if (service.name !== name) {
         services.push(service)
       }
     }

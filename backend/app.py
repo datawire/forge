@@ -88,6 +88,30 @@ def worker():
 def schedule(fun, *args):
     WORK_QUEUE.put((fun, args))
 
+def remove_service(name):
+    del SERVICES[svc.name]
+    socketio.emit('deleted', svc.json())
+    shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
+
+def update_service(svc):
+    SERVICES[svc.name] = svc
+    socketio.emit('dirty', svc.json())
+    if not os.path.exists(WORK):
+        os.makedirs(WORK)
+    wdir = os.path.join(WORK, svc.name)
+    clone = False
+    if (os.path.exists(wdir)):
+        result = LOG.call("git", "pull", cwd=wdir)
+        if result.code:
+            shutil.rmtree(wdir, ignore_errors=True)
+            clone = True
+    else:
+        clone = True
+    if clone:
+        result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
+    if result.code == 0:
+        schedule(deploy, svc, wdir)
+
 def sync(reason):
     r = requests.get("https://api.github.com/orgs/twitface/repos")
     repos = r.json()
@@ -102,35 +126,12 @@ def sync(reason):
 
     for svc in SERVICES.values()[:]:
         if svc.name not in new:
-            del SERVICES[svc.name]
-            socketio.emit('deleted', svc.json())
-            shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
+            shedule(remove_service, svc.name)
         else:
             new[svc.name].stats = svc.stats
 
-    redeploy = []
     for svc in new.values():
-        SERVICES[svc.name] = svc
-        socketio.emit('dirty', svc.json())
-        if not os.path.exists(WORK):
-            os.makedirs(WORK)
-        wdir = os.path.join(WORK, svc.name)
-        clone = False
-        if (os.path.exists(wdir)):
-            result = LOG.call("git", "pull", cwd=wdir)
-            if result.code:
-                shutil.rmtree(wdir, ignore_errors=True)
-                clone = True
-        else:
-            clone = True
-        if clone:
-            result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
-        if result.code: continue
-
-        redeploy.append((svc, wdir))
-
-    for svc, wdir in redeploy:
-        deploy(svc, wdir)
+        schedule(update_service, svc)
 
 def image_exists(name, version):
     result = LOG.call("curl", "-s", "-u", "_json_key:%s" % DOCKER_PASSWORD,
@@ -286,7 +287,8 @@ def background():
 def setup():
     print('spawning')
     eventlet.spawn(background)
-    eventlet.spawn(worker)
+    for i in range(100):
+        eventlet.spawn(worker)
 
 if __name__ == "__main__":
     setup()
