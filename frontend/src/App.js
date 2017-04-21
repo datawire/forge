@@ -236,6 +236,16 @@ class App extends Component {
     this.setState({tab: tab})
   }
 
+  componentDidUpdate() {
+    this.scrollToBottom();
+  }
+
+  scrollToBottom = () => {
+    if (this.state.tab === 'log') {
+      this.logEnd.scrollIntoView({behavior: "smooth"});
+    }
+  }
+
   render() {
     let services = []
     for (let srv of this.state.services) {
@@ -251,7 +261,7 @@ class App extends Component {
     if (this.state.tab === 'services') {
       tab = (<ServiceGroup>{services}</ServiceGroup>)
     } else {
-      tab = (<div style={{overflow: 'scroll', height: '78vh'}}><Segment inverted><Accordion panels={panels} fluid inverted/></Segment></div>)
+      tab = (<div style={{overflow: 'scroll', height: '78vh'}}><Segment inverted><Accordion panels={panels} fluid inverted/><div ref={(el) => {this.logEnd = el;}}/></Segment></div>)
     }
 
     let on = this.state.count % 2 === 0
