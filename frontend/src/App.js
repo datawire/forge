@@ -192,6 +192,7 @@ class App extends Component {
       })
 
     this.poll()
+    this.logUpdated = false
   }
 
   poll() {
@@ -202,6 +203,7 @@ class App extends Component {
   }
 
   on_poll(result) {
+    this.logUpdated = true
     this.setState({worklog: result})
   }
 
@@ -241,8 +243,9 @@ class App extends Component {
   }
 
   scrollToBottom = () => {
-    if (this.state.tab === 'log') {
-      this.logEnd.scrollIntoView({behavior: "smooth"});
+    if (this.state.tab === 'log' && this.logUpdated) {
+      this.logEnd.scrollIntoView({behavior: "smooth"})
+      this.logUpdated = false
     }
   }
 
