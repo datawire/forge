@@ -12,22 +12,18 @@ class CreateService extends Component {
     super(props)
     this.state = {
       open: false,
-      name: '',
-      owner: ''
+      template: 0,
+      inputs: {}
     }
-    this.name = this.name.bind(this)
-    this.owner = this.owner.bind(this)
+    this.input = this.input.bind(this)
     this.open = this.open.bind(this)
     this.create = this.create.bind(this)
     this.close = this.close.bind(this)
   }
 
-  name(e) {
-    this.setState({name: e.target.value})
-  }
-
-  owner(e) {
-    this.setState({owner: e.target.value})
+  input(name, e) {
+    this.state.inputs[name] = e.target.value
+    this.setState({inputs: this.state.inputs})
   }
 
   open() {
@@ -36,36 +32,46 @@ class CreateService extends Component {
 
   create(e) {
     let params = new URLSearchParams()
-    params.append('name', this.state.name)
-    params.append('owner', this.state.owner)
+    for (var name in this.state.inputs) {
+      if (this.state.inputs.hasOwnProperty(name)) {
+        params.append(name, this.state.inputs[name])
+      }
+    }
+    params.append('template', this.props.templates[this.state.template].name)
     let url = this.props.url + '/create?' + params.toString()
     fetch(url).then(this.close)
   }
 
   close() {
-    this.setState({open: false, name: '', owner: ''})
+    this.setState({open: false, inputs: {}})
   }
 
   render() {
+    var form
+    if (this.props.templates.length === 0) {
+      form = (<Message>No templates...</Message>)
+    } else {
+      let parameters = this.props.templates[this.state.template].descriptor.template
+      let inputs = []
+      for (let param of parameters) {
+        inputs.push(<Form.Field key={param.name}>
+                    <label>{param.title}</label>
+                    <Input placeholder={param.title} value={this.state.inputs[param.name]}
+                                                     onChange={(e) => this.input(param.name, e)}/>
+                    </Form.Field>)
+      }
+      form = (<Form as='div'>
+                {inputs}
+                <Button primary onClick={this.create}>Create</Button>
+                <Button secondary onClick={this.close}>Cancel</Button>
+              </Form>)
+    }
     return (
         <Modal open={this.state.open} trigger={this.props.trigger}
                onOpen={() => this.setState({open: true})}
                onClose={this.close}>
           <Modal.Header>Create a Service</Modal.Header>
-          <Modal.Content>
-            <Form as='div'>
-              <Form.Field>
-                <label>Service Name</label>
-                <Input placeholder='name' value={this.state.name} onChange={this.name}/>
-              </Form.Field>
-              <Form.Field>
-                <label>Service Owner</label>
-                <Input placeholder='owner' value={this.state.owner} onChange={this.owner}/>
-              </Form.Field>
-              <Button primary onClick={this.create}>Create</Button>
-              <Button secondary onClick={this.close}>Cancel</Button>
-            </Form>
-          </Modal.Content>
+          <Modal.Content>{form}</Modal.Content>
         </Modal>
     )
   }
@@ -250,9 +256,14 @@ class App extends Component {
   }
 
   render() {
+    let templates = []
     let services = []
     for (let srv of this.state.services) {
-      services.push(<ServiceCard key={srv.name} {...srv}/>)
+      if (srv.descriptor.template) {
+        templates.push(srv)
+      } else {
+        services.push(<ServiceCard key={srv.name} {...srv}/>)
+      }
     }
 
     let panels = [];
@@ -288,7 +299,8 @@ class App extends Component {
               <Menu vertical>
                 <Menu.Item name='settings'>Settings</Menu.Item>
                 <Menu.Item name='admin'>Administration</Menu.Item>
-                <CreateService url={this.url} trigger={<Menu.Item name='create'>Create Service</Menu.Item>}/>
+                <CreateService url={this.url} trigger={<Menu.Item name='create'>Create Service</Menu.Item>}
+                               templates={templates}/>
                 <Menu.Item name='search'><Input icon='search' placeholder='Search services...'/></Menu.Item>
               </Menu>
             </Grid.Column>

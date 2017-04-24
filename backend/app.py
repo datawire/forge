@@ -240,9 +240,41 @@ def do_sync():
 def worklog():
     return (jsonify(LOG.json()), 200)
 
+KEY="435e0fbfd363b23a4bbe6769e37519df87dabef0"
+
 @app.route('/create')
 def create():
     logging.info(request.args)
+    template = request.args["template"]
+    tdir = os.path.join(WORK, template)
+    name = request.args["__PROJECT_NAME__"]
+    wdir = os.path.join(WORK, name)
+
+    for root, dirs, files in os.walk(tdir):
+        dirs.remove(".git")
+        copy = root.replace(template, name)
+        if not os.path.exists(copy):
+            os.makedirs(copy)
+            for fname in files:
+                with open(os.path.join(root, fname)) as f:
+                    content = f.read()
+                munged = content
+                for key in request.args:
+                    if key.startswith("__") and key.endswith("__"):
+                        munged = munged.replace(str(key), str(request.args[key]))
+                with open(os.path.join(copy, fname), "write") as f:
+                    f.write(munged)
+
+    LOG.call("git", "init", cwd=wdir)
+    LOG.call("git", "add", ".", cwd=wdir)
+    LOG.call("git", "commit", "-m", "service creation", cwd=wdir)
+
+    LOG.call("curl", "-s", "-XPOST", "-H", "Authorization: token %s" % KEY, "https://api.github.com/orgs/twitface/repos",
+             "-d", '{"name": "%s"}' % name)
+
+    LOG.call("git", "remote", "add", "origin", "git@github.com:twitface/%s.git" % name, cwd=wdir)
+    LOG.call("git", "push", "-u", "origin", "master", cwd=wdir)
+
     return ('', 204)
 
 @app.route('/update')
