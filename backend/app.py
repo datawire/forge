@@ -94,8 +94,6 @@ def remove_service(name):
     shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
 
 def update_service(svc):
-    SERVICES[svc.name] = svc
-    socketio.emit('dirty', svc.json())
     if not os.path.exists(WORK):
         os.makedirs(WORK)
     wdir = os.path.join(WORK, svc.name)
@@ -110,7 +108,17 @@ def update_service(svc):
     if clone:
         result = LOG.call("git", "clone", svc.clone_url, "-o", svc.name, cwd=WORK)
     if result.code == 0:
-        schedule(deploy, svc, wdir)
+
+        descriptor_path = os.path.join(wdir, "service.yaml")
+        if os.path.exists(descriptor_path):
+            with open(descriptor_path) as f:
+                descriptor = yaml.load(f)
+            svc.descriptor = descriptor
+            SERVICES[svc.name] = svc
+            socketio.emit('dirty', svc.json())
+
+            if not descriptor.get("template", False):
+                schedule(deploy, svc, wdir)
 
 def sync(reason):
     r = requests.get("https://api.github.com/orgs/twitface/repos")
@@ -180,17 +188,10 @@ def deploy(svc, wdir):
     if result.code: return
     svc.version = result.output.strip()
 
-    svc_yaml = os.path.join(wdir, "service.yaml")
-    if os.path.exists(svc_yaml):
-        with open(svc_yaml) as f:
-            svc_info = yaml.load(f)
+    if "containers" in svc.descriptor:
+        containers = svc.descriptor["containers"]
     else:
-        svc_info = OrderedDict()
-
-    if "containers" not in svc_info:
-        svc_info["containers"] = [{"name": svc.name, "source": "Dockerfile"}]
-
-    containers = svc_info["containers"]
+        containers = [{"name": svc.name, "source": "Dockerfile"}]
 
     images = OrderedDict()
     for info in containers:
@@ -213,8 +214,8 @@ def deploy(svc, wdir):
             y.write(result.output)
         result = LOG.call("kubectl", "apply", "-f", "deployment.yaml", cwd=wdir)
 
-    if "prefix" in svc_info:
-        name, prefix = svc.name, svc_info["prefix"]
+    if "prefix" in svc.descriptor:
+        name, prefix = svc.name, svc.descriptor["prefix"]
         if not route_exists(name, prefix):
             create_route(name, prefix)
 
