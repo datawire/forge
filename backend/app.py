@@ -242,11 +242,7 @@ def worklog():
 
 @app.route('/create')
 def create():
-    name = request.args["name"]
-    owner = request.args["owner"]
-    service = Service(name, owner)
-    SERVICES[name] = service
-    socketio.emit('dirty', service.json())
+    logging.info(request.args)
     return ('', 204)
 
 @app.route('/update')
