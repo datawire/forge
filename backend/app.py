@@ -267,6 +267,8 @@ def create():
 
     LOG.call("git", "init", cwd=wdir)
     LOG.call("git", "add", ".", cwd=wdir)
+    LOG.call("git", "config", "user.name", "Rafael Schloming", cwd=wdir)
+    LOG.call("git", "config", "user.email", "rhs@datawire.io", cwd=wdir)
     LOG.call("git", "commit", "-m", "service creation", cwd=wdir)
 
     LOG.call("curl", "-s", "-XPOST", "-H", "Authorization: token %s" % KEY, "https://api.github.com/orgs/twitface/repos",
