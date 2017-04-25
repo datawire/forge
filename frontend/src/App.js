@@ -268,7 +268,8 @@ class App extends Component {
 
     let panels = [];
     for (let item of this.state.worklog) {
-      panels.push({key: panels.length.toString(), title: item.command.join(' '), content: item.output})
+      let code = item.code === null ? '?' : item.code
+      panels.push({key: panels.length.toString(), title: '[' + code + '] ' + item.command.join(' '), content: item.output})
     }
 
     var tab;

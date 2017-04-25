@@ -11,6 +11,7 @@ import dpath
 import os
 import requests
 import shutil
+import stat
 import yaml, collections
 
 from flask import Flask, send_from_directory, request, jsonify, json
@@ -256,7 +257,8 @@ def create():
         if not os.path.exists(copy):
             os.makedirs(copy)
             for fname in files:
-                with open(os.path.join(root, fname)) as f:
+                orig = os.path.join(root, fname)
+                with open(orig) as f:
                     if fname == "service.yaml":
                         obj = yaml.load(f)
                         del obj['template']
@@ -267,8 +269,10 @@ def create():
                 for key in request.args:
                     if key.startswith("__") and key.endswith("__"):
                         munged = munged.replace(str(key), str(request.args[key]))
-                with open(os.path.join(copy, fname), "write") as f:
+                dup = os.path.join(copy, fname)
+                with open(dup, "write") as f:
                     f.write(munged)
+                os.chmod(dup, os.stat(orig))
 
     LOG.call("git", "init", cwd=wdir)
     LOG.call("git", "add", ".", cwd=wdir)
