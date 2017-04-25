@@ -248,11 +248,11 @@ def create():
     template = request.args["template"]
     tdir = os.path.join(WORK, template)
     name = request.args["__PROJECT_NAME__"]
-    wdir = os.path.join(WORK, name)
+    wdir = os.path.join(WORK, "__INSTANTIATIONS__", name)
 
     for root, dirs, files in os.walk(tdir):
         dirs.remove(".git")
-        copy = root.replace(template, name)
+        copy = root.replace(tdir, wdir)
         if not os.path.exists(copy):
             os.makedirs(copy)
             for fname in files:
