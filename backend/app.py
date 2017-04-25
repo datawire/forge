@@ -257,7 +257,12 @@ def create():
             os.makedirs(copy)
             for fname in files:
                 with open(os.path.join(root, fname)) as f:
-                    content = f.read()
+                    if fname == "service.yaml":
+                        obj = yaml.load(f)
+                        del obj['template']
+                        content = yaml.dump(obj)
+                    else:
+                        content = f.read()
                 munged = content
                 for key in request.args:
                     if key.startswith("__") and key.endswith("__"):
