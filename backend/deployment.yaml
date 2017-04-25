@@ -55,7 +55,7 @@ spec:
         - {name: DOCKER_API_VERSION, value: '1.12'}
         resources:
           limits:
-            memory: 128Mi
+            memory: 0.5G
             cpu: 0.5
         securityContext: {privileged: true}
         volumeMounts:
