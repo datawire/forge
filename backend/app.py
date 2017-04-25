@@ -110,9 +110,9 @@ def schedule(fun, *args):
     WORK_QUEUE.put((fun, args))
 
 def remove_service(name):
-    del SERVICES[svc.name]
-    socketio.emit('deleted', svc.json())
-    shutil.rmtree(os.path.join(WORK, svc.name), ignore_errors=True)
+    del SERVICES[name]
+    socketio.emit('deleted', name)
+    shutil.rmtree(os.path.join(WORK, name), ignore_errors=True)
 
 def update_service(svc):
     if not os.path.exists(WORK):
