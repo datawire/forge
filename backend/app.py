@@ -274,7 +274,7 @@ def create():
     LOG.call("curl", "-s", "-XPOST", "-H", "Authorization: token %s" % KEY, "https://api.github.com/orgs/twitface/repos",
              "-d", '{"name": "%s"}' % name)
 
-    LOG.call("git", "remote", "add", "origin", "git@github.com:twitface/%s.git" % name, cwd=wdir)
+    LOG.call("git", "remote", "add", "origin", "https://%s:x-oauth-basic@github.com/twitface/%s.git" % (KEY, name), cwd=wdir)
     LOG.call("git", "push", "-u", "origin", "master", cwd=wdir)
 
     return ('', 204)
