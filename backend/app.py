@@ -135,7 +135,7 @@ def sync(reason):
 
     for svc in SERVICES.values()[:]:
         if svc.name not in new:
-            shedule(remove_service, svc.name)
+            schedule(remove_service, svc.name)
         else:
             new[svc.name].stats = svc.stats
 
