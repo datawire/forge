@@ -328,8 +328,7 @@ def background():
 def setup():
     print('spawning')
     eventlet.spawn(background)
-    for i in range(5):
-        eventlet.spawn(worker)
+    eventlet.spawn(worker)
 
 if __name__ == "__main__":
     setup()
