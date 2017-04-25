@@ -272,7 +272,7 @@ def create():
                 dup = os.path.join(copy, fname)
                 with open(dup, "write") as f:
                     f.write(munged)
-                os.chmod(dup, os.stat(orig))
+                os.chmod(dup, os.stat(orig).st_mode)
 
     LOG.call("git", "init", cwd=wdir)
     LOG.call("git", "add", ".", cwd=wdir)
