@@ -40,10 +40,6 @@ spec:
       name: blackbird
       labels: {app: blackbird}
     spec:
-      resources:
-        limits:
-          memory: 128Mi
-          cpu: 0.5
       volumes:
       - name: docker-sock
         hostPath: {path: /var/run/docker.sock}
@@ -57,7 +53,10 @@ spec:
         name: blackbird
         env:
         - {name: DOCKER_API_VERSION, value: '1.12'}
-        resources: {}
+        resources:
+          limits:
+            memory: 128Mi
+            cpu: 0.5
         securityContext: {privileged: true}
         volumeMounts:
         - {mountPath: /var/run/docker.sock, name: docker-sock, readOnly: false}
