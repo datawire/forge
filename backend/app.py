@@ -43,7 +43,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
-logging.info("blackbird initializing on %s (resolved %s)" % (MyHostName, MyResolvedName))
+logging.info("blackbird initializing on %s (resolved %s, pid %s)" % (MyHostName, MyResolvedName, os.getpid()))
 
 NOISY = ('socketio', 'engineio')
 for n in NOISY:
@@ -67,10 +67,30 @@ WORK = os.path.join(os.path.dirname(__file__), "work")
 with open(os.environ.get("DOCKER_PASSWORD_FILE", "/etc/secrets/docker_password")) as f:
     DOCKER_PASSWORD = f.read()
 
-def emitwork():
-    socketio.emit('work', LOG.json())
+class WorkEmitter(object):
 
-LOG = workstream.Workstream(emitwork)
+    def __init__(self):
+        self.last = 0
+        self.delayed = False
+
+    def emit(self):
+        now = time.time()
+        if now - self.last > 1:
+            socketio.emit('work', LOG.json())
+            self.last = now
+        elif not self.delayed:
+            self.delayed = True
+            schedule(self.delay)
+
+    def delay(self):
+        time.sleep(1.0)
+        socketio.emit('work', LOG.json())
+        self.delayed = False
+        self.last = time.time()
+
+EMITTER = WorkEmitter()
+
+LOG = workstream.Workstream(EMITTER.emit)
 
 import sys, traceback
 from eventlet.queue import Queue
@@ -328,7 +348,8 @@ def background():
 def setup():
     print('spawning')
     eventlet.spawn(background)
-    eventlet.spawn(worker)
+    for i in range(10):
+        eventlet.spawn(worker)
 
 if __name__ == "__main__":
     setup()
