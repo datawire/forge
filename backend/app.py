@@ -155,8 +155,9 @@ def dockerize(name, version, source, wdir):
     dockerfile = os.path.join(wdir, source)
     base = os.path.dirname(dockerfile)
     image = "gcr.io/datawire-sandbox/%s:%s" % (name, version)
-    logging.info("%s exists" % image)
-    if image_exists(name, version): return image
+    if image_exists(name, version):
+        logging.info("%s exists" % image)
+        return image
 
     logging.info("dockerizing %s, %s -> %s" % (name, version, image))
     if not os.path.exists(dockerfile):

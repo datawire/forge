@@ -40,6 +40,10 @@ spec:
       name: blackbird
       labels: {app: blackbird}
     spec:
+      resources:
+        limits:
+          memory: 128Mi
+          cpu: 0.5
       volumes:
       - name: docker-sock
         hostPath: {path: /var/run/docker.sock}
