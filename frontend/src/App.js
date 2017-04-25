@@ -4,7 +4,7 @@ import "../node_modules/react-vis/dist/style.css"
 import "../semantic/dist/semantic.min.css"
 import io from 'socket.io-client'
 
-import { Accordion, Segment, Form, Image, Header, Card, Grid, Menu, Button, Icon, Input, Modal, Message } from 'semantic-ui-react'
+import { Dropdown, Accordion, Segment, Form, Image, Header, Card, Grid, Menu, Button, Icon, Input, Modal, Message } from 'semantic-ui-react'
 
 class CreateService extends Component {
 
@@ -51,6 +51,11 @@ class CreateService extends Component {
     if (this.props.templates.length === 0) {
       form = (<Message>No templates...</Message>)
     } else {
+      let templates = []
+      for (let t of this.props.templates) {
+        templates.push({text: t.name, value: this.props.templates.indexOf(t)})
+      }
+
       let parameters = this.props.templates[this.state.template].descriptor.template
       let inputs = []
       for (let param of parameters) {
@@ -60,11 +65,18 @@ class CreateService extends Component {
                                                      onChange={(e) => this.input(param.name, e)}/>
                     </Form.Field>)
       }
-      form = (<Form as='div'>
-                {inputs}
-                <Button primary onClick={this.create}>Create</Button>
-                <Button secondary onClick={this.close}>Cancel</Button>
-              </Form>)
+      form = (<div>
+                <Dropdown selection placeholder='Service Template' defaultValue={this.state.template}
+                          options={templates}
+                          onChange={(e, d) => this.setState({template: d.value})}/>
+                <Segment>
+                  <Form as='div'>
+                    {inputs}
+                    <Button primary onClick={this.create}>Create</Button>
+                    <Button secondary onClick={this.close}>Cancel</Button>
+                  </Form>
+                </Segment>
+              </div>)
     }
     return (
         <Modal open={this.state.open} trigger={this.props.trigger}
