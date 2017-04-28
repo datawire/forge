@@ -53,6 +53,11 @@ spec:
         name: blackbird
         env:
         - {name: DOCKER_API_VERSION, value: '1.12'}
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: github-client-secret
+              key: value
         resources:
           limits:
             memory: 1G
