@@ -7,16 +7,17 @@ import logging
 import socket
 import time
 
-import dpath
 import os
 import requests
 import shutil
 import stat
 import yaml, collections
 
-from flask import Flask, send_from_directory, request, jsonify, json
+from flask import Flask, send_from_directory, request, jsonify, json, flash, redirect
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from flask_github import GitHub
+from flask_login import LoginManager, login_user, login_required, UserMixin, current_user
 
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
@@ -52,11 +53,54 @@ for n in NOISY:
 app = Flask(__name__, static_url_path='')
 CORS(app)
 app.config['SECRET_KEY'] = 'secret!'
+app.config['GITHUB_CLIENT_ID'] = 'a22c4e088ec2bfd018aa'
+app.config['GITHUB_CLIENT_SECRET'] = os.environ["GITHUB_CLIENT_SECRET"]
 socketio = SocketIO(app)
+github = GitHub(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 @app.route('/')
 def root():
     return send_from_directory('static', 'index.html')
+
+@app.route('/login')
+def login():
+    return github.authorize()
+
+USERS = {}
+
+class User(UserMixin):
+
+    def __init__(self, id, token):
+        self.id = id
+        self.token = token
+
+@login_manager.user_loader
+def load_user(user_id):
+    return USERS.get(user_id)
+
+@github.access_token_getter
+def token_getter():
+    return current_user.token
+
+@app.route('/github-callback')
+@github.authorized_handler
+def authorized(oauth_token):
+#    next_url = request.args.get('next') or '/'
+    if oauth_token is None:
+        flash("Authorization failed.")
+        return redirect('/')
+
+    user = User(os.urandom(16).encode('hex'), oauth_token)
+    USERS[user.id] = user
+    login_user(user)
+    return redirect('/whoami')
+
+@app.route('/whoami')
+@login_required
+def whoami():
+    return jsonify(github.get('user')), 200
 
 import random, workstream
 from collections import OrderedDict

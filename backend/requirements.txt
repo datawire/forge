@@ -5,4 +5,5 @@ flask-socketio
 requests
 pyrsistent
 pyyaml
-dpath
+GitHub-Flask
+flask-login
