@@ -64,7 +64,7 @@ def authorized(oauth_token):
     next_url = request.args.get('next') or '/'
     if oauth_token is None:
         flash("Authorization failed.")
-        return redirect('/')
+        return redirect('/auth_failed')
 
     assert next_url in ('/whoami', '/')
 
@@ -72,6 +72,10 @@ def authorized(oauth_token):
     USERS[user.id] = user
     login_user(user)
     return redirect(next_url)
+
+@app.route('/auth_failed')
+def auth_failed():
+    return 'Authorization failed.', 401
 
 @app.route('/whoami')
 @login_required
