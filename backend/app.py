@@ -71,7 +71,7 @@ def authorized(oauth_token):
     user = User(os.urandom(16).encode('hex'), oauth_token)
     USERS[user.id] = user
     login_user(user)
-    return redirect('/whoami')
+    return redirect(next_url)
 
 @app.route('/whoami')
 @login_required
