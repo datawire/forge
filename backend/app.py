@@ -3,52 +3,23 @@
 import eventlet
 eventlet.monkey_patch()
 
+import util
+util.setup()
+
 import logging
-import socket
 import time
+import yaml
 
 import os
 import requests
 import shutil
 import stat
-import yaml, collections
 
 from flask import Flask, send_from_directory, request, jsonify, json, flash, redirect
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask_github import GitHub
 from flask_login import LoginManager, login_user, login_required, UserMixin, current_user
-
-_mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
-
-def dict_representer(dumper, data):
-    return dumper.represent_dict(data.iteritems())
-
-def dict_constructor(loader, node):
-    return collections.OrderedDict(loader.construct_pairs(node))
-
-yaml.add_representer(collections.OrderedDict, dict_representer)
-yaml.add_constructor(_mapping_tag, dict_constructor)
-
-try:
-    MyHostName = socket.gethostname()
-    MyResolvedName = socket.gethostbyname(socket.gethostname())
-except socket.gaierror:
-    MyHostName = "unknown"
-    MyResolvedName = "unknown"
-
-logging.basicConfig(
-    # filename=logPath,
-    level=logging.INFO, # if appDebug else logging.INFO,
-    format="%(asctime)s skunkworks 0.0.1 %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-
-logging.info("blackbird initializing on %s (resolved %s, pid %s)" % (MyHostName, MyResolvedName, os.getpid()))
-
-NOISY = ('socketio', 'engineio')
-for n in NOISY:
-    logging.getLogger(n).setLevel(logging.WARNING)
 
 app = Flask(__name__, static_url_path='')
 CORS(app)
@@ -59,6 +30,7 @@ socketio = SocketIO(app)
 github = GitHub(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = '/login'
 
 @app.route('/')
 def root():
