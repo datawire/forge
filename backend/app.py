@@ -218,7 +218,7 @@ def dockerize(name, version, source, wdir):
 AMBASSADOR_URL = "http://%s:%s" % (os.environ["AMBASSADOR_SERVICE_HOST"], os.environ["AMBASSADOR_SERVICE_PORT"])
 
 def route_exists(name, prefix):
-    result = LOG.call("curl", "-s", "%s/ambassador/service/%s" % (AMBASSADOR_URL, name))
+    result = LOG.call("curl", "-s", "%s/ambassador/mapping/%s" % (AMBASSADOR_URL, name))
     if result.code:
         return False
     stuff = json.loads(result.output)
@@ -226,8 +226,8 @@ def route_exists(name, prefix):
 
 def create_route(name, prefix):
     LOG.call("curl", "-s", "-XPOST", "-H", "Content-Type: application/json",
-             "-d", '{ "prefix": "/%s/" }' % prefix,
-             "%s/ambassador/service/%s" % (AMBASSADOR_URL, name))
+             "-d", '{ "prefix": "/%s/", "service": "%s" }' % (prefix, name),
+             "%s/ambassador/mapping/%s" % (AMBASSADOR_URL, name))
 
 def deploy(svc, wdir):
     result = LOG.call("git", "rev-parse", "HEAD", cwd=wdir)
