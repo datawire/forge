@@ -33,12 +33,14 @@ login_manager.init_app(app)
 login_manager.login_view = '/login'
 
 @app.route('/')
+@login_required
 def root():
     return send_from_directory('static', 'index.html')
 
 @app.route('/login')
 def login():
-    return github.authorize()
+    next_url = request.args.get('next', '/')
+    return github.authorize(scope='public_repo', redirect_uri=next)
 
 USERS = {}
 
@@ -59,10 +61,12 @@ def token_getter():
 @app.route('/github-callback')
 @github.authorized_handler
 def authorized(oauth_token):
-#    next_url = request.args.get('next') or '/'
+    next_url = request.args.get('next') or '/'
     if oauth_token is None:
         flash("Authorization failed.")
         return redirect('/')
+
+    assert next_url in ('/whoami', '/')
 
     user = User(os.urandom(16).encode('hex'), oauth_token)
     USERS[user.id] = user
@@ -278,9 +282,8 @@ def do_sync():
 def worklog():
     return (jsonify(LOG.json()), 200)
 
-KEY="435e0fbfd363b23a4bbe6769e37519df87dabef0"
-
 @app.route('/create')
+@login_required
 def create():
     logging.info(request.args)
     template = request.args["template"]
@@ -317,12 +320,14 @@ def create():
     LOG.call("git", "config", "user.email", "rhs@datawire.io", cwd=wdir)
     LOG.call("git", "commit", "-m", "service creation", cwd=wdir)
 
-    LOG.call("curl", "-s", "-XPOST", "-H", "Authorization: token %s" % KEY, "https://api.github.com/orgs/twitface/repos",
+    key = token_getter()
+
+    LOG.call("curl", "-s", "-XPOST", "-H", "Authorization: token %s" % key, "https://api.github.com/orgs/twitface/repos",
              "-d", '{"name": "%s"}' % name)
 
     time.sleep(1.0)
 
-    LOG.call("git", "remote", "add", "origin", "https://%s:x-oauth-basic@github.com/twitface/%s.git" % (KEY, name), cwd=wdir)
+    LOG.call("git", "remote", "add", "origin", "https://%s:x-oauth-basic@github.com/twitface/%s.git" % (key, name), cwd=wdir)
     LOG.call("git", "push", "-u", "origin", "master", cwd=wdir)
 
     return ('', 204)
