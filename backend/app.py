@@ -40,7 +40,7 @@ def root():
 @app.route('/login')
 def login():
     next_url = request.args.get('next', '/')
-    return github.authorize(scope='public_repo', redirect_uri=next_url)
+    return github.authorize(scope='public_repo')
 
 USERS = {}
 
