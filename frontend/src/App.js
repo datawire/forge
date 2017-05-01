@@ -39,7 +39,7 @@ class CreateService extends Component {
     }
     params.append('template', this.props.templates[this.state.template].name)
     let url = this.props.url + '/create?' + params.toString()
-    fetch(url).then(this.close)
+    fetch(url, {credentials: "same-origin"}).then(this.close)
   }
 
   close() {
