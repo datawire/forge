@@ -215,7 +215,7 @@ def dockerize(name, version, source, wdir):
     if result.code: return None
     return image
 
-AMBASSADOR_URL = "http://%s:%s" % (os.environ["AMBASSADOR_SERVICE_HOST"], os.environ["AMBASSADOR_SERVICE_PORT"])
+AMBASSADOR_URL = "http://ambassador-admin:8888"
 
 def route_exists(name, prefix):
     result = LOG.call("curl", "-s", "%s/ambassador/mapping/%s" % (AMBASSADOR_URL, name))

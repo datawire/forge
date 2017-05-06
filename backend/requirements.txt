@@ -7,3 +7,4 @@ pyrsistent
 pyyaml
 GitHub-Flask
 flask-login
+SQLAlchemy
