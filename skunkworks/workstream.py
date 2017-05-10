@@ -115,7 +115,7 @@ class Request(Workitem):
         Workitem.__init__(self, stream)
         self.url = url
         self.context = context
-        self.expected = context.pop("expected", ())
+        self.expected = context.pop("expected", None) or ()
         self.response = None
 
     @property

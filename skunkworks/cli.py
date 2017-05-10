@@ -112,11 +112,12 @@ class Baker(Workstream):
         headers = {'Authorization': 'token %s' % token} if token else None
         response = self.get("https://api.github.com/%s" % api, headers=headers, expected=expected)
         result = response.json()
-        next_url = next_page(response)
-        while next_url:
-            response = self.get(next_url, headers=headers)
-            result.extend(response.json())
+        if response.ok:
             next_url = next_page(response)
+            while next_url:
+                response = self.get(next_url, headers=headers)
+                result.extend(response.json())
+                next_url = next_page(response)
         return result
 
     def git_pull(self, workdir, name, url, token=None):
@@ -124,7 +125,7 @@ class Baker(Workstream):
         if not os.path.exists(repodir):
             os.makedirs(repodir)
             self.call("git", "init", cwd=repodir)
-        self.call("git", "pull", "-f", inject_token(url, token), cwd=repodir)
+        self.call("git", "pull", inject_token(url, token), cwd=repodir)
 
     EXCLUDED = set([".git"])
 
@@ -288,7 +289,31 @@ def deploy(args):
 def serve(args):
     print "not implemented yet"
 
+def get_config():
+    prev = None
+    path = os.getcwd()
+    while path != prev:
+        prev = path
+        candidate = os.path.join(path, "skunkworks.yaml")
+        if os.path.exists(candidate):
+            return candidate
+        path = os.path.dirname(path)
+    return None
+
+def default(args):
+    conf_file = get_config()
+    if not conf_file: return
+
+    with open(conf_file, "read") as fd:
+        conf = yaml.load(fd)
+
+    for name in ("token", "user", "password", "workdir"):
+        arg = "--%s" % name
+        if arg not in args or args[arg] is None and name in conf:
+            args[arg] = conf[name]
+
 def main(args):
+    default(args)
     if args["pull"]: return pull(args)
     if args["bake"]: return bake(args)
     if args["push"]: return push(args)
