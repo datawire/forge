@@ -20,7 +20,7 @@ Usage:
   sw bake [--user=<user>] [--password=<password>] <docker-repo>
   sw push [--user=<user>] [--password=<password>] <docker-repo>
   sw deploy [--dry-run] <docker-repo>
-  sw serve --token=<token> --user=<user> --password=<password> <docker-repo>
+  sw serve [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] <docker-repo>
   sw -h | --help
   sw --version
 
@@ -31,6 +31,10 @@ Options:
   -h --help             Show this screen.
   --version             Show version.
 """
+
+import eventlet
+eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
+eventlet.monkey_patch()
 
 import util
 
