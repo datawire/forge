@@ -37,7 +37,7 @@ import util
 from docopt import docopt
 from ._metadata import __version__
 
-import fnmatch, requests, os, yaml
+import fnmatch, requests, os, urllib2, yaml
 from collections import OrderedDict
 from workstream import Workstream, Elidable, Secret
 
@@ -159,7 +159,15 @@ class Baker(Workstream):
 
     def pushed(self, registry, repo, name, version, user, password):
         url = "https://%s/v2/%s/%s/manifests/%s" % (registry, repo, name, version)
-        response = self.get(url, auth=(user, password), expected=(404,))
+        response = self.get(url, auth=(user, password), expected=(404, 401))
+        if response.status_code == 401:
+            challenge = response.headers['Www-Authenticate']
+            if challenge.startswith("Bearer "):
+                challenge = challenge[7:]
+            opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
+            token = self.get("{realm}?service={service}&scope={scope}".format(**opts),
+                             auth=(user, password)).json()['token']
+            response = self.get(url, headers={'Authorization': 'Bearer %s' % token}, expected=(404,))
         result = response.json()
         if 'signatures' in result and 'fsLayers' in result:
             return True
@@ -234,7 +242,8 @@ def push(args):
              if (baker.baked(registry, repo, name, svc.version) and not
                  baker.pushed(registry, repo, name, svc.version, user, password))]
 
-    baker.call("docker", "login", "-u", user, "-p", Secret(password), registry)
+    if local: baker.call("docker", "login", "-u", user, "-p", Secret(password), registry)
+
     for svc, name, container in local:
         baker.call("docker", "push", image(registry, repo, name, svc.version))
 
