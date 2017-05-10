@@ -6,11 +6,13 @@ Skunkworks lets developers deploy topologies of microservices to Kubernetes clus
 
 TODO: Figure out how to show the service template.
 
+```
 % sw pull user_svc  # download user_svc and all dependent services from GitHub
 % emacs main.py     # edit code
 % sw bake           # build Docker images of all services that have changed
 % sw push           # push updated Docker images
 % sw deploy         # deploy update service(s) to target Kubernetes cluster
+```
 
 ## Skunkworks compared to ...
 
