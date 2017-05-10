@@ -4,15 +4,6 @@
 
 set -e
 
-# Get the script directory
-SCRIPT_SOURCE="${0}"
-while [ -h "$SCRIPT_SOURCE" ]; do # resolve $SCRIPT_SOURCE until the file is no longer a symlink
-  SCRIPT_DIR="$( cd -P "$( dirname "$SCRIPT_SOURCE" )" && pwd )"
-  SCRIPT_SOURCE="$(readlink "$SCRIPT_SOURCE")"
-  [[ $SCRIPT_SOURCE != /* ]] && SCRIPT_SOURCE="$SCRIPT_DIR/$SCRIPT_SOURCE" # if $SCRIPT_SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-done
-SCRIPT_DIR="$( cd -P "$( dirname "$SCRIPT_SOURCE" )" && pwd )"
-
 # Check if stdout is a terminal...
 if [ -t 1 ]; then
 
@@ -35,38 +26,32 @@ if [ -t 1 ]; then
     fi
 fi
 
-# Assume pretty verbose output
-VERBOSITY=3
-
 # Define a bunch of pretty output helpers
 output () {
-    lvl="$1"
-    fmt="$2"
-    text="$3"
+    fmt="$1"
+    text="$2"
 
-    if [ $VERBOSITY -ge $lvl ]; then
-        printf -- "$fmt" "$text"
-    fi
+    printf -- "$fmt" "$text"
 }
 
 msg () {
-    output 1 "%s\n" "$1"
+    output "%s\n" "$1"
 }
 
 step () {
-    output 2 "--> %s\n" "$1"
+    output "--> %s\n" "$1"
 }
 
 substep () {
-    output 3 "-->  %s" "$1"
+    output "-->  %s" "$1"
 }
 
 substep_ok() {
-    output 3 "${green}OK${normal}\n" ""
+    output "${green}OK${normal}\n" ""
 }
 
 substep_skip() {
-    output 3 "${yellow}OK${normal}\n" "$1"
+    output "${yellow}OK${normal}\n" "$1"
 }
 
 die() {
@@ -77,34 +62,11 @@ die() {
     exit 1
 }
 
-project="Skunkworks"
-python_version="python2.7"
-install_url="git+https://github.com/datawire/skunkworks.git"
+PROJECT="Skunkworks"
+PYTHON_VERSION="python2.7"
+INSTALL_URL="git+https://github.com/datawire/skunkworks.git"
 
-while getopts ':qv' opt; do
-    case $opt in
-        :)  echo "Option -$OPTARG requires an argument." >&2
-            exit 1
-            ;;
-
-        q)  VERBOSITY=$(( $VERBOSITY - 1 ))
-            if [ $VERBOSITY -lt 0 ]; then VERBOSITY=0; fi
-            ;;
-
-        v)  VERBOSITY=$(( $VERBOSITY + 1 ))
-            ;;
-
-        \?) echo "Invalid option: -$OPTARG" >&2
-            exit 1
-            ;;
-    esac
-done
-
-shift $((OPTIND-1))
-
-install_dir="$1"
-
-if [ -z "$install_dir" ]; then
+if [ -z "$INSTALL_DIR" ]; then
     echo "Please specify an install directory."
     exit 1
 fi
@@ -123,8 +85,8 @@ required_commands () {
 
 is_project_installed () {
     substep "Checking install target: "
-    if [ -e ${install_dir} ]; then
-        die "Install directory exists at '${install_dir}', please (re)move to proceed, or choose another install target."
+    if [ -e ${INSTALL_DIR} ]; then
+        die "Install directory exists at '${INSTALL_DIR}', please (re)move to proceed, or choose another install target."
     else
         substep_ok
     fi
@@ -134,20 +96,20 @@ step "Performing installation environment sanity checks..."
 required_commands python virtualenv
 is_project_installed
 
-step "Creating ${install_dir} installation directory..."
-virtualenv -q --python ${python_version} ${install_dir}
+step "Creating ${INSTALL_DIR} installation directory..."
+virtualenv -q --python ${PYTHON_VERSION} ${INSTALL_DIR}
 
-step "Installing ${project}..."
+step "Installing ${PROJECT}..."
 
-. ${install_dir}/bin/activate
-pip --quiet install ${install_url}
+. ${INSTALL_DIR}/bin/activate
+pip --quiet install ${INSTALL_URL}
 deactivate
 
-step "Installed!"
+step "${bold}Installed!${normal}"
 
 msg
-msg "  ${project} has been installed into '${install_dir}'. You may want to"
-msg "  add '${install_dir}/bin' to your PATH."
+msg "  ${PROJECT} has been installed into '${INSTALL_DIR}'. You may want to"
+msg "  add '${INSTALL_DIR}/bin' to your PATH."
 msg
 
 } # this ensures the entire script is downloaded #
