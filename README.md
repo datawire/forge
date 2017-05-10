@@ -1,5 +1,33 @@
 # Skunkworks
 
+Skunkworks lets developers deploy topologies of microservices to Kubernetes clusters (including minikube).
+
+## Example
+
+TODO: Figure out how to show the service template.
+
+% sw pull user_svc  # download user_svc and all dependent services from GitHub
+% emacs main.py     # edit code
+% sw bake           # build Docker images of all services that have changed
+% sw push           # push updated Docker images
+% sw deploy         # deploy update service(s) to target Kubernetes cluster
+
+## Skunkworks compared to ...
+
+### Docker
+
+Docker operates on a single service at a time. However, if your application starts to consist of multiple, interdependent services, you'll find yourself scripting Docker, or individually building multiple services by hand.
+
+### Docker Compose and Kompose
+
+Docker Compose extends Docker to let you define and run multiple services. Docker Compose is not supported by Kubernetes. Instead, users must used the Kompose tool to migrate Docker Compose files to Kubernetes YAML files. However, Kompose is designed as a migration tool, and the Docker Compose format does not support many of the features of Kubernetes.
+
+### Helm
+
+Helm is a popular format for managing Kubernetes applications (aka charts). ??
+
+## More about Skunkworks
+
 The skunkworks project contains development and deployment tooling for
 working with microservices applications on top of kubernetes.
 
