@@ -136,6 +136,14 @@ class Request(Workitem):
         self.response = requests.get(str(self.url), **self.context)
         self.finish()
 
+    def json(self):
+        return {"command": [elide(self.url)],
+                "context": self.context,
+                "code": self.response.status_code if self.response else None,
+                "output": self.response.content if self.response else None,
+                "started": self.started,
+                "finished": self.finished}
+
 class Workstream(object):
 
     def __init__(self, on_update = lambda: None):
