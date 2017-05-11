@@ -42,11 +42,38 @@ def get():
 def worklog():
     return (jsonify(BAKER.json()), 200)
 
+GITHUB = []
+
+@app.route('/githook', methods=['POST'])
+def githook():
+    GITHUB.append(request.json)
+    schedule(sync, 'github hook')
+    return ('', 204)
+
+@app.route('/gitevents')
+def gitevents():
+    return (jsonify(GITHUB), 200)
+
+@app.route('/sync')
+def do_sync():
+    WORK.schedule(sync, 'manual sync')
+    return ('', 204)
+
+def set_services(services):
+    names = set([s.name for s in services])
+
+    global SERVICES
+
+    for s in SERVICES:
+        if s.name not in names:
+            socketio.emit('deleted', s.name)
+
+    SERVICES = services
+
 def sync(reason):
     BAKER.pull()
     prototypes, services = BAKER.scan()
-    global SERVICES
-    SERVICES = prototypes + services
+    set_services(prototypes + services)
     BAKER.bake()
     BAKER.push()
     BAKER.deploy()
