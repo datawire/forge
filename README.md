@@ -1,32 +1,58 @@
-# Skunkworks
+# Forge
 
-Skunkworks lets developers deploy topologies of microservices to Kubernetes clusters (including minikube).
+You have source code. You want to get it running.
+
+The typical way you'd typically do this is to use a build system, which will take your source code and produce a binary that you can then run.
+
+However, in cloud applications, "running a binary" has become much more complex. You can (and should) specify how much memory and CPU your binary needs. You can (and should) specify how to upgrade your binary (e.g., a canary deployment). You can (and should) specify how many servers you want to run on, for availability or scalability.
+
+Your build system wasn't designed to build cloud applications.
+
+Forge is a build system for microservices.
+
+Forge:
+
+1. Produces deployable artifacts from source code.
+2. Manages your runtime dependencies.
 
 ## Example
 
-TODO: Figure out how to show the service template.
+Your `forge.yaml` specifies the basic information needed to build your service.
 
 ```
-% sw pull user_svc  # download user_svc and all dependent services from GitHub
-% emacs main.py     # edit code
-% sw bake           # build Docker images of all services that have changed
-% sw push           # push updated Docker images
-% sw deploy         # deploy update service(s) to target Kubernetes cluster
+# forge.yaml
+name: cookie    # Service name
+prefix: cookie  # URL prefix
+memory: 0.5G    # Maximum memory
+cpu: 0.25       # Maximum CPU
 ```
 
-## Skunkworks compared to ...
+Then, you can just build and deploy your service.
+
+```
+% forge build     # build deployable binaries of the software
+% forge deploy    # deploy the service(s) to the target Kubernetes cluster
+```
+
+## Forge compared to ...
 
 ### Docker
 
-Docker operates on a single service at a time. However, if your application starts to consist of multiple, interdependent services, you'll find yourself scripting Docker, or individually building multiple services by hand.
+Docker encapsulates a service and its dependencies in a container. Docker does not support service-to-service dependencies, nor does it support metadata about deployment.
 
-### Docker Compose and Kompose
+Forge uses Docker internally as a core deployment abstraction.
 
-Docker Compose extends Docker to let you define and run multiple services. Docker Compose is not supported by Kubernetes. Instead, users must used the Kompose tool to migrate Docker Compose files to Kubernetes YAML files. However, Kompose is designed as a migration tool, and the Docker Compose format does not support many of the features of Kubernetes.
+### Docker Compose
+
+Docker Compose extends Docker to support service-to-service dependencies. Docker Compose does not support metadata about deployment.
 
 ### Helm
 
-Helm is a popular format for managing Kubernetes applications (aka charts). ??
+Helm is a popular format for managing Kubernetes applications (aka charts). The Helm format natively supports metadata about deployment. Helm does not include a build system of any sort.
+
+### Maven, Gradle, Make, Bazel, Pants, ...
+
+These build systems are all designed for creating binaries. Forge delegates to your build system of choice when actually compiling your service.
 
 ## More about Skunkworks
 
