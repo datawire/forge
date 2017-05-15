@@ -20,6 +20,7 @@ Usage:
   sw bake [--user=<user>] [--password=<password>] <docker-repo>
   sw push [--user=<user>] [--password=<password>] <docker-repo>
   sw deploy [--dry-run] <docker-repo>
+  sw create <prototype> <arguments> [-o,--output <target>]
   sw serve [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] <organization> <docker-repo>
   sw -h | --help
   sw --version
@@ -44,6 +45,8 @@ import util
 from ._metadata import __version__
 from .workstream import Workstream, Elidable, Secret
 from .common import Service, Prototype, image, containers
+
+class CLIError(Exception): pass
 
 def next_page(response):
     if "Link" in response.headers:
@@ -130,7 +133,7 @@ class Baker(Workstream):
         elif 'errors' in result and result['errors']:
             if result['errors'][0]['code'] == 'MANIFEST_UNKNOWN':
                 return False
-        raise Exception(response.content)
+        raise CLIError(response.content)
 
     def pull(self):
         repos = self.gh("orgs/%s/repos" % self.org)
@@ -190,7 +193,7 @@ class Baker(Workstream):
 
         if conflicts:
             messages = ", ".join("%s defined by %s and %s" % c for c in conflicts)
-            raise Exception("conflicts: %s" % messages)
+            raise CLIError("conflicts: %s" % messages)
         else:
             for kube_file in kube_files:
                 cmd = "kubectl", "apply", "-f", kube_file
@@ -236,6 +239,30 @@ def get_repo(args):
     registry, repo = url.split("/", 1)
     return registry, repo
 
+def create(baker, args):
+    proto = args["<prototype>"]
+    arguments_file = args["<arguments>"]
+    target = args["<target>"] or os.path.splitext(os.path.basename(arguments_file))[0]
+    prototypes, services = baker.scan()
+    selected = [p for p in prototypes if p.name == proto]
+    assert len(selected) <= 1
+    if not selected:
+        raise CLIError("no such prototype: %s" % proto)
+    prototype = selected[0]
+
+    try:
+        with open(arguments_file, "read") as fd:
+            # XXX: the Loader=blah messes up the OrderedDict stuff
+            arguments = yaml.load(fd, Loader=yaml.loader.BaseLoader)
+    except IOError, e:
+        raise CLIError(e)
+
+    errors = prototype.validate(arguments)
+    if errors:
+        raise CLIError("\n".join(errors))
+
+    prototype.instantiate(target, arguments)
+
 def main(args):
     default(args)
 
@@ -254,6 +281,7 @@ def main(args):
     if args["bake"]: return baker.bake()
     if args["push"]: return baker.push()
     if args["deploy"]: return baker.deploy()
+    if args["create"]: return create(baker, args)
     if args["serve"]:
         from .server import serve
         return serve(baker)
@@ -262,7 +290,10 @@ def main(args):
 def call_main():
     util.setup_yaml()
     args = docopt(__doc__, version="Skunkworks %s" % __version__)
-    exit(main(args))
+    try:
+        exit(main(args))
+    except CLIError, e:
+        exit(e)
 
 if __name__ == "__main__":
     call_main()

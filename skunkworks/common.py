@@ -80,6 +80,42 @@ class Service(object):
     def __repr__(self):
         return "Service(%r, %r, %r)" % (self.version, self.descriptor, self.containers)
 
+def ensure_dir(path):
+    dir = os.path.dirname(path)
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+
+def render(source, target, renderer, exclude=(".git", "proto.yaml")):
+
+    def descend(relpath):
+        path = os.path.join(source, relpath)
+        names = os.listdir(path)
+
+        for x in exclude:
+            if x in names:
+                names.remove(x)
+
+        dirs = [n for n in names if os.path.isdir(n)]
+        files = [n for n in names if not os.path.isdir(n)]
+
+        for name in files:
+            orig = os.path.join(source, relpath, name)
+            copy = os.path.join(target, renderer(os.path.join(relpath, name)))
+
+            ensure_dir(copy)
+
+            with open(orig, "read") as fd:
+                content = renderer(fd.read())
+            with open(copy, "write") as fd:
+                fd.write(content)
+
+            os.chmod(copy, os.stat(orig).st_mode)
+
+        for name in dirs:
+            descend(os.path.join(relpath, name))
+
+    descend("")
+
 class Prototype(object):
 
     def __init__(self, descriptor):
@@ -94,9 +130,36 @@ class Prototype(object):
     def name(self):
         return os.path.basename(self.root)
 
+    def validate(self, args):
+        errors = []
+        valid = set()
+        info = self.info()
+        for p in info.get('parameters', ()):
+            name = p['name']
+            valid.add(name)
+            if name not in args:
+                errors.append("missing parameter '%s'" % name)
+        for a in args:
+            if a not in valid:
+                errors.append("extra argument '%s'" % a)
+        return errors
+
+    def instantiate(self, target, substitutions):
+        def substitute(content):
+            for k in substitutions:
+                content = content.replace(k, str(substitutions[k]))
+            return content
+        render(self.root, target, substitute)
+
     def info(self):
         with open(self.descriptor, "read") as f:
-            return yaml.load(f)
+            result = yaml.load(f)
+
+        if 'parameters' in result:
+            result['template'] = result['parameters']
+        elif 'template' in result:
+            result['parameters'] = result['template']
+        return result
 
     def json(self):
         return {'name': self.name,
