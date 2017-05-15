@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import eventlet, logging, random, time
-from flask import Flask, send_from_directory, request, jsonify, json, flash, redirect
+import eventlet, logging, os, random, shutil, tempfile, time
+from flask import Flask, send_from_directory, request, jsonify, json, flash, redirect, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -58,6 +58,27 @@ def gitevents():
 def do_sync():
     WORK.schedule(sync, 'manual sync')
     return ('', 204)
+
+@app.route('/create/<name>')
+def create(name):
+    logging.info("create %s: %s" % (name, request.args))
+    prototypes, services = BAKER.scan()
+    selected = [p for p in prototypes if p.name == name]
+    assert len(selected) <= 1
+    if not selected:
+        return ("no such prototype: %s" % name, 404)
+
+    prototype = selected[0]
+    errors = prototype.validate(request.args)
+    if errors:
+        return ("errors: %s" % errors, 400)
+
+    # XXX: this is a leak, need to delete these eventually
+    target = os.path.join(tempfile.mkdtemp(suffix=name), name)
+    prototype.instantiate(target, request.args)
+    result = shutil.make_archive(target, "gztar", os.path.dirname(target), os.path.basename(target))
+    logging.info("created %s" % target)
+    return send_file(result, mimetype="application/x-gzip")
 
 def set_services(services):
     names = set([s.name for s in services])
