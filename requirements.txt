@@ -6,6 +6,3 @@ flask-socketio
 requests
 pyrsistent
 pyyaml
-GitHub-Flask
-flask-login
-SQLAlchemy

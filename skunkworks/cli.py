@@ -16,16 +16,17 @@
 Skunkworks CLI.
 
 Usage:
-  sw pull [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] <organization>
-  sw bake [--user=<user>] [--password=<password>] <docker-repo>
-  sw push [--user=<user>] [--password=<password>] <docker-repo>
-  sw deploy [--dry-run] <docker-repo>
+  sw pull [--config=<config>] [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] [ <organization> ]
+  sw bake [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
+  sw push [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
+  sw deploy [--config=<config>] [--dry-run] [ <docker-repo> ]
   sw create <prototype> <arguments> [-o,--output <target>]
-  sw serve [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] <organization> <docker-repo>
+  sw serve [--config=<config>] [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] [ <organization> <docker-repo> ]
   sw -h | --help
   sw --version
 
 Options:
+  --config=<config>     Yaml config file location.
   --filter=<pattern>    Only operate on services matching <pattern>. [default: *]
   --token=<token>       Github authentication token.
   --workdir=<path>      Work directory.
@@ -203,7 +204,13 @@ class Baker(Workstream):
                 if result.output:
                     print "  " + result.output.strip().replace("\n", "\n  ") + "\n",
 
-def get_config():
+def get_config(args):
+    if args["--config"] is not None:
+        return args["--config"]
+
+    if "SKUNKWORKS_CONFIG" in os.environ:
+        return os.environ["SKUNKWORKS_CONFIG"]
+
     prev = None
     path = os.getcwd()
     while path != prev:
@@ -215,7 +222,7 @@ def get_config():
     return None
 
 def default(args):
-    conf_file = get_config()
+    conf_file = get_config(args)
     if not conf_file: return
 
     with open(conf_file, "read") as fd:
@@ -224,6 +231,11 @@ def default(args):
     for name in ("token", "user", "password", "workdir"):
         arg = "--%s" % name
         if arg not in args or args[arg] is None and name in conf:
+            args[arg] = conf[name]
+
+    for name in ("organization", "docker-repo"):
+        arg = "<%s>" % name
+        if name not in args or args[arg] is None and name in conf:
             args[arg] = conf[name]
 
 def get_workdir(args):
