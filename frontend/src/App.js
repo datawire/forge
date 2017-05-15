@@ -3,6 +3,7 @@ import './App.css'
 import "../node_modules/react-vis/dist/style.css"
 import "../semantic/dist/semantic.min.css"
 import io from 'socket.io-client'
+import fileSaver from 'file-saver'
 
 import { Dropdown, Accordion, Segment, Form, Image, Header, Card, Grid, Menu, Button, Icon, Input, Modal, Message } from 'semantic-ui-react'
 
@@ -13,7 +14,8 @@ class CreateService extends Component {
     this.state = {
       open: false,
       template: 0,
-      inputs: {}
+      inputs: {},
+      error: null
     }
     this.input = this.input.bind(this)
     this.open = this.open.bind(this)
@@ -37,13 +39,24 @@ class CreateService extends Component {
         params.append(name, this.state.inputs[name])
       }
     }
-    params.append('template', this.props.templates[this.state.template].name)
-    let url = this.props.url + '/create?' + params.toString()
-    fetch(url, {credentials: "same-origin"}).then(this.close)
+    let prototype = this.props.templates[this.state.template].name
+    let url = this.props.url + '/create/' + prototype + '?' + params.toString()
+    fetch(url, {credentials: "same-origin"}).then((response) => {
+      if (response.ok) {
+        response.blob().then((blob) => {
+          fileSaver.saveAs(blob, 'service.tgz')
+          this.close()
+        })
+      } else {
+        response.text().then((text) => {
+          this.setState({error: text})
+        })
+      }
+    })
   }
 
-  close() {
-    this.setState({open: false, inputs: {}})
+  close(response) {
+    this.setState({open: false, inputs: {}, error: null})
   }
 
   render() {
@@ -70,8 +83,9 @@ class CreateService extends Component {
                           options={templates}
                           onChange={(e, d) => this.setState({template: d.value})}/>
                 <Segment>
-                  <Form as='div'>
+                  <Form as='div' error={this.state.error}>
                     {inputs}
+                    <Message error content={this.state.error}/>
                     <Button primary onClick={this.create}>Create</Button>
                     <Button secondary onClick={this.close}>Cancel</Button>
                   </Form>
