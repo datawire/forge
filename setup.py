@@ -26,6 +26,9 @@ with open(os.path.join(ROOT_DIR, "requirements.txt")) as fp:
     install_requirements = [i.strip() for i in list(fp)
                             if i.strip() and not i.strip().startswith("#")]
 
+def recursive_hack(dir):
+    return [os.path.join(dir, *['*']*i) for i in range(1, 10)]
+
 setup(name=metadata["__title__"],
       version=metadata["__version__"],
       description=metadata["__summary__"],
@@ -34,7 +37,7 @@ setup(name=metadata["__title__"],
       url=metadata["__uri__"],
       license=metadata["__license__"],
       packages=['skunkworks'],
-      package_data={'skunkworks': ['static/*', 'static/*/*', 'static/*/*/*', 'static/*/*/*/*']},
+      package_data={'skunkworks': recursive_hack('static')},
       install_requires=install_requirements,
       entry_points={"console_scripts": ["sw = skunkworks.cli:call_main"]},
       keywords=['Deployment', 'Kubernetes', 'service', 'microservice'],
