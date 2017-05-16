@@ -35,5 +35,5 @@ NOTE: This will create/overwrite a deployment and a service named forge.
 
 3. Then run `pip install -e .`
 
-3. From your virtualenv run `sw serve`.
+3. From your virtualenv run `forge serve`.
    This will run the backend on `http://localhost:5000` by default.
