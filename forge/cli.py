@@ -16,14 +16,14 @@
 Forge CLI.
 
 Usage:
-  sw pull [--config=<config>] [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] [ <organization> ]
-  sw bake [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
-  sw push [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
-  sw deploy [--config=<config>] [--dry-run] [ <docker-repo> ]
-  sw create <prototype> <arguments> [-o,--output <target>]
-  sw serve [--config=<config>] [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] [ <organization> <docker-repo> ]
-  sw -h | --help
-  sw --version
+  forge pull [--config=<config>] [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] [ <organization> ]
+  forge bake [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
+  forge push [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
+  forge deploy [--config=<config>] [--dry-run] [ <docker-repo> ]
+  forge create <prototype> <arguments> [-o,--output <target>]
+  forge serve [--config=<config>] [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] [ <organization> <docker-repo> ]
+  forge -h | --help
+  forge --version
 
 Options:
   --config=<config>     Yaml config file location.
