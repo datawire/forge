@@ -165,9 +165,9 @@ class Baker(Workstream):
         local = [(svc, name, container) for svc, name, container in containers(services)
                  if (self.baked(name, svc.version) and not self.pushed(name, svc.version))]
 
-        if local: baker.call("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
+        if local: self.call("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
         for svc, name, container in local:
-            baker.call("docker", "push", image(self.registry, self.repo, name, svc.version))
+            self.call("docker", "push", image(self.registry, self.repo, name, svc.version))
 
     def deploy(self):
         prototypes, services = self.scan()
