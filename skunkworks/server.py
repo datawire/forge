@@ -26,6 +26,29 @@ CORS(app)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
+class WorkEmitter(object):
+
+    def __init__(self):
+        self.last = 0
+        self.delayed = False
+
+    def emit(self):
+        now = time.time()
+        if now - self.last > 1:
+            socketio.emit('work', BAKER.json())
+            self.last = now
+        elif not self.delayed:
+            self.delayed = True
+            schedule(self.delay)
+
+    def delay(self):
+        time.sleep(1.0)
+        socketio.emit('work', BAKER.json())
+        self.delayed = False
+        self.last = time.time()
+
+EMITTER = WorkEmitter()
+
 BAKER = None
 WORK = Dispatcher()
 SERVICES = []
@@ -122,8 +145,11 @@ def background():
 def setup():
     logging.info('spawning')
     eventlet.spawn(background)
-    for i in range(10):
-        eventlet.spawn(WORK.work)
+    def worker():
+        while True:
+            WORK.dispatch()
+            EMITTER.emit()
+    eventlet.spawn(worker)
 
 def serve(baker):
     global BAKER

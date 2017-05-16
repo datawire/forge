@@ -20,14 +20,17 @@ class Dispatcher(object):
     def __init__(self):
         self.queue = Queue()
 
+    def dispatch(self):
+        try:
+            fun, args = self.queue.get()
+            logging.info("dispatching %s(%s)" % (fun.__name__, ", ".join(repr(a) for a in args)))
+            fun(*args)
+        except:
+            logging.error(traceback.format_exc())
+
     def work(self):
         while True:
-            try:
-                fun, args = self.queue.get()
-                logging.info("dispatching %s(%s)" % (fun.__name__, ", ".join(repr(a) for a in args)))
-                fun(*args)
-            except:
-                logging.error(traceback.format_exc())
+            self.dispatch()
 
     def schedule(self, fun, *args):
         self.queue.put((fun, args))
