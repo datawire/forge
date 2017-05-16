@@ -47,7 +47,7 @@ GITHUB = []
 @app.route('/githook', methods=['POST'])
 def githook():
     GITHUB.append(request.json)
-    schedule(sync, 'github hook')
+    WORK.schedule(sync, 'github hook')
     return ('', 204)
 
 @app.route('/gitevents')
