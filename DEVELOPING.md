@@ -31,7 +31,7 @@ NOTE: This will create/overwrite a deployment and a service named blackbird.
 
 1. Create a python virtualenv.
 
-2. From your virtualenv in the backend directory run `pip install -r requirements.txt`
+2. From your virtualenv run `pip install -r requirements.txt`
 
-3. From your virtualenv in the backend directory run `python app.py`.
+3. From your virtualenv run `sw serve`.
    This will run the backend on `http://localhost:5000` by default.
