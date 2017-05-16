@@ -275,6 +275,28 @@ def create(baker, args):
 
     prototype.instantiate(target, arguments)
 
+REQUIRED = {
+    "pull": ("<organization>",),
+    "bake": ("<docker-repo>",),
+    "push": ("<docker-repo>",),
+    "deploy": ("<docker-repo>",),
+    "create": (),
+    "serve": ("<organization>", "<docker-repo>")
+}
+
+def subcommand(args):
+    for k in REQUIRED:
+        if args[k]: return k
+    assert False
+
+def validate(args):
+    missing = []
+    for n in REQUIRED[subcommand(args)]:
+        if not args[n]:
+            missing.append(n)
+    if missing:
+        raise CLIError("missing arguments: %s" % ", ".join(missing))
+
 def main(args):
     default(args)
 
@@ -288,6 +310,8 @@ def main(args):
     baker.user = args["--user"]
     baker.password = args["--password"]
     baker.dry_run = args["--dry-run"]
+
+    validate(args)
 
     if args["pull"]: return baker.pull()
     if args["bake"]: return baker.bake()
