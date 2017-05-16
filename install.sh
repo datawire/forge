@@ -62,9 +62,9 @@ die() {
     exit 1
 }
 
-PROJECT="Skunkworks"
+PROJECT="Forge"
 PYTHON_VERSION="python2.7"
-INSTALL_URL="git+https://github.com/datawire/skunkworks.git"
+INSTALL_URL="git+https://github.com/datawire/forge.git"
 
 if [ -z "$INSTALL_DIR" ]; then
     echo "Please specify an install directory."

@@ -19,7 +19,7 @@ ROOT_DIR = os.path.dirname(__file__)
 from setuptools import setup
 
 metadata = {}
-with open(os.path.join(ROOT_DIR, "skunkworks/_metadata.py")) as fp:
+with open(os.path.join(ROOT_DIR, "forge/_metadata.py")) as fp:
     exec(fp.read(), metadata)
 
 with open(os.path.join(ROOT_DIR, "requirements.txt")) as fp:
@@ -36,10 +36,10 @@ setup(name=metadata["__title__"],
       author_email=metadata["__email__"],
       url=metadata["__uri__"],
       license=metadata["__license__"],
-      packages=['skunkworks'],
-      package_data={'skunkworks': recursive_hack('static')},
+      packages=['forge'],
+      package_data={'forge': recursive_hack('static')},
       install_requires=install_requirements,
-      entry_points={"console_scripts": ["sw = skunkworks.cli:call_main"]},
+      entry_points={"console_scripts": ["forge = forge.cli:call_main"]},
       keywords=['Deployment', 'Kubernetes', 'service', 'microservice'],
       classifiers=[
           'Development Status :: 3 - Alpha',

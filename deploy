@@ -29,11 +29,11 @@ frontend = os.path.join(base, "frontend")
 if call("git", "diff", "frontend", cwd=base).strip() or (len(sys.argv) > 1 and sys.argv[1] == "force"):
     print call("git", "diff", cwd=frontend).strip()
     run(frontend, "npm run build")
-    run(base, "rm -rf skunkworks/static/* && cp -r frontend/build/* skunkworks/static")
+    run(base, "rm -rf forge/static/* && cp -r frontend/build/* forge/static")
 
 deployment = os.path.join(base, "deployment.yaml")
 version = call("git", "rev-parse", "HEAD").strip()
-image = "gcr.io/datawire-sandbox/blackbird:%s" % version
+image = "gcr.io/datawire-sandbox/forge:%s" % version
 
 run(base, "docker build . -t %s" % image)
 run(base, "docker push %s" % image)

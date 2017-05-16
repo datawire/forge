@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: blackbird
+  name: forge
 spec:
   selector:
-    app: blackbird
+    app: forge
   ports:
     - protocol: TCP
       port: 80
@@ -14,34 +14,34 @@ spec:
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
-metadata: {name: blackbird}
+metadata: {name: forge}
 spec:
   replicas: 1
   selector:
-    matchLabels: {app: blackbird}
+    matchLabels: {app: forge}
   strategy:
     rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
     type: RollingUpdate
   revisionHistoryLimit: 1
   template:
     metadata:
-      name: blackbird
-      labels: {app: blackbird}
+      name: forge
+      labels: {app: forge}
     spec:
       volumes:
       - name: docker-sock
         hostPath: {path: /var/run/docker.sock}
       - name: docker-directory
         hostPath: {path: /var/lib/docker}
-      - name: skunkworks-config
-        secret: {secretName: skunkworks-config}
+      - name: forge-config
+        secret: {secretName: forge-config}
       containers:
       - image: __IMAGE__
         imagePullPolicy: IfNotPresent
-        name: blackbird
+        name: forge
         env:
         - {name: DOCKER_API_VERSION, value: '1.12'}
-        - {name: SKUNKWORKS_CONFIG, value: /etc/skunkworks/skunkworks.yaml}
+        - {name: FORGE_CONFIG, value: /etc/forge/forge.yaml}
         resources:
           limits:
             memory: 1G
@@ -50,7 +50,7 @@ spec:
         volumeMounts:
         - {mountPath: /var/run/docker.sock, name: docker-sock, readOnly: false}
         - {mountPath: /var/lib/docker, name: docker-directory, readOnly: false}
-        - {mountPath: /etc/skunkworks, name: skunkworks-config, readOnly: true}
+        - {mountPath: /etc/forge, name: forge-config, readOnly: true}
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always

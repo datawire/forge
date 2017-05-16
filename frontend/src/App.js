@@ -191,7 +191,7 @@ class App extends Component {
     }
     this.url = 'http://' + window.location.hostname + ':' + window.location.port
     if (process.env.NODE_ENV === 'development') {
-      this.url = process.env.REACT_APP_BLACKBIRD_RTM
+      this.url = process.env.REACT_APP_FORGE_RTM
     }
     this.poll = this.poll.bind(this)
     this.on_poll = this.on_poll.bind(this)
@@ -312,7 +312,7 @@ class App extends Component {
           <Grid.Row centered>
             <Grid.Column width={1}/>
             <Grid.Column width={14} textAlign="center">
-        <h1><Image src="https://www.datawire.io/wp-content/uploads/2017/01/blackbird.png" avatar/>Blackbird Service Registry</h1>
+        <h1><Image src="https://www.datawire.io/wp-content/uploads/2017/01/blackbird.png" avatar/>Forge Service Registry</h1>
             </Grid.Column>
             <Grid.Column textAlign="right" width={1}>
               <Icon.Group size='big'>

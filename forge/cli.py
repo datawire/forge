@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Skunkworks CLI.
+Forge CLI.
 
 Usage:
   sw pull [--config=<config>] [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] [ <organization> ]
@@ -208,14 +208,14 @@ def get_config(args):
     if args["--config"] is not None:
         return args["--config"]
 
-    if "SKUNKWORKS_CONFIG" in os.environ:
-        return os.environ["SKUNKWORKS_CONFIG"]
+    if "FORGE_CONFIG" in os.environ:
+        return os.environ["FORGE_CONFIG"]
 
     prev = None
     path = os.getcwd()
     while path != prev:
         prev = path
-        candidate = os.path.join(path, "skunkworks.yaml")
+        candidate = os.path.join(path, "forge.yaml")
         if os.path.exists(candidate):
             return candidate
         path = os.path.dirname(path)
@@ -301,7 +301,7 @@ def main(args):
 
 def call_main():
     util.setup_yaml()
-    args = docopt(__doc__, version="Skunkworks %s" % __version__)
+    args = docopt(__doc__, version="Forge %s" % __version__)
     try:
         exit(main(args))
     except CLIError, e:

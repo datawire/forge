@@ -21,11 +21,11 @@ def setup_logging():
     logging.basicConfig(
         # filename=logPath,
         level=logging.INFO, # if appDebug else logging.INFO,
-        format="%(asctime)s skunkworks 0.0.1 %(levelname)s: %(message)s",
+        format="%(asctime)s forge 0.0.1 %(levelname)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 
-    logging.info("blackbird initializing on %s (resolved %s, pid %s)" % (HOSTNAME, IP, os.getpid()))
+    logging.info("forge initializing on %s (resolved %s, pid %s)" % (HOSTNAME, IP, os.getpid()))
 
     NOISY = ('socketio', 'engineio')
     for n in NOISY:

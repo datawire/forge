@@ -21,10 +21,10 @@ __all__ = [
     "__license__", "__copyright__",
 ]
 
-__title__ = 'Skunkworks'
+__title__ = 'Forge'
 __version__ = os.environ.get("BUILD_VERSION", 'dev')
 
-__summary__ = "Skunkworks Deployment Tooling"
+__summary__ = "Forge Deployment Tooling"
 __uri__ = "https://www.datawire.io"
 
 __author__ = "datawire.io"

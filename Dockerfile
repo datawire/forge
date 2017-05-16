@@ -7,8 +7,8 @@ WORKDIR /app
 COPY requirements.txt /app
 COPY setup.py /app
 RUN pip install -r requirements.txt
-COPY skunkworks /app/skunkworks
+COPY forge /app/forge
 RUN pip install .
 EXPOSE 5000
-ENTRYPOINT ["sw"]
+ENTRYPOINT ["forge"]
 CMD ["serve"]
