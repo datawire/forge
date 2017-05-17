@@ -31,22 +31,18 @@ class Workitem(object):
         return self.started is not None and self.finished is None
 
     def start(self):
-        sys.stdout.write("%s: %s" % (self.__class__.__name__, self.start_summary))
-        sys.stdout.flush()
         self.started = time.time()
         self.updated = self.started
-        self.stream.poke()
+        self.stream.started(self)
 
     def update(self):
         self.updated = time.time()
-        self.stream.poke()
+        self.stream.updated(self)
 
     def finish(self):
-        sys.stdout.write(" -> %s\n" % self.finish_summary)
-        sys.stdout.flush()
         self.updated = time.time()
         self.finished = time.time()
-        self.stream.poke()
+        self.stream.finished(self)
 
 def elide(t):
     if isinstance(t, Secret):
@@ -146,9 +142,17 @@ class Request(Workitem):
 
 class Workstream(object):
 
-    def __init__(self, on_update = lambda: None):
+    def __init__(self):
         self.items = []
-        self.poke = on_update
+
+    def started(self, item):
+        pass
+
+    def updated(self, item):
+        pass
+
+    def finished(self, item):
+        pass
 
     def command(self, *args, **kwargs):
         result = Command(self, args, kwargs)

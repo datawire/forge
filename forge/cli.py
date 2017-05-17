@@ -38,7 +38,7 @@ import eventlet
 eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
 eventlet.monkey_patch()
 
-import fnmatch, requests, os, urllib2, yaml
+import fnmatch, requests, os, sys, urllib2, yaml
 from docopt import docopt
 from collections import OrderedDict
 
@@ -66,6 +66,14 @@ def inject_token(url, token):
         return Elidable(Secret(token), "@%s" % parts[0])
 
 class Baker(Workstream):
+
+    def started(self, item):
+        sys.stdout.write("%s: %s" % (item.__class__.__name__, item.start_summary))
+        sys.stdout.flush()
+
+    def finished(self, item):
+        sys.stdout.write(" -> %s\n" % item.finish_summary)
+        sys.stdout.flush()
 
     def gh(self, api, expected=None):
         headers = {'Authorization': 'token %s' % self.token} if self.token else None

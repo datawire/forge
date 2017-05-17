@@ -4,5 +4,5 @@ flask
 flask-cors
 flask-socketio
 requests
-pyrsistent
 pyyaml
+jinja2

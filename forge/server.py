@@ -39,7 +39,7 @@ class WorkEmitter(object):
             self.last = now
         elif not self.delayed:
             self.delayed = True
-            schedule(self.delay)
+            eventlet.spawn(self.delay)
 
     def delay(self):
         time.sleep(1.0)
@@ -145,15 +145,20 @@ def background():
 def setup():
     logging.info('spawning')
     eventlet.spawn(background)
-    def worker():
-        while True:
-            WORK.dispatch()
-            EMITTER.emit()
-    eventlet.spawn(worker)
+    eventlet.spawn(WORK.work)
+
+def emit(item):
+    EMITTER.emit()
 
 def serve(baker):
     global BAKER
     BAKER = baker
+    BAKER.started = emit
+    BAKER.updated = emit
+    BAKER.finished = emit
     util.setup_logging()
+    host = "0.0.0.0"
+    port = 5000
+    logging.info("forge initializing on http//%s:%s" % (host, port))
     setup()
-    socketio.run(app, host="0.0.0.0", port=5000)
+    socketio.run(app, host=host, port=port)
