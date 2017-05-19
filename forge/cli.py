@@ -44,7 +44,7 @@ from collections import OrderedDict
 
 import util
 from ._metadata import __version__
-from .workstream import Workstream, Elidable, Secret
+from .workstream import Workstream, Elidable, Secret, Command
 from .common import Service, Prototype, image, containers
 
 class CLIError(Exception): pass
@@ -70,6 +70,11 @@ class Baker(Workstream):
     def started(self, item):
         sys.stdout.write("%s: %s" % (item.__class__.__name__, item.start_summary))
         sys.stdout.flush()
+
+    def updated(self, item, output):
+        if item.verbose:
+            if output == item.output: sys.stdout.write("\n  ")
+            sys.stdout.write(output.replace("\n", "\n  "))
 
     def finished(self, item):
         sys.stdout.write(" -> %s\n" % item.finish_summary)
@@ -208,9 +213,7 @@ class Baker(Workstream):
                 cmd = "kubectl", "apply", "-f", kube_file
                 if self.dry_run:
                     cmd += "--dry-run",
-                result = self.call(*cmd)
-                if result.output:
-                    print "  " + result.output.strip().replace("\n", "\n  ") + "\n",
+                self.call(*cmd, verbose=True)
 
 def get_config(args):
     if args["--config"] is not None:

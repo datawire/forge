@@ -17,12 +17,13 @@ from eventlet.green.subprocess import Popen, STDOUT, PIPE
 
 class Workitem(object):
 
-    def __init__(self, stream):
+    def __init__(self, stream, context):
         self.stream = stream
         self.created = time.time()
         self.started = None
         self.updated = None
         self.finished = None
+        self.verbose = context.pop("verbose", False)
 
     def pending(self):
         return self.started is None
@@ -35,9 +36,9 @@ class Workitem(object):
         self.updated = self.started
         self.stream.started(self)
 
-    def update(self):
+    def update(self, output):
         self.updated = time.time()
-        self.stream.updated(self)
+        self.stream.updated(self, output)
 
     def finish(self):
         self.updated = time.time()
@@ -69,7 +70,7 @@ class Elidable(object):
 class Command(Workitem):
 
     def __init__(self, stream, command, context):
-        Workitem.__init__(self, stream)
+        Workitem.__init__(self, stream, context)
         self.command = command
         self.context = context
         self.output = None
@@ -92,7 +93,7 @@ class Command(Workitem):
         p = Popen(tuple(str(a) for a in self.command), stderr=STDOUT, stdout=PIPE, **self.context)
         for line in p.stdout:
             self.output += line
-            self.update()
+            self.update(line)
         p.wait()
         self.code = p.returncode
         self.finish()
@@ -108,11 +109,19 @@ class Command(Workitem):
 class Request(Workitem):
 
     def __init__(self, stream, url, context):
-        Workitem.__init__(self, stream)
+        Workitem.__init__(self, stream, context)
         self.url = url
         self.context = context
         self.expected = context.pop("expected", None) or ()
         self.response = None
+
+    @property
+    def output(self):
+        return self.response.content if self.response else None
+
+    @property
+    def code(self):
+        return self.response.status_code if self.response else None
 
     @property
     def start_summary(self):
@@ -130,13 +139,14 @@ class Request(Workitem):
     def execute(self):
         self.start()
         self.response = requests.get(str(self.url), **self.context)
+        self.update(self.response.content)
         self.finish()
 
     def json(self):
         return {"command": [elide(self.url)],
                 "context": self.context,
-                "code": self.response.status_code if self.response else None,
-                "output": self.response.content if self.response else None,
+                "code": self.code,
+                "output": self.output,
                 "started": self.started,
                 "finished": self.finished}
 

@@ -147,15 +147,24 @@ def setup():
     eventlet.spawn(background)
     eventlet.spawn(WORK.work)
 
-def emit(item):
+def emit_started(item):
+    logging.info('%s: %s' % (item.__class__.__name__, item.start_summary))
+    EMITTER.emit()
+
+def emit_updated(item, output):
+    logging.info('  %s' % output.rstrip())
+    EMITTER.emit()
+
+def emit_finished(item):
+    logging.info('-> %s' % item.finish_summary)
     EMITTER.emit()
 
 def serve(baker):
     global BAKER
     BAKER = baker
-    BAKER.started = emit
-    BAKER.updated = emit
-    BAKER.finished = emit
+    BAKER.started = emit_started
+    BAKER.updated = emit_updated
+    BAKER.finished = emit_finished
     util.setup_logging()
     host = "0.0.0.0"
     port = 5000
