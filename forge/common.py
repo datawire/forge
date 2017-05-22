@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, yaml
+import os, shutil, yaml
 from collections import OrderedDict
+from jinja2 import Environment, FileSystemLoader
 
 def image(registry, repo, name, version):
     return "%s/%s/%s:%s" % (registry, repo, name, version)
@@ -64,6 +65,22 @@ class Service(object):
             metadata["images"][container] = img
             metadata["images"][os.path.dirname(container) or self.name] = img
         return filename, metadata
+
+    def deployment(self, registry, repo, target):
+        k8s_dir = os.path.join(self.root, "k8s")
+
+        filename, metadata = self.metadata(registry, repo)
+        env = Environment(loader=FileSystemLoader(k8s_dir))
+
+        if os.path.exists(target):
+            shutil.rmtree(target)
+        os.makedirs(target)
+
+        for path, dirs, files in os.walk(k8s_dir):
+            for name in files:
+                rendered = env.get_template(name).render(**metadata)
+                with open(os.path.join(target, os.path.relpath(path, start=k8s_dir), name), "write") as f:
+                    f.write(rendered)
 
     def info(self):
         with open(self.descriptor, "read") as f:
@@ -131,6 +148,8 @@ class Prototype(object):
         return os.path.basename(self.root)
 
     def validate(self, args):
+        if not args: args = ()
+
         errors = []
         valid = set()
         info = self.info()

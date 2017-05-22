@@ -15,6 +15,10 @@
 import requests, sys, time
 from eventlet.green.subprocess import Popen, STDOUT, PIPE
 
+class WorkError(Exception): pass
+class CommandError(WorkError): pass
+class RequestError(WorkError): pass
+
 class Workitem(object):
 
     def __init__(self, stream, context):
@@ -77,6 +81,10 @@ class Command(Workitem):
         self.code = None
 
     @property
+    def bad(self):
+        return self.code is not None and self.code != 0
+
+    @property
     def start_summary(self):
         return " ".join(elide(a) for a in self.command)
 
@@ -114,6 +122,10 @@ class Request(Workitem):
         self.context = context
         self.expected = context.pop("expected", None) or ()
         self.response = None
+
+    @property
+    def bad(self):
+        return self.response and not self.response.ok
 
     @property
     def output(self):
@@ -175,7 +187,7 @@ class Workstream(object):
         if cmd.code == 0:
             return cmd
         else:
-            raise Exception(cmd.output)
+            raise CommandError(cmd.output)
 
     def request(self, url, **kwargs):
         result = Request(self, url, kwargs)
@@ -187,7 +199,7 @@ class Workstream(object):
         req.execute()
         response = req.response
         if not response.ok and response.status_code not in req.expected:
-            raise Exception(response.content)
+            raise RequestError(response.content)
         return response
 
     def json(self):

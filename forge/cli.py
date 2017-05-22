@@ -45,21 +45,34 @@ from collections import OrderedDict
 
 import util
 from ._metadata import __version__
-from .workstream import Workstream, Elidable, Secret, Command
+from .workstream import Workstream, Elidable, Secret, Command, WorkError
 from .common import Service, Prototype, image, containers
 
 class CLIError(Exception): pass
 
 OMIT = object()
 
+def safe(f, *args):
+    try:
+        return f(*args)
+    except CLIError, e:
+        return e
+    except WorkError, e:
+        return e
+
 def async_map(fun, sequence):
     threads = []
     for item in sequence:
-        threads.append(eventlet.spawn(fun, item))
+        threads.append(eventlet.spawn(safe, fun, item))
+    errors = []
     for thread in threads:
         result = thread.wait()
-        if result is not OMIT:
+        if isinstance(result, WorkError):
+            errors.append(result)
+        elif result is not OMIT:
             yield result
+    if errors:
+        raise CLIError("%s task(s) had errors" % len(errors))
 
 def async_apply(fun, sequence):
     return async_map(lambda i: fun(*i), sequence)
@@ -105,7 +118,7 @@ class Baker(Workstream):
                 status = unfinished
             summary = "%s[%s]: %s" % (item.__class__.__name__, status, item.start_summary)
             lines = [summary]
-            if item.verbose and item.output:
+            if (item.verbose or item.bad) and item.output:
                 for l in item.output.splitlines():
                     lines.append("  %s" % l)
             for l in reversed(lines):
@@ -245,21 +258,16 @@ class Baker(Workstream):
                               self.call("docker", "push", image(self.registry, self.repo, name, svc.version)),
                           local))
 
-    def deployment(self, svc):
-        filename, metadata = svc.metadata(self.registry, self.repo)
-        with open(filename, "write") as f:
-            yaml.dump(metadata, f)
-        result = self.call("./deployment", "metadata.yaml", cwd=svc.root)
-        kube_file = os.path.join(svc.root, "kube.yaml")
-        with open(kube_file, "write") as f:
-            f.write(result.output)
-        return svc, kube_file
+    def render_yaml(self, svc):
+        k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
+        svc.deployment(self.registry, self.repo, k8s_dir)
+        return k8s_dir
 
-    def resources(self, kube_file):
-        return self.call("kubectl", "apply", "--dry-run", "-f", kube_file, "-o", "name").output.split()
+    def resources(self, k8s_dir):
+        return self.call("kubectl", "apply", "--dry-run", "-f", k8s_dir, "-o", "name").output.split()
 
-    def apply_yaml(self, kube_file):
-        cmd = "kubectl", "apply", "-f", kube_file
+    def apply_yaml(self, k8s_dir):
+        cmd = "kubectl", "apply", "-f", k8s_dir
         if self.dry_run:
             cmd += "--dry-run",
         return self.call(*cmd, verbose=True)
@@ -269,22 +277,22 @@ class Baker(Workstream):
 
         owners = OrderedDict()
         conflicts = []
-        kube_files = []
+        k8s_dirs = []
 
-        for svc, kube_file, resources in async_apply(lambda svc, kube_file: (svc, kube_file, self.resources(kube_file)),
-                                                     async_map(self.deployment, services)):
+        for svc, k8s_dir, resources in async_apply(lambda svc, k8s_dir: (svc, k8s_dir, self.resources(k8s_dir)),
+                                                   async_map(lambda svc: (svc, self.render_yaml(svc)), services)):
             for resource in resources:
                 if resource in owners:
                     conflicts.append((resource, owners[resource].name, svc.name))
                 else:
                     owners[resource] = svc
-            kube_files.append(kube_file)
+            k8s_dirs.append(k8s_dir)
 
         if conflicts:
             messages = ", ".join("%s defined by %s and %s" % c for c in conflicts)
             raise CLIError("conflicts: %s" % messages)
         else:
-            force(async_map(self.apply_yaml, kube_files))
+            force(async_map(self.apply_yaml, k8s_dirs))
 
 def get_config(args):
     if args["--config"] is not None:
