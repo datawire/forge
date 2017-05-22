@@ -49,6 +49,23 @@ from .common import Service, Prototype, image, containers
 
 class CLIError(Exception): pass
 
+OMIT = object()
+
+def async_map(fun, sequence):
+    threads = []
+    for item in sequence:
+        threads.append(eventlet.spawn(fun, item))
+    for thread in threads:
+        result = thread.wait()
+        if result is not OMIT:
+            yield result
+
+def async_apply(fun, sequence):
+    return async_map(lambda i: fun(*i), sequence)
+
+def force(sequence):
+    list(sequence)
+
 def next_page(response):
     if "Link" in response.headers:
         links = requests.utils.parse_header_links(response.headers["Link"])
@@ -152,35 +169,43 @@ class Baker(Workstream):
     def pull(self):
         repos = self.gh("orgs/%s/repos" % self.org)
         filtered = [r for r in repos if fnmatch.fnmatch(r["full_name"], self.filter)]
-        urls = []
-        for r in filtered:
-            name = r["full_name"]
-            result = self.gh("repos/%s" % name, expected=(404,))
-            if "id" in result:
-                urls.append((name, r["clone_url"]))
 
-        for n, u in urls:
-            self.git_pull(n, u)
+        urls = []
+        for repo in async_map(lambda r: self.gh("repos/%s" % r["full_name"], expected=(404,)),
+                              filtered):
+            if "id" in repo:
+                urls.append((repo["full_name"], repo["clone_url"]))
+
+        force(async_apply(self.git_pull, urls))
+
+    def is_raw(self, name, version):
+        return not self.pushed(name, version) or self.baked(name, version)
 
     def bake(self):
         prototypes, services = self.scan()
 
-        raw = [(svc, name, container) for svc, name, container in containers(services)
-               if not (self.pushed(name, svc.version) or self.baked(name, svc.version))]
+        raw = async_apply(lambda svc, name, container:
+                              (svc, name, container) if self.is_raw(name, svc.version) else OMIT,
+                          containers(services))
 
-        for svc, name, container in raw:
-            self.call("docker", "build", ".", "-t", image(self.registry, self.repo, name, svc.version),
-                      cwd=os.path.join(svc.root, os.path.dirname(container)))
+        force(async_apply(lambda svc, name, container:
+                              self.call("docker", "build", ".", "-t",
+                                        image(self.registry, self.repo, name, svc.version),
+                                        cwd=os.path.join(svc.root, os.path.dirname(container))),
+                          raw))
 
     def push(self):
         prototypes, services = self.scan()
 
-        local = [(svc, name, container) for svc, name, container in containers(services)
-                 if (self.baked(name, svc.version) and not self.pushed(name, svc.version))]
+        local = list(async_apply(lambda svc, name, container:
+                                     (svc, name, container) if (self.baked(name, svc.version) and
+                                                                not self.pushed(name, svc.version)) else OMIT,
+                                 containers(services)))
 
         if local: self.call("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
-        for svc, name, container in local:
-            self.call("docker", "push", image(self.registry, self.repo, name, svc.version))
+        force(async_apply(lambda svc, name, container:
+                              self.call("docker", "push", image(self.registry, self.repo, name, svc.version)),
+                          local))
 
     def deploy(self):
         prototypes, services = self.scan()
