@@ -106,7 +106,7 @@ class Baker(Workstream):
 
     def spinner(self):
         self.spincount = self.spincount + 1
-        return "-\||/"[self.spincount % 4]
+        return "-\\|/"[self.spincount % 4]
 
     def render_tail(self, limit):
         unfinished = self.spinner()
