@@ -89,13 +89,21 @@ class Baker(Workstream):
         Workstream.__init__(self)
         self.terminal = Terminal()
         self.moved = 0
+        self.spincount = 0
+
+    def spinner(self):
+        self.spincount = self.spincount + 1
+        return "-\||/"[self.spincount % 4]
 
     def render_tail(self, limit):
+        unfinished = self.spinner()
         count = 0
         for item in reversed(self.items):
-            summary = "%s: %s" % (item.__class__.__name__, item.start_summary)
             if item.finished:
-                summary += " -> %s" % self.terminal.bold(item.finish_summary)
+                status = self.terminal.bold(item.finish_summary)
+            else:
+                status = unfinished
+            summary = "%s[%s]: %s" % (item.__class__.__name__, status, item.start_summary)
             lines = [summary]
             if item.verbose and item.output:
                 for l in item.output.splitlines():
@@ -116,6 +124,7 @@ class Baker(Workstream):
         sys.stdout.write(self.terminal.clear_eol)
 
         self.moved = len(screenful)
+        eventlet.spawn_after(0.5, self.render)
 
     def started(self, item):
         self.render()
