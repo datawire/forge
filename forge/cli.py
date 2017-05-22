@@ -39,6 +39,7 @@ eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/even
 eventlet.monkey_patch()
 
 import fnmatch, requests, os, sys, urllib2, yaml
+from blessings import Terminal
 from docopt import docopt
 from collections import OrderedDict
 
@@ -84,18 +85,46 @@ def inject_token(url, token):
 
 class Baker(Workstream):
 
+    def __init__(self):
+        Workstream.__init__(self)
+        self.terminal = Terminal()
+        self.moved = 0
+
+    def render_tail(self, limit):
+        count = 0
+        for item in reversed(self.items):
+            summary = "%s: %s" % (item.__class__.__name__, item.start_summary)
+            if item.finished:
+                summary += " -> %s" % self.terminal.bold(item.finish_summary)
+            lines = [summary]
+            if item.verbose and item.output:
+                for l in item.output.splitlines():
+                    lines.append("  %s" % l)
+            for l in reversed(lines):
+                yield l
+                count = count + 1
+                if count >= limit:
+                    return
+
+    def render(self):
+        screenful = list(self.render_tail(self.terminal.height))
+
+        sys.stdout.write(self.terminal.move_up*self.moved)
+
+        for idx, line in enumerate(reversed(screenful)):
+            sys.stdout.write(line + self.terminal.clear_eol + self.terminal.move_down)
+        sys.stdout.write(self.terminal.clear_eol)
+
+        self.moved = len(screenful)
+
     def started(self, item):
-        sys.stdout.write("%s: %s" % (item.__class__.__name__, item.start_summary))
-        sys.stdout.flush()
+        self.render()
 
     def updated(self, item, output):
-        if item.verbose:
-            if output == item.output: sys.stdout.write("\n  ")
-            sys.stdout.write(output.replace("\n", "\n  "))
+        self.render()
 
     def finished(self, item):
-        sys.stdout.write(" -> %s\n" % item.finish_summary)
-        sys.stdout.flush()
+        self.render()
 
     def gh(self, api, expected=None):
         headers = {'Authorization': 'token %s' % self.token} if self.token else None
