@@ -236,6 +236,25 @@ class Baker(Workstream):
                               self.call("docker", "push", image(self.registry, self.repo, name, svc.version)),
                           local))
 
+    def deployment(self, svc):
+        filename, metadata = svc.metadata(self.registry, self.repo)
+        with open(filename, "write") as f:
+            yaml.dump(metadata, f)
+        result = self.call("./deployment", "metadata.yaml", cwd=svc.root)
+        kube_file = os.path.join(svc.root, "kube.yaml")
+        with open(kube_file, "write") as f:
+            f.write(result.output)
+        return svc, kube_file
+
+    def resources(self, kube_file):
+        return self.call("kubectl", "apply", "--dry-run", "-f", kube_file, "-o", "name").output.split()
+
+    def apply_yaml(self, kube_file):
+        cmd = "kubectl", "apply", "-f", kube_file
+        if self.dry_run:
+            cmd += "--dry-run",
+        return self.call(*cmd, verbose=True)
+
     def deploy(self):
         prototypes, services = self.scan()
 
@@ -243,15 +262,8 @@ class Baker(Workstream):
         conflicts = []
         kube_files = []
 
-        for svc in services:
-            filename, metadata = svc.metadata(self.registry, self.repo)
-            with open(filename, "write") as f:
-                yaml.dump(metadata, f)
-            result = self.call("./deployment", "metadata.yaml", cwd=svc.root)
-            kube_file = os.path.join(svc.root, "kube.yaml")
-            with open(kube_file, "write") as f:
-                f.write(result.output)
-            resources = self.call("kubectl", "apply", "--dry-run", "-f", kube_file, "-o", "name").output.split()
+        for svc, kube_file, resources in async_apply(lambda svc, kube_file: (svc, kube_file, self.resources(kube_file)),
+                                                     async_map(self.deployment, services)):
             for resource in resources:
                 if resource in owners:
                     conflicts.append((resource, owners[resource].name, svc.name))
@@ -263,11 +275,7 @@ class Baker(Workstream):
             messages = ", ".join("%s defined by %s and %s" % c for c in conflicts)
             raise CLIError("conflicts: %s" % messages)
         else:
-            for kube_file in kube_files:
-                cmd = "kubectl", "apply", "-f", kube_file
-                if self.dry_run:
-                    cmd += "--dry-run",
-                self.call(*cmd, verbose=True)
+            force(async_map(self.apply_yaml, kube_files))
 
 def get_config(args):
     if args["--config"] is not None:
