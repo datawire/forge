@@ -315,6 +315,7 @@ class Baker(Workstream):
         services = OrderedDict()
 
         def descend(path, parent):
+            if not os.path.exists(path): return
             names = os.listdir(path)
 
             if "proto.yaml" in names:
