@@ -17,20 +17,18 @@ Forge CLI.
 
 Usage:
   forge setup
-  forge pull [--config=<config>] [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] [ <organization> ]
-  forge bake [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
-  forge push [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
-  forge deploy [--config=<config>] [--dry-run] [ <docker-repo> ]
+  forge pull [--config=<config>] [--filter=<pattern>]
+  forge bake [--config=<config>]
+  forge push [--config=<config>]
+  forge deploy [--config=<config>] [--dry-run]
   forge create <prototype> <arguments> [-o,--output <target>]
-  forge serve [--config=<config>] [--token=<token>] [--user=<user>] [--password=<password>] [--workdir=<path>] [ <organization> <docker-repo> ]
+  forge serve [--config=<config>]
   forge -h | --help
   forge --version
 
 Options:
-  --config=<config>     Yaml config file location.
+  --config=<config>     Forge config file location.
   --filter=<pattern>    Only operate on services matching <pattern>. [default: *]
-  --token=<token>       Github authentication token.
-  --workdir=<path>      Work directory.
   -h --help             Show this screen.
   --version             Show version.
 """
@@ -356,7 +354,7 @@ class Baker(Workstream):
         force(async_apply(self.git_pull, urls))
 
     def is_raw(self, name, version):
-        return not self.pushed(name, version) or self.baked(name, version)
+        return not (self.pushed(name, version) or self.baked(name, version))
 
     def bake(self):
         prototypes, services = self.scan()
@@ -437,47 +435,26 @@ def get_config(args):
         path = os.path.dirname(path)
     return None
 
-def default(args):
-    conf_file = get_config(args)
-    if not conf_file: return
-
-    with open(conf_file, "read") as fd:
-        conf = yaml.load(fd)
-
-    for name in ("token", "user", "password", "workdir"):
-        arg = "--%s" % name
-        if arg not in args or args[arg] is None and name in conf:
-
-            if name == "workdir":
-                value = conf[name]
-                if not value.startswith("/"):
-                    value = os.path.join(os.path.dirname(os.path.abspath(conf_file)), value)
-            elif name == "password":
-                value = base64.decodestring(conf[name])
-            else:
-                value = conf[name]
-
-            args[arg] = value
-
-    for name in ("organization", "docker-repo"):
-        arg = "<%s>" % name
-        if arg not in args or args[arg] is None and name in conf:
-            args[arg] = conf[name]
-
-def get_workdir(args):
-    workdir = args["--workdir"] or os.getcwd()
+def get_workdir(conf, base):
+    workdir = conf.get("workdir") or base
     if not workdir.startswith("/"):
-        workdir = os.path.join(os.getcwd(), workdir)
+        workdir = os.path.join(base, workdir)
     return workdir
 
-def get_repo(args):
-    url = args["<docker-repo>"]
+def get_repo(conf):
+    url = conf.get("docker-repo")
     if url is None:
-        return None, None
+        raise CLIError("docker-repo must be configured")
     if "/" not in url:
         raise CLIError("docker-repo must be in the form <registry-url>/<name>")
     registry, repo = url.split("/", 1)
     return registry, repo
+
+def get_password(conf):
+    pw = conf.get("password")
+    if not pw:
+        raise CLIError("docker password must be configured")
+    return base64.decodestring(pw)
 
 def create(baker, args):
     proto = args["<prototype>"]
@@ -503,46 +480,33 @@ def create(baker, args):
 
     prototype.instantiate(target, arguments)
 
-REQUIRED = {
-    "setup": (),
-    "pull": ("<organization>",),
-    "bake": ("<docker-repo>",),
-    "push": ("<docker-repo>",),
-    "deploy": ("<docker-repo>",),
-    "create": (),
-    "serve": ("<organization>", "<docker-repo>")
-}
-
-def subcommand(args):
-    for k in REQUIRED:
-        if args[k]: return k
-    assert False
-
-def validate(args):
-    missing = []
-    for n in REQUIRED[subcommand(args)]:
-        if not args[n]:
-            missing.append(n)
-    if missing:
-        raise CLIError("missing arguments: %s" % ", ".join(missing))
-
 def main(args):
-    default(args)
-
     baker = Baker()
 
-    baker.workdir = get_workdir(args)
-    baker.org = args["<organization>"]
-    baker.token = args["--token"]
+    if args["setup"]: return baker.setup()
+
+    conf_file = get_config(args)
+    if not conf_file:
+        raise CLIError("unable to find forge.yaml, try running `forge setup`")
+
+    with open(conf_file, "read") as fd:
+        conf = yaml.load(fd)
+
+    baker.workdir = get_workdir(conf, os.path.dirname(os.path.abspath(conf_file)))
+    baker.registry, baker.repo = get_repo(conf)
+
+    try:
+        baker.org = conf["organization"]
+        baker.user = conf["user"]
+    except KeyError, e:
+        raise CLIError("missing config property: %s" % e)
+
+    baker.token = conf.get("token")
+    baker.password = get_password(conf)
+
     baker.filter = args["--filter"]
-    baker.registry, baker.repo = get_repo(args)
-    baker.user = args["--user"]
-    baker.password = args["--password"]
     baker.dry_run = args["--dry-run"]
 
-    validate(args)
-
-    if args["setup"]: return baker.setup()
     if args["pull"]: return baker.pull()
     if args["bake"]: return baker.bake()
     if args["push"]: return baker.push()
