@@ -307,7 +307,7 @@ class Baker(Workstream):
         if os.path.exists(os.path.join(root, ".git")):
             result = self.call("git", "diff", "--quiet", cwd=root, expected=(1,))
             if result.code == 0:
-                return self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
+                return "%s.git" % self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
         return "%s.ephemeral" % util.shadir(root)
 
     def scan(self):
