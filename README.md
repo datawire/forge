@@ -141,7 +141,7 @@ keep all of these in sync.
 ## Installing
 
 ```
-curl -sL https://raw.githubusercontent.com/datawire/skunkworks/master/install.sh | INSTALL_DIR=${HOME}/skunkworks sh
+curl -sL https://raw.githubusercontent.com/datawire/forge/master/install.sh | INSTALL_DIR=${HOME}/forge sh
 ```
 
 ## Getting Started
