@@ -98,11 +98,23 @@ class Command(Workitem):
     def execute(self):
         self.output = ""
         self.start()
-        p = Popen(tuple(str(a) for a in self.command), stderr=STDOUT, stdout=PIPE, **self.context)
-        for line in p.stdout:
-            self.output += line
-            self.update(line)
-        p.wait()
+
+        try:
+            p = Popen(tuple(str(a) for a in self.command), stderr=STDOUT, stdout=PIPE, **self.context)
+        except OSError, e:
+            self.output += str(e)
+            self.code = 1
+            self.finish()
+            return
+
+        try:
+            for line in p.stdout:
+                self.output += line
+                self.update(line)
+            p.wait()
+        except OSError, e:
+            self.output += str(e)
+
         self.code = p.returncode
         self.finish()
 
