@@ -16,6 +16,7 @@
 Forge CLI.
 
 Usage:
+  forge setup
   forge pull [--config=<config>] [--token=<token>] [--workdir=<path>]  [--filter=<pattern>] [ <organization> ]
   forge bake [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
   forge push [--config=<config>] [--user=<user>] [--password=<password>] [ <docker-repo> ]
@@ -38,10 +39,11 @@ import eventlet
 eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
 eventlet.monkey_patch()
 
-import fnmatch, requests, os, sys, urllib2, yaml
+import base64, fnmatch, getpass, requests, os, sys, urllib2, yaml
 from blessings import Terminal
 from docopt import docopt
 from collections import OrderedDict
+from jinja2 import Template
 
 import util
 from ._metadata import __version__
@@ -96,6 +98,23 @@ def inject_token(url, token):
     else:
         return Elidable(Secret(token), "@%s" % parts[0])
 
+SETUP_TEMPLATE = Template("""# Forge configuration
+organization: twitface
+workdir: work
+docker-repo: {{docker}}
+user: {{user}}
+password: >
+  {{password}}
+""")
+
+def file_contents(path):
+    try:
+        with open(os.path.expanduser(os.path.expandvars(path)), "read") as fd:
+            return fd.read()
+    except IOError, e:
+        print "  %s" % e
+        return None
+
 class Baker(Workstream):
 
     def __init__(self):
@@ -103,6 +122,100 @@ class Baker(Workstream):
         self.terminal = Terminal()
         self.moved = 0
         self.spincount = 0
+
+    def clear(self):
+        del self.items[:]
+        self.moved = 0
+
+    def prompt(self, msg, default=None, loader=None, echo=True):
+        prompt = "%s: " % msg if default is None else "%s[%s]: " % (msg, default)
+        prompter = raw_input if echo else getpass.getpass
+
+        while True:
+            self.clear()
+            value = prompter(prompt) or default
+            if value is None: continue
+            if loader is not None:
+                loaded = loader(value)
+                if loaded is None:
+                    continue
+            if loader:
+                return value, loaded
+            else:
+                return value
+
+    def setup(self):
+        print self.terminal.bold("== Checking Kubernetes Setup ==")
+        print
+
+        try:
+            self.call("kubectl", "version", "--short", verbose=True)
+            self.call("kubectl", "get", "service", "kubernetes", "--namespace", "default", verbose=True)
+        except WorkError, e:
+            print
+            raise CLIError(self.terminal.red("== Kubernetes Check Failed ==") +
+                           "\n\nPlease make sure kubectl is installed/configured correctly.")
+
+        registry = "registry.hub.docker.com"
+        repo = None
+        user = os.environ["USER"]
+        password = None
+        json_key = None
+
+        test_image = "registry.hub.docker.com/library/alpine:latest"
+
+        def validate():
+            self.call("docker", "login", "-u", user, "-p", Secret(password), registry)
+            self.call("docker", "pull", test_image)
+            img = image(registry, repo, "forge_test", "dummy")
+            self.call("docker", "tag", test_image, img)
+            self.call("docker", "push", img)
+            assert self.pushed("forge_test", "dummy", registry=registry, repo=repo, user=user, password=password)
+
+        print
+        print self.terminal.bold("== Setting up Docker ==")
+
+        while True:
+            print
+            registry = self.prompt("Docker registry", registry)
+            repo = self.prompt("Docker repo", repo)
+            user = self.prompt("Docker user", user)
+            if user == "_json_key":
+                json_key, password = self.prompt("Path to json key", json_key, loader=file_contents)
+            else:
+                password = self.prompt("Docker password", echo=False)
+
+            try:
+                print
+                validate()
+                break
+            except WorkError, e:
+                print
+                print self.terminal.red("-- please try again --")
+                continue
+            finally:
+                self.clear()
+
+        print
+
+        config = SETUP_TEMPLATE.render(
+            docker="%s/%s" % (registry, repo),
+            user=user,
+            password=base64.encodestring(password).replace("\n", "\n  ")
+        )
+
+        config_file = "forge.yaml"
+
+        print self.terminal.bold("== Writing config to %s ==" % config_file)
+
+        with open(config_file, "write") as fd:
+            fd.write(config)
+
+        print
+        print config.strip()
+        print
+
+        print self.terminal.bold("== Done ==")
 
     def spinner(self):
         self.spincount = self.spincount + 1
@@ -148,6 +261,21 @@ class Baker(Workstream):
 
     def finished(self, item):
         self.render()
+
+    def dr(self, url, expected=(), user=None, password=None):
+        user = user or self.user
+        password = password or self.password
+
+        response = self.get(url, auth=(user, password), expected=expected + (401,))
+        if response.status_code == 401:
+            challenge = response.headers['Www-Authenticate']
+            if challenge.startswith("Bearer "):
+                challenge = challenge[7:]
+            opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
+            token = self.get("{realm}?service={service}&scope={scope}".format(**opts),
+                             auth=(user, password)).json()['token']
+            response = self.get(url, headers={'Authorization': 'Bearer %s' % token}, expected=expected)
+        return response
 
     def gh(self, api, expected=None):
         headers = {'Authorization': 'token %s' % self.token} if self.token else None
@@ -199,17 +327,14 @@ class Baker(Workstream):
         result = self.call("docker", "images", "-q", image(self.registry, self.repo, name, version))
         return result.output
 
-    def pushed(self, name, version):
-        url = "https://%s/v2/%s/%s/manifests/%s" % (self.registry, self.repo, name, version)
-        response = self.get(url, auth=(self.user, self.password), expected=(404, 401))
-        if response.status_code == 401:
-            challenge = response.headers['Www-Authenticate']
-            if challenge.startswith("Bearer "):
-                challenge = challenge[7:]
-            opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
-            token = self.get("{realm}?service={service}&scope={scope}".format(**opts),
-                             auth=(self.user, self.password)).json()['token']
-            response = self.get(url, headers={'Authorization': 'Bearer %s' % token}, expected=(404,))
+    def pushed(self, name, version, registry=None, repo=None, user=None, password=None):
+        registry = registry or self.registry
+        repo = repo or self.repo
+        user = user or self.user
+        password = password or self.password
+
+        response = self.dr("https://%s/v2/%s/%s/manifests/%s" % (registry, repo, name, version), expected=(404,),
+                           user=user, password=password)
         result = response.json()
         if 'signatures' in result and 'fsLayers' in result:
             return True
@@ -379,6 +504,7 @@ def create(baker, args):
     prototype.instantiate(target, arguments)
 
 REQUIRED = {
+    "setup": (),
     "pull": ("<organization>",),
     "bake": ("<docker-repo>",),
     "push": ("<docker-repo>",),
@@ -416,6 +542,7 @@ def main(args):
 
     validate(args)
 
+    if args["setup"]: return baker.setup()
     if args["pull"]: return baker.pull()
     if args["bake"]: return baker.bake()
     if args["push"]: return baker.push()
