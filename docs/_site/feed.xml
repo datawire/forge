@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Telepresence</title>
+    <description>Telepresence: a local development environment for a remote Kubernetes cluster</description>
+    <link>http://telepresence.io/</link>
+    <atom:link href="http://telepresence.io/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Mon, 01 May 2017 13:05:11 -0400</pubDate>
+    <lastBuildDate>Mon, 01 May 2017 13:05:11 -0400</lastBuildDate>
+    <generator>Jekyll v3.0.1</generator>
+    
+  </channel>
+</rss>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Telepresence - Installing Telepresence</title>
+  <meta name="description" content="Telepresence: a local development environment for a remote Kubernetes cluster">
+  <meta name="keywords" content="Telepresence, Kubernetes, microservices">
+  <meta name="author" content="Datawire.io">
+  <meta name="generator" content="Doc42 0.1.0">
+
+  <link rel="stylesheet" href="/css/kissui.css">
+  <link rel="stylesheet" href="/css/custom.css">
+  <link rel="stylesheet" href="/css/sticky.min.css">
+  
+  <script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');  ga('create', 'UA-57322503-8', 'auto');ga('send', 'pageview');</script>
+  <link rel="canonical" href="http://telepresence.io/getting-started/install.html">
+  <link rel="alternate" type="application/rss+xml" title="Telepresence" href="http://telepresence.io/feed.xml">
+</head>
+
+
+  <body>
+      <div class="row">
+    <header id="main_header">
+        <nav class="basic border menu">
+            <div class="fluid">
+                <a class="header item" href="/">
+                    Telepresence
+                </a>
+
+                <a class="item" href="/getting-started/install">
+                    <i class="fa fa-download"></i> Download
+                </a>
+                <a class="item" href="https://github.com/datawire/telepresence/" target="_blank">
+                    <i class="fa fa-github"></i> Github
+                </a>
+                <a class="item" href="https://gitter.im/datawire/telepresence" target="_blank">
+                    <i class="fa fa-support"></i> Need help?
+                </a>
+            </div>
+        </nav>
+    </header>
+</div>
+
+
+      <div class="fluid">
+          <div class="wrapper">
+              <div class="row">
+    <div class="two columns">
+        <nav class="basic border fluid vertical menu" data-kui-sticky>
+    
+
+    <div class="items">
+        <div class="icon item header">
+            <i class="fa fa-question-circle"></i>about
+        </div>
+        
+
+        
+            
+        
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/about/why-telepresence.html">Why Telepresence?</a>
+                
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/about/how-it-works.html">How it works</a>
+                
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+    </div>
+    
+
+    <div class="items">
+        <div class="icon item header">
+            <i class="fa fa-play"></i>getting started
+        </div>
+        
+
+        
+            
+        
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/getting-started/install.html">Installing Telepresence</a>
+                
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/getting-started/quickstart.html">Quickstart</a>
+                
+              
+            
+        
+            
+              
+            
+        
+    </div>
+    
+
+    <div class="items">
+        <div class="icon item header">
+            <i class="fa fa-code"></i>user guide
+        </div>
+        
+
+        
+            
+        
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/user-guide/features-and-functionality.html">Features and Functionality</a>
+                
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/user-guide/limitations-and-workarounds.html">Limitations and Workarounds</a>
+                
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+    </div>
+    
+
+    <div class="items">
+        <div class="icon item header">
+            <i class="fa fa-expand"></i>additional information
+        </div>
+        
+
+        
+            
+        
+            
+        
+            
+              
+                
+                    <a class="item" href="/additional-information/changelog.html">Changelog</a>
+                
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+            
+        
+            
+              
+                
+                    <a class="item" href="/additional-information/developing.html">Development Info</a>
+                
+              
+            
+        
+    </div>
+    
+</nav>
+
+    </div>
+
+    <div class="eight columns page-content">
+        <header class="post-header">
+            <h2 class="post-title">Installing Telepresence</h3>
+        </header>
+
+        <div class="post-content docs">
+          <p>You will need the following available on your machine:</p>
+
+<ul>
+  <li>OS X or Linux.</li>
+  <li><code class="highlighter-rouge">kubectl</code> command line tool.</li>
+  <li>Access to your Kubernetes cluster, with local credentials on your machine.
+You can do this test by running <code class="highlighter-rouge">kubectl get pod</code> - if this works you’re all set.</li>
+</ul>
+
+<h3 id="os-x">OS X</h3>
+
+<p>On OS X you can install Telepresence by running the following:</p>
+
+<p><code class="highlighter-rouge">
+brew cask install osxfuse
+brew install datawire/blackbird/telepresence
+</code></p>
+
+<h3 id="ubuntu-1604-or-later">Ubuntu 16.04 or later</h3>
+
+<p>Run the following to install Telepresence:</p>
+
+<p><code class="highlighter-rouge">
+curl -s https://packagecloud.io/install/repositories/datawireio/telepresence/script.deb.sh | sudo bash
+apt install --no-install-recommends telepresence
+</code></p>
+
+<h3 id="fedora-25">Fedora 25</h3>
+
+<p>Run the following:</p>
+
+<p><code class="highlighter-rouge">
+curl -s https://packagecloud.io/install/repositories/datawireio/telepresence/script.rpm.sh | sudo bash
+dnf install telepresence
+</code></p>
+
+<h3 id="other-platforms">Other platforms</h3>
+
+<p>Don’t see your favorite platform?
+<a href="https://github.com/datawire/telepresence/issues/new">Let us know</a> and we’ll try to add it.</p>
+
+
+          <div><strong>Still have questions? Ask in our <a href="https://gitter.im/datawire/telepresence">Gitter chatroom</a> or <a href="https://github.com/datawire/telepresence/issues/new">file an issue on GitHub</a>.</strong></div>
+        </div>
+    </div>
+
+    <div id="contents" class="two columns">
+        <div data-kui-sticky></div>
+    </div>
+</div>
+
+          </div>
+      </div>
+
+      <div class="grid">
+  <div class="row">
+    <footer class="basic menu top border">
+      <div class="fluid">
+        <span class="right header item">Copyright &copy; 2017 <a href="https://datawire.io">Datawire.io</a></span>
+      </div>
+    </footer>
+  </div>
+</div>
+<script src="/js/sticky.min.js"></script>
+
+
+      <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-85887707-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
