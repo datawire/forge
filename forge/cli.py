@@ -37,7 +37,10 @@ import eventlet
 eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
 eventlet.monkey_patch()
 
-import base64, fnmatch, getpass, requests, os, sys, urllib2, yaml
+import getpass
+getpass.os = eventlet.patcher.original('os') # workaround for https://github.com/eventlet/eventlet/issues/340
+
+import base64, fnmatch, requests, os, sys, urllib2, yaml
 from blessings import Terminal
 from docopt import docopt
 from collections import OrderedDict
