@@ -133,7 +133,8 @@ class Baker(Workstream):
         sys.stdout.write(self.terminal.move_up*self.moved)
 
         for idx, line in enumerate(reversed(screenful)):
-            sys.stdout.write(line + self.terminal.clear_eol + self.terminal.move_down)
+            sys.stdout.write(line)
+            sys.stdout.write(self.terminal.clear_eol + self.terminal.move_down)
         sys.stdout.write(self.terminal.clear_eol)
 
         self.moved = len(screenful)
@@ -321,11 +322,21 @@ def default(args):
     for name in ("token", "user", "password", "workdir"):
         arg = "--%s" % name
         if arg not in args or args[arg] is None and name in conf:
-            args[arg] = conf[name]
+
+            if name == "workdir":
+                value = conf[name]
+                if not value.startswith("/"):
+                    value = os.path.join(os.path.dirname(os.path.abspath(conf_file)), value)
+            elif name == "password":
+                value = base64.decodestring(conf[name])
+            else:
+                value = conf[name]
+
+            args[arg] = value
 
     for name in ("organization", "docker-repo"):
         arg = "<%s>" % name
-        if name not in args or args[arg] is None and name in conf:
+        if arg not in args or args[arg] is None and name in conf:
             args[arg] = conf[name]
 
 def get_workdir(args):
@@ -338,6 +349,8 @@ def get_repo(args):
     url = args["<docker-repo>"]
     if url is None:
         return None, None
+    if "/" not in url:
+        raise CLIError("docker-repo must be in the form <registry-url>/<name>")
     registry, repo = url.split("/", 1)
     return registry, repo
 
@@ -419,6 +432,8 @@ def call_main():
     try:
         exit(main(args))
     except CLIError, e:
+        exit(e)
+    except KeyboardInterrupt, e:
         exit(e)
 
 if __name__ == "__main__":
