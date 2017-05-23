@@ -41,7 +41,7 @@ import getpass
 getpass.os = eventlet.patcher.original('os') # workaround for https://github.com/eventlet/eventlet/issues/340
 
 import base64, fnmatch, requests, os, sys, urllib2, yaml
-from blessings import Terminal
+from blessed import Terminal
 from docopt import docopt
 from collections import OrderedDict
 from jinja2 import Template
@@ -247,7 +247,11 @@ class Baker(Workstream):
         sys.stdout.write(self.terminal.move_up*self.moved)
 
         for idx, line in enumerate(reversed(screenful)):
-            sys.stdout.write(line)
+            # XXX: should really wrap this properly somehow, but
+            #      writing out more than the terminal width will mess up
+            #      the movement logic
+            delta = len(line) - self.terminal.length(line)
+            sys.stdout.write(line[:self.terminal.width+delta])
             sys.stdout.write(self.terminal.clear_eol + self.terminal.move_down)
         sys.stdout.write(self.terminal.clear_eol)
 
