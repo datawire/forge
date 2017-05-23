@@ -27,6 +27,7 @@ class Workitem(object):
         self.started = None
         self.updated = None
         self.finished = None
+        self.expected = context.pop("expected", None) or ()
         self.verbose = context.pop("verbose", False)
 
     def pending(self):
@@ -48,6 +49,19 @@ class Workitem(object):
         self.updated = time.time()
         self.finished = time.time()
         self.stream.finished(self)
+
+    @property
+    def ok(self):
+        return self.code is not None and (self._is_ok() or self.code in self.expected)
+
+    @property
+    def finish_summary(self):
+        if self._is_ok():
+            return "OK"
+        elif self.code in self.expected:
+            return "OK[%s]" % self.code
+        else:
+            return "BAD[%s]" % self.code
 
 def elide(t):
     if isinstance(t, Secret):
@@ -80,20 +94,12 @@ class Command(Workitem):
         self.output = None
         self.code = None
 
-    @property
-    def bad(self):
-        return self.code is not None and self.code != 0
+    def _is_ok(self):
+        return self.code == 0
 
     @property
     def start_summary(self):
         return " ".join(elide(a) for a in self.command)
-
-    @property
-    def finish_summary(self):
-        if self.code == 0:
-            return "OK"
-        else:
-            return "BAD[%s]" % self.code
 
     def execute(self):
         self.output = ""
@@ -132,33 +138,22 @@ class Request(Workitem):
         Workitem.__init__(self, stream, context)
         self.url = url
         self.context = context
-        self.expected = context.pop("expected", None) or ()
         self.response = None
 
-    @property
-    def bad(self):
-        return self.response and not self.response.ok
-
-    @property
-    def output(self):
-        return self.response.content if self.response else None
+    def _is_ok(self):
+        return self.response is not None and self.response.ok
 
     @property
     def code(self):
-        return self.response.status_code if self.response else None
+        return self.response.status_code if self.response is not None else None
+
+    @property
+    def output(self):
+        return self.response.content if self.response is not None else None
 
     @property
     def start_summary(self):
         return elide(self.url)
-
-    @property
-    def finish_summary(self):
-        if self.response.ok:
-            return "OK"
-        elif self.response.status_code in self.expected:
-            return "OK[%s]" % self.response.status_code
-        else:
-            return "BAD[%s]" % self.response.status_code
 
     def execute(self):
         self.start()
@@ -196,7 +191,7 @@ class Workstream(object):
     def call(self, *args, **kwargs):
         cmd = self.command(*args, **kwargs)
         cmd.execute()
-        if cmd.code == 0:
+        if cmd.ok:
             return cmd
         else:
             raise CommandError(cmd.output)

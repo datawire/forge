@@ -232,7 +232,7 @@ class Baker(Workstream):
                 status = unfinished
             summary = "%s[%s]: %s" % (item.__class__.__name__, status, item.start_summary)
             lines = [summary]
-            if (item.verbose or item.bad) and item.output:
+            if (item.verbose or (item.finished and not item.ok)) and item.output:
                 for l in item.output.splitlines():
                     lines.append("  %s" % l)
             for l in reversed(lines):
@@ -303,20 +303,30 @@ class Baker(Workstream):
 
     EXCLUDED = set([".git"])
 
+    def version(self, root):
+        if os.path.exists(os.path.join(root, ".git")):
+            result = self.call("git", "diff", "--quiet", cwd=root, expected=(1,))
+            if result.code == 0:
+                return self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
+        return "%s.ephemeral" % util.shadir(root)
+
     def scan(self):
-        prototypes = []
-        services = []
+        prototypes = OrderedDict()
+        services = OrderedDict()
 
         def descend(path, parent):
             names = os.listdir(path)
 
             if "proto.yaml" in names:
-                prototypes.append(Prototype(os.path.join(path, "proto.yaml")))
+                proto = Prototype(os.path.join(path, "proto.yaml"))
+                if proto.name not in prototypes:
+                    prototypes[proto.name] = proto
                 return
             if "service.yaml" in names:
-                version = self.call("git", "rev-parse", "HEAD", cwd=path).output.strip()
+                version = self.version(path)
                 svc = Service(version, os.path.join(path, "service.yaml"), [])
-                services.append(svc)
+                if svc.name not in services:
+                    services[svc.name] = svc
                 parent = svc
             if "Dockerfile" in names and parent:
                 parent.containers.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
@@ -325,8 +335,10 @@ class Baker(Workstream):
                 if n not in self.EXCLUDED and os.path.isdir(os.path.join(path, n)):
                     descend(os.path.join(path, n), parent)
 
-        descend(self.workdir, None)
-        return prototypes, services
+        for root in (os.getcwd(), self.workdir):
+            descend(root, None)
+
+        return list(prototypes.values()), list(services.values())
     
     def baked(self, name, version):
         result = self.call("docker", "images", "-q", image(self.registry, self.repo, name, version))
