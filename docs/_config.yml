@@ -1,14 +1,14 @@
 gems:
   - jekyll-redirect-from
 
-title: Telepresence
-email: itamar@telepresence.io
+title: Forge
+email: hello@datawire.io
 author: "Datawire.io"
-description: "Telepresence: a local development environment for a remote Kubernetes cluster"
-keywords: "Telepresence, Kubernetes, microservices"
+description: "Forge: Fast build system for Kubernetes services"
+keywords: "Forge, Kubernetes, microservices"
 
 baseurl: ""
-url: "http://telepresence.io" # the base hostname & protocol for your site
+url: "http://forge.sh" # the base hostname & protocol for your site
 twitter_username: datawireio
 github_username:  datawire
 
