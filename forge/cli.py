@@ -321,7 +321,7 @@ class Baker(Workstream):
 
     def version(self, root):
         if self.is_git(root):
-            result = self.call("git", "diff", "--quiet", cwd=root, expected=(1,))
+            result = self.call("git", "diff", "--quiet", ".", cwd=root, expected=(1,))
             if result.code == 0:
                 return "%s.git" % self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
         return "%s.ephemeral" % util.shadir(root)
