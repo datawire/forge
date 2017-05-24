@@ -29,6 +29,7 @@ class Workitem(object):
         self.finished = None
         self.expected = context.pop("expected", None) or ()
         self.verbose = context.pop("verbose", False)
+        self.visible = context.pop("visible", True)
 
     def pending(self):
         return self.started is None

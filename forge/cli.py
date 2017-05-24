@@ -238,6 +238,7 @@ class Baker(Workstream):
         count = 0
         for item in reversed(self.items):
             if item.finished:
+                if not item.visible: continue
                 status = self.terminal.bold(item.finish_summary)
             else:
                 status = unfinished
@@ -281,14 +282,15 @@ class Baker(Workstream):
         user = user or self.user
         password = password or self.password
 
-        response = self.get(url, auth=(user, password), expected=expected + (401,))
+        response = self.get(url, auth=(user, password), expected=expected + (401,), visible=False)
         if response.status_code == 401:
             challenge = response.headers['Www-Authenticate']
             if challenge.startswith("Bearer "):
                 challenge = challenge[7:]
             opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
             token = self.get("{realm}?service={service}&scope={scope}".format(**opts),
-                             auth=(user, password)).json()['token']
+                             auth=(user, password),
+                             visible=False).json()['token']
             response = self.get(url, headers={'Authorization': 'Bearer %s' % token}, expected=expected)
         return response
 
@@ -323,7 +325,7 @@ class Baker(Workstream):
 
     def version(self, root):
         if self.is_git(root):
-            result = self.call("git", "diff", "--quiet", ".", cwd=root, expected=(1,))
+            result = self.call("git", "diff", "--quiet", ".", cwd=root, expected=(1,), visible=False)
             if result.code == 0:
                 return "%s.git" % self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
         return "%s.ephemeral" % util.shadir(root)
