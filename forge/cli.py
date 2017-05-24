@@ -126,9 +126,11 @@ class Baker(Workstream):
         self.moved = 0
         self.spincount = 0
         self.pushed_cache = {}
-        eventlet.spawn(self.spin)
 
     def spin(self):
+        eventlet.spawn(self.do_spin)
+
+    def do_spin(self):
         while True:
             time.sleep(0.1)
             self.render()
@@ -561,6 +563,9 @@ def main(args):
 
     baker.filter = args["--filter"]
     baker.dry_run = args["--dry-run"]
+
+    if not args["serve"]:
+        baker.spin()
 
     if args["pull"]: baker.pull()
     if args["bake"]: baker.bake()
