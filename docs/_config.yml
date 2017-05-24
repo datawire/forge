@@ -16,6 +16,7 @@ github_username:  datawire
 category-list:
   - "tutorials"
   - "discussion"
+  - "reference"
 
 # optionally you can define icon for each category (for the sidebar)
 # Doc42 uses Font Awesome
