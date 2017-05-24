@@ -20,6 +20,8 @@ Usage:
   forge pull [--config=<config>] [--filter=<pattern>]
   forge bake [--config=<config>]
   forge push [--config=<config>]
+  forge yaml [--config=<config>]
+  forge build [--config=<config>]
   forge deploy [--config=<config>] [--dry-run]
   forge create <prototype> <arguments> [-o,--output <target>]
   forge serve [--config=<config>]
@@ -123,6 +125,7 @@ class Baker(Workstream):
         self.terminal = Terminal()
         self.moved = 0
         self.spincount = 0
+        self.pushed_cache = {}
 
     def clear(self):
         del self.items[:]
@@ -170,7 +173,7 @@ class Baker(Workstream):
             self.call("docker", "pull", test_image)
             img = image(registry, repo, "forge_test", "dummy")
             self.call("docker", "tag", test_image, img)
-            self.call("docker", "push", img)
+            self.do_push(img)
             assert self.pushed("forge_test", "dummy", registry=registry, repo=repo, user=user, password=password)
 
         print
@@ -351,13 +354,19 @@ class Baker(Workstream):
         user = user or self.user
         password = password or self.password
 
+        img = image(registry, repo, name, version)
+        if img in self.pushed_cache:
+            return self.pushed_cache[img]
+
         response = self.dr("https://%s/v2/%s/%s/manifests/%s" % (registry, repo, name, version), expected=(404,),
                            user=user, password=password)
         result = response.json()
         if 'signatures' in result and 'fsLayers' in result:
+            self.pushed_cache[img] = True
             return True
         elif 'errors' in result and result['errors']:
             if result['errors'][0]['code'] == 'MANIFEST_UNKNOWN':
+                self.pushed_cache[img] = False
                 return False
         raise CLIError(response.content)
 
@@ -376,8 +385,8 @@ class Baker(Workstream):
     def is_raw(self, name, version):
         return not (self.pushed(name, version) or self.baked(name, version))
 
-    def bake(self):
-        prototypes, services = self.scan()
+    def bake(self, scanned = None):
+        prototypes, services = scanned or self.scan()
 
         raw = async_apply(lambda svc, name, container:
                               (svc, name, container) if self.is_raw(name, svc.version) else OMIT,
@@ -389,8 +398,12 @@ class Baker(Workstream):
                                         cwd=os.path.join(svc.root, os.path.dirname(container))),
                           raw))
 
-    def push(self):
-        prototypes, services = self.scan()
+    def do_push(self, img):
+        self.pushed_cache.pop(img, None)
+        return self.call("docker", "push", img)
+
+    def push(self, scanned = None):
+        prototypes, services = scanned or self.scan()
 
         local = list(async_apply(lambda svc, name, container:
                                      (svc, name, container) if (self.baked(name, svc.version) and
@@ -399,7 +412,7 @@ class Baker(Workstream):
 
         if local: self.call("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
         force(async_apply(lambda svc, name, container:
-                              self.call("docker", "push", image(self.registry, self.repo, name, svc.version)),
+                              self.do_push(image(self.registry, self.repo, name, svc.version)),
                           local))
 
     def render_yaml(self, svc):
@@ -416,8 +429,8 @@ class Baker(Workstream):
             cmd += "--dry-run",
         return self.call(*cmd, verbose=True)
 
-    def deploy(self):
-        prototypes, services = self.scan()
+    def yaml(self, scanned = None):
+        prototypes, services = scanned or self.scan()
 
         owners = OrderedDict()
         conflicts = []
@@ -435,8 +448,17 @@ class Baker(Workstream):
         if conflicts:
             messages = ", ".join("%s defined by %s and %s" % c for c in conflicts)
             raise CLIError("conflicts: %s" % messages)
-        else:
-            force(async_map(self.apply_yaml, k8s_dirs))
+        return k8s_dirs
+
+    def build(self, scanned = None):
+        scanned = scanned or self.scan()
+        self.bake(scanned)
+        self.push(scanned)
+        return self.yaml(scanned)
+
+    def deploy(self):
+        k8s_dirs = self.build(self.scan())
+        force(async_map(self.apply_yaml, k8s_dirs))
 
 def get_config(args):
     if args["--config"] is not None:
@@ -527,15 +549,16 @@ def main(args):
     baker.filter = args["--filter"]
     baker.dry_run = args["--dry-run"]
 
-    if args["pull"]: return baker.pull()
-    if args["bake"]: return baker.bake()
-    if args["push"]: return baker.push()
-    if args["deploy"]: return baker.deploy()
-    if args["create"]: return create(baker, args)
+    if args["pull"]: baker.pull()
+    if args["bake"]: baker.bake()
+    if args["push"]: baker.push()
+    if args["yaml"]: baker.yaml()
+    if args["build"]: baker.build()
+    if args["deploy"]: baker.deploy()
+    if args["create"]: create(baker, args)
     if args["serve"]:
         from .server import serve
-        return serve(baker)
-    assert False, "unrecognized args"
+        serve(baker)
 
 def call_main():
     util.setup_yaml()

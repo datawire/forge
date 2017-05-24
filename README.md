@@ -30,13 +30,11 @@ cd forge-quickstart
 forge setup
 ```
 
-3. Now let's build a service:
+3. Now let's deploy our service:
 
 ```
 git clone https://github.com/datawire/hello-forge.git
-forge bake # bakes a docker image of our service
-forge push # pushes the docker image to the configured repo
-forge deploy # deploys the service on kubernetes
+forge deploy # builds, pushes, and deploys the service onto kubernetes
 ```
 
 4. Once forge deploy completes, you can type kubectl get services to
@@ -60,7 +58,7 @@ Hello World! ...
 
 ```
 sed -i -e 's/Hello World!/Hey-Diddley-Ho!!!/' hello-forge/app.py
-forge bake && forge push && forge deploy
+forge deploy
 ```
 
 7. Now we can curl and see the new message (kubernetes may take a few
@@ -78,7 +76,7 @@ Hey-Diddley-Ho!!! ...
 
 ```
 git clone https://github.com/datawire/hello-forge-network.git
-forge bake && forge push && forge deploy
+forge deploy
 ```
 
 9. Now let's see all our services:
