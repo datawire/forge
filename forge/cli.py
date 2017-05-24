@@ -42,11 +42,11 @@ eventlet.monkey_patch()
 import getpass
 getpass.os = eventlet.patcher.original('os') # workaround for https://github.com/eventlet/eventlet/issues/340
 
-import base64, fnmatch, requests, os, sys, time, urllib2, yaml
+import atexit, base64, fnmatch, requests, os, sys, time, traceback, urllib2, yaml
 from blessed import Terminal
 from docopt import docopt
 from collections import OrderedDict
-from jinja2 import Template
+from jinja2 import Template, TemplateError
 
 import util
 from ._metadata import __version__
@@ -57,33 +57,39 @@ class CLIError(Exception): pass
 
 OMIT = object()
 
+# XXX: hack for catching background errors
+ERRORS = []
+
+@atexit.register
+def spew():
+    if ERRORS:
+        filtered = [e for e in ERRORS if not isinstance(e[1], WorkError)]
+        formatted = [str(e[1]) if isinstance(e[1], CLIError) else "".join(traceback.format_exception(*e)) for e in filtered]
+        formatted.append("%s task(s) had errors" % len(ERRORS))
+        print "\n".join(formatted)
+
 def safe(f, *args):
     try:
         return f(*args)
-    except CLIError, e:
-        return e
-    except WorkError, e:
-        return e
+    except:
+        ERRORS.append(sys.exc_info())
+        return OMIT
 
 def async_map(fun, sequence):
     threads = []
     for item in sequence:
         threads.append(eventlet.spawn(safe, fun, item))
-    errors = []
     for thread in threads:
         result = thread.wait()
-        if isinstance(result, WorkError):
-            errors.append(result)
-        elif result is not OMIT:
+        if result is not OMIT:
             yield result
-    if errors:
-        raise CLIError("%s task(s) had errors" % len(errors))
 
 def async_apply(fun, sequence):
     return async_map(lambda i: fun(*i), sequence)
 
 def force(sequence):
     list(sequence)
+    if ERRORS: raise CLIError()
 
 def next_page(response):
     if "Link" in response.headers:
@@ -238,8 +244,12 @@ class Baker(Workstream):
         count = 0
         for item in reversed(self.items):
             if item.finished:
-                if not item.visible: continue
-                status = self.terminal.bold(item.finish_summary)
+                if not item.visible and item.ok: continue
+                status = item.finish_summary
+                if item.ok:
+                    status = self.terminal.bold_green(status)
+                else:
+                    status = self.terminal.bold_red(status)
             else:
                 status = unfinished
             summary = "%s[%s]: %s" % (item.__class__.__name__, status, item.start_summary)
@@ -434,7 +444,10 @@ class Baker(Workstream):
 
     def render_yaml(self, svc):
         k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
-        svc.deployment(self.registry, self.repo, k8s_dir)
+        try:
+            svc.deployment(self.registry, self.repo, k8s_dir)
+        except TemplateError, e:
+            raise CLIError(e)
         return k8s_dir
 
     def resources(self, k8s_dir):

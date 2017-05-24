@@ -14,7 +14,7 @@
 
 import os, shutil, yaml
 from collections import OrderedDict
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, TemplateError
 
 def image(registry, repo, name, version):
     return "%s/%s/%s:%s" % (registry, repo, name, version)
@@ -61,15 +61,15 @@ class Service(object):
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()
-        for k, v in self.info().items():
-            metadata[k] = v
-        if "name" not in metadata:
-            metadata["name"] = self.name
-        metadata["images"] = OrderedDict()
+        metadata["service"] = self.info()
+        if "name" not in metadata["service"]:
+            metadata["service"]["name"] = self.name
+        build = OrderedDict()
+        metadata["build"] = build
+        build["images"] = OrderedDict()
         for container in self.containers:
             img = image(registry, repo, self.image(container), self.version)
-            metadata["images"][container] = img
-            metadata["images"][os.path.dirname(container) or self.name] = img
+            build["images"][container] = img
         return metadata
 
     def deployment(self, registry, repo, target):
@@ -84,7 +84,10 @@ class Service(object):
 
         for path, dirs, files in os.walk(k8s_dir):
             for name in files:
-                rendered = env.get_template(name).render(**metadata)
+                try:
+                    rendered = env.get_template(name).render(**metadata)
+                except TemplateError, e:
+                    raise TemplateError("%s/%s: %s" % (path, name, e))
                 with open(os.path.join(target, os.path.relpath(path, start=k8s_dir), name), "write") as f:
                     f.write(rendered)
 
