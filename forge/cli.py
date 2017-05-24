@@ -181,7 +181,7 @@ class Baker(Workstream):
         password = None
         json_key = None
 
-        test_image = "registry.hub.docker.com/library/alpine:latest"
+        test_image = "registry.hub.docker.com/datawire/forge-setup-test:1"
 
         def validate():
             self.call("docker", "login", "-u", user, "-p", Secret(password), registry)
