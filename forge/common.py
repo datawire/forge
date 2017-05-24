@@ -56,20 +56,22 @@ class Service(object):
         return name
 
     def metadata(self, registry, repo):
-        filename = os.path.join(self.root, "metadata.yaml")
         metadata = OrderedDict()
-        metadata["name"] = self.name
+        for k, v in self.info().items():
+            metadata[k] = v
+        if "name" not in metadata:
+            metadata["name"] = self.name
         metadata["images"] = OrderedDict()
         for container in self.containers:
             img = image(registry, repo, self.image(container), self.version)
             metadata["images"][container] = img
             metadata["images"][os.path.dirname(container) or self.name] = img
-        return filename, metadata
+        return metadata
 
     def deployment(self, registry, repo, target):
         k8s_dir = os.path.join(self.root, "k8s")
 
-        filename, metadata = self.metadata(registry, repo)
+        metadata = self.metadata(registry, repo)
         env = Environment(loader=FileSystemLoader(k8s_dir))
 
         if os.path.exists(target):
