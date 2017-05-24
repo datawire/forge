@@ -1,7 +1,7 @@
 ---
 layout: doc
 weight: 1
-title: "Get started with Kubernetes"
+title: "Get started with Forge"
 categories: tutorials
 ---
 
@@ -13,160 +13,102 @@ categories: tutorials
  });
 </script>
 
-You will need the following available on your machine:
+# Get started with Forge
 
-* `kubectl` command line tool.
-* Access to your Kubernetes cluster, with local credentials on your machine.
-  You can do this test by running `kubectl get pod` - if this works you're all set.
+## Installation
 
-#### OS X
+Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, you're going to need the following installed on your system:
 
-On OS X you can install Telepresence by running the following:
+* Docker
+* kubectl, with access to a Kubernetes cluster (minikube is fine)
+* a Docker registry
 
-```shell
-brew cask install osxfuse
-brew install datawire/blackbird/telepresence
+You can install Forge via `curl`:
+
+```
+curl -sL https://raw.githubusercontent.com/datawire/forge/master/install.sh | INSTALL_DIR=${HOME}/forge sh
 ```
 
-#### Ubuntu 16.04 or later
+## Configuration
 
-Run the following to install Telepresence:
+2. Once forge is installed, we can configure it using `forge setup`:
 
-```shell
-curl -s https://packagecloud.io/install/repositories/datawireio/telepresence/script.deb.sh | sudo bash
-sudo apt install --no-install-recommends telepresence
+```
+mkdir forge-quickstart
+cd forge-quickstart
+forge setup
 ```
 
-#### Fedora 25
+## Deploy a service
 
-Run the following:
+3. Forge lets you deploy a service into Kubernetes in a single command, `forge deploy`.
 
-```shell
-curl -s https://packagecloud.io/install/repositories/datawireio/telepresence/script.rpm.sh | sudo bash
-sudo dnf install telepresence
+```
+git clone https://github.com/datawire/hello-forge.git
+forge deploy # builds, pushes, and deploys the service onto kubernetes
 ```
 
-#### Windows
+4. Once forge deploy completes, you can type kubectl get services to
+   get the IP address of the myservice.
 
-If you are running Windows 10 Creators Edition (released April 2017), you have access to the Windows Subsystem for Linux.
-This allows you to run Linux programs transparently inside Windows, with access to the normal Windows filesystem.
-Some older versions of Windows also had WSL, but those were based off Ubuntu 14.04 and will not work with Telepresence.
+*Note* on minikube, use `minikube service --url hello-forge` instead
+       of `kubectl get services`
 
-To run Telepresence inside WSL:
-
-1. Install [Windows Subsystem for Linux](https://msdn.microsoft.com/en-us/commandline/wsl/install_guide).
-2. Start the BASH.exe program.
-3. Install Telepresence by following the Ubuntu instructions above.
-
-Caveats:
-
-* At the moment volumes are not supported on Windows, but [we plan on fixing this](https://github.com/datawire/telepresence/issues/115).
-* Network proxying won't affect Windows binaries.
-  You can however edit your files in Windows and compile Java or .NET packages, and then run them with the Linux interpreters or VMs.
-
-#### Other platforms
-
-Don't see your favorite platform?
-[Let us know](https://github.com/datawire/telepresence/issues/new) and we'll try to add it. 
-
-
-### Using Telepresence for the first time
-
-**Important:** Starting `telepresence` the first time may take a little while, since Kubernetes needs to download the server-side image.
-
-We'll start by trying out one specific feature: Telepresence allows you to forward traffic from Kubernetes to a local process.
-
-Imagine you're developing a service locally.
-To simplify the example we'll just use a simple HTTP server:
-
-```console
-$ mkdir /tmp/telepresence-test
-$ cd /tmp/telepresence-test
-$ echo "hello from your laptop" > file.txt
-$ python3 -m http.server 8081 &
-[1] 2324
-$ curl http://localhost:8081/file.txt
-hello from your laptop
-$ kill %1
+```
+kubctl get services
+NAME         CLUSTER-IP      EXTERNAL-IP       PORT(S)        AGE
+hello-forge  10.91.248.98    XXX.XXX.XXX.XXX   80:30651/TCP   4m
+...
 ```
 
-We want to expose this local process so that it gets traffic from Kubernetes.
-To do so we need to:
+5. curl to the `XXX.XXX.XXX.XXX` IP address, and see Hello, World!.
 
-1. Run a Telepresence proxy pod in the remote cluster.
-2. Start up the local `telepresence` CLI on your local machine, telling it to run the web server.
 
-First, let's start the Telepresence proxy:
-
-```console
-$ kubectl run --port 8080 myserver \
-  --image=datawire/telepresence-k8s:{{ site.data.version.version }}
+```
+curl XXX.XXX.XXX.XXX
+Hello World! ...
 ```
 
-Then we'll expose it to the Internet:
+## Change the service
 
-```console
-$ kubectl expose deployment myserver \
-  --type=LoadBalancer --name=myserver
+1. You've discovered your service is on Hacker News, and you want to bump up the memory. Take a look at the `service.yaml` file:
+
+```
+name: hello-forge
+memory: 0.25G
+cpu: 0.25
 ```
 
-**Important:** you're about to expose a web server on your laptop to the Internet.
-This is pretty cool, but also pretty dangerous!
-Make sure there are no files in the current directory that you don't want shared with the whole world.
+2. Edit the memory from 0.25G to 0.5G.
 
-We run the local Telepresence client:
+3. Now, let's change some source code:
 
-```console
-$ telepresence --deployment myserver --expose 8080 \
-  --run python3 -m http.server 8080 &
+```
+sed -i -e 's/Hello World!/Hey-Diddley-Ho!!!/' hello-forge/app.py
+forge deploy
 ```
 
-As long as you leave the HTTP server running inside `telepresence` it will be accessible from inside the Kubernetes cluster:
+7. Now we can curl and see the new message (kubernetes may take a few
+   seconds to rollout the new image):
 
-<div class="mermaid">
-graph TD
-  subgraph Laptop
-    code["python HTTP server on port 8080"]---client[Telepresence client]
-  end
-  subgraph Kubernetes in Cloud
-    client-.-proxy["k8s.Pod: Telepresence proxy, listening on port 8080"]
-  end
-</div>
-
-We can now send queries via the public address of the `Service` we created, and they'll hit the web server running on your laptop:
-
-If your cluster is in the cloud you can find the address of the `Service` like this:
-
-```console
-$ kubectl get service myserver
-NAME       CLUSTER-IP     EXTERNAL-IP       PORT(S)          AGE
-myserver   10.3.242.226   104.197.103.123   8080:30022/TCP   5d
+```
+curl XXX.XXX.XXX.XXX
+Hey-Diddley-Ho!!! ...
 ```
 
-If you see `<pending>` under EXTERNAL-IP wait a few seconds and try again.
-In this case the `Service` is exposed at `http://104.197.103.123:8080/`.
+8. So now we've seen we can easly build and deploy a single service,
+   but microservices are only useful when you can get a whole bunch of
+   them to work together. Using forge we can just as easily spin up a
+   whole network of microservices:
 
-On `minikube` you should instead do this to find the URL:
-
-```console
-$ minikube service --url myserver
-http://192.168.99.100:12345/
+```
+git clone https://github.com/datawire/hello-forge-network.git
+forge deploy
 ```
 
-Once you know the address you can send it a query and it will get routed to your locally running server:
+9. Now let's see all our services:
 
-```console
-$ curl http://104.197.103.13:8080/file.txt
-hello from your laptop
 ```
-
-Finally, let's kill Telepresence locally so you don't have to worry about other people accessing your local web server:
-
-```console
-$ fg
-telepresence --deployment myserver --expose 8080 --run python3 -m http.server 8080
-^C
-Keyboard interrupt received, exiting.
+kubectl get services
+...
 ```
-
-Telepresence can do much more than this, which we'll cover in the [next section](/user-guide/features-and-functionality/) of the documentation.
