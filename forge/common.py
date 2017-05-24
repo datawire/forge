@@ -48,7 +48,11 @@ class Service(object):
 
     @property
     def name(self):
-        return os.path.basename(self.root)
+        info = self.info()
+        if "name" in info:
+            return info["name"]
+        else:
+            return os.path.basename(self.root)
 
     def image(self, container):
         pfx = os.path.dirname(container)
