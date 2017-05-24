@@ -5,16 +5,6 @@ title: "Get started with Forge"
 categories: tutorials
 ---
 
-<link rel="stylesheet" href="{{ "/css/mermaid.css" | prepend: site.baseurl }}">
-<script src="{{ "/js/mermaid.min.js" | prepend: site.baseurl }}"></script>
-<script>mermaid.initialize({
-   startOnLoad: true,
-   cloneCssStyles: false,
- });
-</script>
-
-# Get started with Forge
-
 ## Installation
 
 Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, you're going to need the following installed on your system:
