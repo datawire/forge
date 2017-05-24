@@ -40,14 +40,18 @@ forge deploy # builds, pushes, and deploys the service onto kubernetes
 4. Once forge deploy completes, you can type kubectl get services to
    get the IP address of the myservice.
 
+*Note* on minikube, use `minikube service --url hello-forge` instead
+       of `kubectl get services`
+
 ```
 kubctl get services
 NAME         CLUSTER-IP      EXTERNAL-IP       PORT(S)        AGE
-hello        10.91.248.98    XXX.XXX.XXX.XXX   80:30651/TCP   40d
+hello-forge  10.91.248.98    XXX.XXX.XXX.XXX   80:30651/TCP   4m
 ...
 ```
 
 5. curl to the `XXX.XXX.XXX.XXX` IP address, and see Hello, World!.
+
 
 ```
 curl XXX.XXX.XXX.XXX
