@@ -42,7 +42,7 @@ eventlet.monkey_patch()
 import getpass
 getpass.os = eventlet.patcher.original('os') # workaround for https://github.com/eventlet/eventlet/issues/340
 
-import base64, fnmatch, requests, os, sys, urllib2, yaml
+import base64, fnmatch, requests, os, sys, time, urllib2, yaml
 from blessed import Terminal
 from docopt import docopt
 from collections import OrderedDict
@@ -126,6 +126,13 @@ class Baker(Workstream):
         self.moved = 0
         self.spincount = 0
         self.pushed_cache = {}
+        eventlet.spawn(self.spin)
+
+    def spin(self):
+        while True:
+            time.sleep(0.1)
+            self.render()
+            self.spincount = self.spincount + 1
 
     def clear(self):
         del self.items[:]
@@ -222,7 +229,6 @@ class Baker(Workstream):
         print self.terminal.bold("== Done ==")
 
     def spinner(self):
-        self.spincount = self.spincount + 1
         return "-\\|/"[self.spincount % 4]
 
     def render_tail(self, limit):
@@ -259,7 +265,6 @@ class Baker(Workstream):
         sys.stdout.write(self.terminal.clear_eol)
 
         self.moved = len(screenful)
-        eventlet.spawn_after(0.5, self.render)
 
     def started(self, item):
         self.render()
@@ -306,8 +311,16 @@ class Baker(Workstream):
 
     EXCLUDED = set([".git"])
 
+    def is_git(self, path):
+        if os.path.exists(os.path.join(path, ".git")):
+            return True
+        elif path not in ('', '/'):
+            return self.is_git(os.path.dirname(path))
+        else:
+            return False
+
     def version(self, root):
-        if os.path.exists(os.path.join(root, ".git")):
+        if self.is_git(root):
             result = self.call("git", "diff", "--quiet", cwd=root, expected=(1,))
             if result.code == 0:
                 return "%s.git" % self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
