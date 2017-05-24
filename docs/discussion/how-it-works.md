@@ -5,33 +5,66 @@ title: "How it works"
 categories: discussion
 ---
 
-### Why it works the way it does
+Forge builds services based on Docker and Kubernetes. It assumes the
+output of any service build consists of one or more docker containers
+along with the kubernetes yaml necessary to spin up these containers.
+The build process consists of the following stages:
 
-Our goals for Telepresence are:
+1. Find service definitions.
+2. Compute versions for all input sources.
+3. Build, tag, and push any missing containers.
+4. Build and apply the kubernetes yaml.
 
-1. **Transparency:** make the local proxied process match the Kubernetes environment as closely as possible.
-2. **Isolation:** only the proxied process has its environment modified.
-    This goal is very much like that of a container: an isolated process-specific environment.
-3. **Cross-platform:** Linux and macOS work the same way, when possible.
-   In general Linux provides far more capabilities (mount namespaces, bind mounts, network namespaces) than macOS.
+## Finding Services
+Forge finds services by searching the filesystem for any file named
+`service.yaml`. Any directory containing such a file is assumed to
+following a standard layout:
+```
+  root
+    |
+    +-- service.yaml    # identifies this directory as a service and contains key metadata
+    |
+    +-- k8s/*           # deployment templates (jinja2)
+    |
+    +-- **/Dockerfile   # one or more container definitions
+```
+## Computing Versions
 
-Achieving all these goals is not always possible, of course.
+Forge automatically computes a version for any service it builds. If
+the service is located in an *unmodified* git tree, forge will use
+`<commit>.git` as the version. If the service is not located in a git
+tree, or the git tree has changes, forge will compute the sha1 hash of
+the filesystem tree for all the services and use a version of the form
+`<sha1hash>.ephemeral`. This enables forge to be conveniently used for
+dev builds, but also retains complete traceability for production
+builds.
 
-One approach we considered early on was using a VPN for network proxying, but that is hard to reconcile with the goal of isolation (at least on macOS.)
-Our chosen approach, described below, suffers from [some limitations](/user-guide/limitations-and-workarounds.html), so we might add support for VPN-based proxying in the future.
-If this interests you please leave a comment or vote on the [VPN issue in GitHub](https://github.com/datawire/telepresence/issues/128).
+## Building Containers
+Forge computes canonical container image names based on the configured
+docker registry, repo, and the computed service names. It then queries
+for the existence of these canonical images both remotely and locally,
+and if necessary it invokes `docker build` in order to build, tag, and
+push missing containers.
+*Note* if you are wondering how to avoid including lots of build tools
+ in your containers, check out docker's
+ [multi-stage builds](https://docs.docker.com/engine/userguide/eng-image/multistage-build/).
 
-### How it works
-
-Telepresence works by building a two-way network proxy (bootstrapped using `kubectl port-forward`) between a custom pod running inside a remote (or local) Kubernetes cluster and a process running on your development machine.
-The custom pod is substituted for your normal pod that would run in production.
-Typically you'd want to do this to a testing or staging cluster, not your production cluster.
-
-Environment variables from the remote pod are made available to your local process.
-In addition, the local process has its networking transparently overridden such that DNS calls and TCP connections are routed over the proxy to the remote Kubernetes cluster.
-This is implemented using `LD_PRELOAD`/`DYLD_INSERT_LIBRARIES` mechanism on Linux/OSX, where a shared library can be injected into a process and override library calls.
-
-Volumes are proxied using [sshfs](https://github.com/libfuse/sshfs), with their location available to the container as an environment variable.
-
-The result is that your local process has a similar environment to the remote Kubernetes cluster, while still being fully under your local control.
-
+## Building Kubernetes yaml
+The kubernetes yaml necessary to deploy the containers associated with
+a service is produced from the jinja2 templates in the `k8s`
+directory. These templates are invoked with both the service metadata
+(contents of `service.yaml`), as well as the build metadata.
+Template variables:
+```
+  service
+    |
+    +-- name   # this is defaulted based on directory name if not explicitly specified in service.yaml
+    |
+    +-- ...    # any other variables defined in service.yaml
+  build
+    |
+    +-- images # map from Dockerfile relative path to built image name
+```
+After generating the kubernetes yaml for all services, forge validates
+the yaml and ensures that there are no resource name conflicts between
+services.
