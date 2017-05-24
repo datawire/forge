@@ -21,7 +21,7 @@ curl -sL https://raw.githubusercontent.com/datawire/forge/master/install.sh | IN
 
 ## Configuration
 
-2. Once forge is installed, we can configure it using `forge setup`:
+2. Once forge is installed, create a working directory for it and run `forge setup` to complete the installation. Forge setup will ask for authentication information to a Docker Registry as part of this process:
 
 ```
 mkdir forge-quickstart
@@ -31,11 +31,26 @@ forge setup
 
 ## Deploy a service
 
-3. Forge lets you deploy a service into Kubernetes in a single command, `forge deploy`.
+When deploying a service into Kubernetes, you need to provide not just code, but the actual <strong>configuration</strong> needed to run this code. Forge is a build system that builds both the code and configuration, together.
+
+1. We'll show Forge in action with a simple service. Clone our example service:
 
 ```
 git clone https://github.com/datawire/hello-forge.git
-forge deploy # builds, pushes, and deploys the service onto kubernetes
+```
+
+2. In the example service, you'll see a `service.yaml` file. This file contains the basic runtime configuration for the service.
+
+```
+name: hello-forge
+memory: 0.25G
+cpu: 0.25
+```
+
+3. The Forge `deploy` command will build the service (including its dependencies), push the service into a Docker registry, generate the necessary Kubernetes deployment metadata, and actually run `kubectl` to get the service running in your cluster. Try it now:
+
+```
+forge deploy
 ```
 
 4. Once forge deploy completes, you can type kubectl get services to
@@ -59,36 +74,34 @@ curl XXX.XXX.XXX.XXX
 Hello World! ...
 ```
 
+6. You can also verify that the limits specified in the `service.yaml` file are in effect with `kubectl describe pod XXX`.
+
 ## Change the service
 
-1. You've discovered your service is on Hacker News, and you want to bump up the memory. Take a look at the `service.yaml` file:
+1. You've discovered your service is on Hacker News, and you want to bump up the memory and change your greeting. Edit the `service.yaml` file and change the memory to 0.5G. ProTip: if you don't specify a limit, Kubernetes will default to unlimited ... which will enable an errant service to take down your entire cluster.
+
+2. Now, let's change some source code and redeploy:
 
 ```
-name: hello-forge
-memory: 0.25G
-cpu: 0.25
-```
-
-2. Edit the memory from 0.25G to 0.5G.
-
-3. Now, let's change some source code:
-
-```
-sed -i -e 's/Hello World!/Hey-Diddley-Ho!!!/' hello-forge/app.py
+sed -i -e 's/Hello World!/Hello Hacker News!!!/' hello-forge/app.py
 forge deploy
 ```
 
-7. Now we can curl and see the new message (kubernetes may take a few
+7. Now we can curl and see the new message (Kubernetes may take a few
    seconds to rollout the new image):
 
 ```
 curl XXX.XXX.XXX.XXX
-Hey-Diddley-Ho!!! ...
+Hello Hacker News!!! ...
 ```
 
-8. So now we've seen we can easly build and deploy a single service,
-   but microservices are only useful when you can get a whole bunch of
-   them to work together. Using forge we can just as easily spin up a
+4. We can verify that the service does have more memory with `kubectl describe pods`, as above.
+
+## A network of services
+
+8. So now we've seen we can easily build and deploy a single service,
+   but microservices are truly useful when you can get a whole bunch of
+   them to work together. Using Forge we can just as easily spin up a
    whole network of microservices:
 
 ```
@@ -96,7 +109,7 @@ git clone https://github.com/datawire/hello-forge-network.git
 forge deploy
 ```
 
-9. Now let's see all our services:
+9. You can see Forge has built, pushed, and deployed the entire network of services.
 
 ```
 kubectl get services
