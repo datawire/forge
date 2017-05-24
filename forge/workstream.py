@@ -62,7 +62,10 @@ class Workitem(object):
         elif self.code in self.expected:
             return "OK[%s]" % self.code
         else:
-            return "BAD[%s]" % self.code
+            if self.code is None:
+                return "ERR"
+            else:
+                return "ERR[%s]" % self.code
 
 def elide(t):
     if isinstance(t, Secret):
@@ -133,6 +136,13 @@ class Command(Workitem):
                 "started": self.started,
                 "finished": self.finished}
 
+class FakeResponse(object):
+
+    def __init__(self, e):
+        self.ok = False
+        self.status_code = None
+        self.content = str(e)
+
 class Request(Workitem):
 
     def __init__(self, stream, url, context):
@@ -158,9 +168,15 @@ class Request(Workitem):
 
     def execute(self):
         self.start()
-        self.response = requests.get(str(self.url), **self.context)
-        self.update(self.response.content)
-        self.finish()
+        try:
+            self.response = requests.get(str(self.url), **self.context)
+            self.update(self.response.content)
+            self.finish()
+        except requests.RequestException, e:
+            self.response = FakeResponse(e)
+            self.update(self.response.content)
+            self.finish()
+            raise WorkError(e)
 
     def json(self):
         return {"command": [elide(self.url)],
