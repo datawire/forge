@@ -113,3 +113,7 @@ When deploying a service into Kubernetes, you need to provide not just code, but
    ```
    kubectl get services
    ```
+
+## Next steps
+
+You've seen an example of how Forge can quickly build and deploy services to Kubernetes. Now, try setting up <a href="using-forge.html">Forge on your own services</a>.
