@@ -577,22 +577,22 @@ def main(args):
     baker.token = conf.get("token")
     baker.password = get_password(conf)
 
-    baker.filter = args["--filter"]
+    baker.filter = args.get("--filter")
     baker.dry_run = args["--dry-run"]
 
-    if not args["serve"]:
-        baker.spin()
+    #    if not args["serve"]:
+    baker.spin()
 
-    if args["pull"]: baker.pull()
+#    if args["pull"]: baker.pull()
     if args["bake"]: baker.bake()
     if args["push"]: baker.push()
     if args["yaml"]: baker.yaml()
     if args["build"]: baker.build()
     if args["deploy"]: baker.deploy()
-    if args["create"]: create(baker, args)
-    if args["serve"]:
-        from .server import serve
-        serve(baker)
+#    if args["create"]: create(baker, args)
+#    if args["serve"]:
+#        from .server import serve
+#        serve(baker)
 
 def call_main():
     util.setup_yaml()
