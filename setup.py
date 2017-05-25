@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import versioneer
 
 ROOT_DIR = os.path.dirname(__file__)
 
@@ -30,7 +31,8 @@ def recursive_hack(dir):
     return [os.path.join(dir, *['*']*i) for i in range(1, 10)]
 
 setup(name=metadata["__title__"],
-      version=metadata["__version__"],
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
       description=metadata["__summary__"],
       author=metadata["__author__"],
       author_email=metadata["__email__"],

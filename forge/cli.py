@@ -49,7 +49,7 @@ from collections import OrderedDict
 from jinja2 import Template, TemplateError
 
 import util
-from ._metadata import __version__
+from . import __version__
 from .workstream import Workstream, Elidable, Secret, Command, WorkError
 from .common import Service, Prototype, image, containers
 

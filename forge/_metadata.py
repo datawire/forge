@@ -21,8 +21,8 @@ __all__ = [
     "__license__", "__copyright__",
 ]
 
+
 __title__ = 'Forge'
-__version__ = os.environ.get("BUILD_VERSION", 'dev')
 
 __summary__ = "Forge Deployment Tooling"
 __uri__ = "https://www.datawire.io"
