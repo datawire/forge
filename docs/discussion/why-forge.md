@@ -9,6 +9,7 @@ Kubernetes provides the powerful primitive of infrastructure as
 configuration. It gives you a language that lets you describe the
 infrastructure requirements needed for something to run, and then
 keeps it running in the face of failures.
+
 Forge makes it easy to leverage these capabilities when your code and
 its requirements are quickly changing.
 
@@ -47,3 +48,7 @@ practices and avoid duplicate work.
 Forge's service templates capture best practices from both operations
 and development, and help share knowledge/work between independent
 teams.
+
+### More reading
+
+The <a href="https://www.datawire.io/announcing-forge-a-build-system-for-kubernetes-services/">Forge announcement blog post</a> also discusses some of our motivations for Forge.
