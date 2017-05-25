@@ -1,7 +1,7 @@
 ---
 layout: doc
 weight: 1
-title: "Get started with Forge"
+title: "Forge Quickstart"
 categories: tutorials
 ---
 
