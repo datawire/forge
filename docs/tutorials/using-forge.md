@@ -8,8 +8,8 @@ To start using Forge on a new or existing service, follow these steps.
 
 1. Create a deployment template in `$REPO_HOME/k8s`. The deployment template should contain all the necessary information to deploy the service. Forge supports templating the deployment template using the [Jinja2 templating engine](http://jinja.pocoo.org/). Here's a simple example:
 
-{% raw %}
-```
+    {% raw %}
+    ```
     ---
     apiVersion: v1
     kind: Service
@@ -53,8 +53,8 @@ To start using Forge on a new or existing service, follow these steps.
           restartPolicy: Always
           securityContext: {}
           terminationGracePeriodSeconds: 30
-```
-{% endraw %}
+    ```
+    {% endraw %}
 
     Note how we use templates for values such as the memory and CPU limits.
 
