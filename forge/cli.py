@@ -17,14 +17,11 @@ Forge CLI.
 
 Usage:
   forge setup
-  forge pull [--config=<config>] [--filter=<pattern>]
   forge bake [--config=<config>]
   forge push [--config=<config>]
   forge yaml [--config=<config>]
   forge build [--config=<config>]
   forge deploy [--config=<config>] [--dry-run]
-  forge create <prototype> <arguments> [-o,--output <target>]
-  forge serve [--config=<config>]
   forge -h | --help
   forge --version
 
@@ -34,6 +31,10 @@ Options:
   -h --help             Show this screen.
   --version             Show version.
 """
+
+#  forge pull [--config=<config>] [--filter=<pattern>]
+#  forge create <prototype> <arguments> [-o,--output <target>]
+#  forge serve [--config=<config>]
 
 import eventlet
 eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
@@ -197,7 +198,7 @@ class Baker(Workstream):
         while True:
             print
             registry = self.prompt("Docker registry", registry)
-            repo = self.prompt("Docker repo", repo)
+            repo = self.prompt("Docker org or user for service repos", repo)
             user = self.prompt("Docker user", user)
             if user == "_json_key":
                 json_key, password = self.prompt("Path to json key", json_key, loader=file_contents)
