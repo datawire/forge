@@ -60,14 +60,22 @@ it is also possible to control the proportion of traffic routed to
 each version.
 
 See
-[here](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#canary-deployments
+[here](https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#canary-deployments)
 for details.
 
 ## How Forge can help with canaries
 
 All the Forge example templates leverage the kubernetes builtin
 deployment mechanism and so provide some level of canarying by
-default. If more sophisticated behavior is required it is
-straightforward to build templates that do something fancier, either
-with the customization hooks using the single deployment scheme, or
-via a multi-deployment template.
+default.
+
+The hello-forge example template additionally provides an easy way to
+utilize the multi-deployment pattern described above. Just setting the
+track in service.yaml to a different value enables multiple parallel
+service deployments.
+
+See [here](https://github.com/datawire/hello-forge) for more
+details. In particular check out the `track` parameter in
+`service.yaml` for the interface, and the template in
+`k8s/deployment.yaml` for the nitty gritty details of how it utilizes
+kubernetes.
