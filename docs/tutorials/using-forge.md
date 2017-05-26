@@ -4,9 +4,9 @@ weight: 2
 title: "Using Forge on your services"
 categories: tutorials
 ---
-To start using Forge on a new or existing service, follow these steps.
+To start using Forge on a new or existing service, the [hello-forge example](https://github.com/datawire/hello-forge) is a good place to start. We'll walk through the steps below, based on the `hello-forge` example.
 
-1. Create a deployment template in `$REPO_HOME/k8s`. The deployment template should contain all the necessary information to deploy the service. Forge supports templating the deployment template using the [Jinja2 templating engine](http://jinja.pocoo.org/). Here's a simple example:
+1. Create a deployment template in `$REPO_HOME/k8s`. The deployment template should contain all the necessary information to deploy the service. Forge supports templating the deployment template using the [Jinja2 templating engine](http://jinja.pocoo.org/). When a template is instantiated, all the parameters in the `service.yaml` file as well as the metadata from the build is included in the output. Here is an example deployment template:
 
     {% raw %}
     ```
@@ -56,9 +56,9 @@ To start using Forge on a new or existing service, follow these steps.
     ```
     {% endraw %}
 
-    Note how we use templates for values such as the memory and CPU limits.
+    The service parameters are supplied to the deployment templates under the `service` variable name. The build metadata is supplied under the `build` variable name, and Docker images are available in the `build.images` map. This map is keyed by path relative to the directory containing the `service.yaml` file.
 
-2. Create a `service.yaml` file in `$REPO_HOME`. This file identifies the service and contains the metadata for deployment. Here's an example that maps to the above example:
+2. Create a `service.yaml` file in `$REPO_HOME`. This file identifies the given directory as a service and contains the metadata supplied to the deployment templates. Here's an example that maps to the above example:
 
     ```
     name: hello
