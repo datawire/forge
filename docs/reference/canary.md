@@ -2,7 +2,7 @@
 layout: doc
 weight: 2
 title: "Canary deploys with Kubernetes"
-categories: Reference
+categories: reference
 ---
 People use the term canary deploys to refer to multiple related but
 different things. Anything from A/B testing UX features on users, to
