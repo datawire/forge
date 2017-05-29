@@ -83,6 +83,17 @@ required_commands () {
     done
 }
 
+required_pip () {
+    for pkg in $*; do
+        substep "Checking pip for ${pkg}: "
+        if $(pip show -q ${pkg}); then
+            substep_ok
+        else
+            die "Cannot find ${pkg}, please pip install and try again."
+        fi
+    done
+}
+
 is_project_installed () {
     substep "Checking install target: "
     if [ -e ${INSTALL_DIR} ]; then
@@ -93,7 +104,8 @@ is_project_installed () {
 }
 
 step "Performing installation environment sanity checks..."
-required_commands python virtualenv
+required_commands python pip
+required_pip virtualenv setuptools
 is_project_installed
 
 step "Creating ${INSTALL_DIR} installation directory..."
