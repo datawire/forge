@@ -9,7 +9,7 @@ categories: tutorials
 
 Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, you're going to need the following installed on your system:
 
-* Docker ([Mac OS X](https://docs.docker.com/docker-for-mac/) | [Ubuntu](https://docs.docker.com/engine/installation/linux/ubuntu/) | [Fedora](https://docs.docker.com/engine/installation/linux/fedora/))
+* Docker ([Mac OS X](https://docs.docker.com/docker-for-mac/),  [Ubuntu](https://docs.docker.com/engine/installation/linux/ubuntu/), [Fedora](https://docs.docker.com/engine/installation/linux/fedora/) install instructions)
 * kubectl, with access to a Kubernetes cluster (minikube is fine)
 * a Docker registry, such as Docker Hub or Google Container Registry
 * A working Python environment with `virtualenv` installed
