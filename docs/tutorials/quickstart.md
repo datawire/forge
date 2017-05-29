@@ -5,15 +5,20 @@ title: "Forge Quickstart"
 categories: tutorials
 ---
 
-## Installation
+## Prerequisites
 
 Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, you're going to need the following installed on your system:
 
-* Docker
+* Docker ([Mac OS X](https://docs.docker.com/docker-for-mac/) | [Ubuntu](https://docs.docker.com/engine/installation/linux/ubuntu/) | [Fedora](https://docs.docker.com/engine/installation/linux/fedora/))
 * kubectl, with access to a Kubernetes cluster (minikube is fine)
-* a Docker registry
+* a Docker registry, such as Docker Hub or Google Container Registry
+* A working Python environment with `virtualenv` installed
 
-You can install Forge via `curl`:
+If you don't have `virtualenv` installed, you can install it with `pip install virtualenv`.
+
+## Installing Forge
+
+Once you have the prerequisites installed, you can install Forge via `curl`:
 
 ```
 curl -sL https://raw.githubusercontent.com/datawire/forge/master/install.sh | INSTALL_DIR=${HOME}/forge sh
@@ -21,7 +26,7 @@ curl -sL https://raw.githubusercontent.com/datawire/forge/master/install.sh | IN
 
 ## Configuration
 
-Once forge is installed, create a working directory for it and run `forge setup` to complete the installation. Forge setup will ask for authentication information to a Docker Registry as part of this process:
+Ceate a working directory for Forge and run `forge setup` to complete the installation. Setup will ask for authentication information to a Docker Registry as part of this process:
 
 ```
 mkdir forge-quickstart
