@@ -26,7 +26,7 @@ curl -sL https://raw.githubusercontent.com/datawire/forge/master/install.sh | IN
 
 ## Configuration
 
-Ceate a working directory for Forge and run `forge setup` to complete the installation. Setup will ask for authentication information to a Docker Registry as part of this process:
+Create a working directory for Forge and run `forge setup` to complete the installation. Setup will ask for authentication information to a Docker Registry as part of this process:
 
 ```
 mkdir forge-quickstart
@@ -36,7 +36,7 @@ forge setup
 
 ## Deploy a service
 
-When deploying a service into Kubernetes, you need to provide not just code, but the actual <strong>configuration</strong> needed to run this code. Forge is a build system that builds both the code and configuration, together.
+When deploying a service into Kubernetes, you need to provide not just code, but the actual <strong>configuration</strong> needed to run this code. Forge is a build/deployment system that builds both the code and configuration, together.
 
 1. We'll show Forge in action with a simple service. Clone our example service:
 
@@ -52,13 +52,15 @@ When deploying a service into Kubernetes, you need to provide not just code, but
    cpu: 0.25
    ```
 
-3. The Forge `deploy` command will build the service (including its dependencies), push the service into a Docker registry, generate the necessary Kubernetes deployment metadata, and run `kubectl` to get the service running in your cluster. Try it now:
+3. Normally, if you want to get a service running in Kubernetes, you need to   build a Docker image, push the image to a Docker registry, write some Kubernetes YAML, and run `kubectl` to get the service running.
+
+   With Forge, the `deploy` command will take care of everything you need to get the service running. Try it now:  
 
    ```
    forge deploy
    ```
 
-4. Once forge deploy completes, you can type `kubectl get services` to
+4. Once `deploy` completes, you can type `kubectl get services` to
    get the IP address of the service.
 
    *Note* on minikube, use `minikube service --url hello-forge` instead of `kubectl get services`
