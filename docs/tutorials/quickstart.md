@@ -66,7 +66,7 @@ When deploying a service into Kubernetes, you need to provide not just code, but
    *Note* on minikube, use `minikube service --url hello-forge` instead of `kubectl get services`
 
    ```
-   $ kubctl get services
+   $ kubectl get services
    NAME         CLUSTER-IP      EXTERNAL-IP       PORT(S)        AGE
    hello-forge  10.91.248.98    XXX.XXX.XXX.XXX   80:30651/TCP   4m
    ...
