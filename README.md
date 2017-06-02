@@ -11,5 +11,6 @@ mkdir forgedev
 cd forgedev
 virtualenv py2 --python python2
 git clone https://github.com/datawire/forge.git
+cd forge
 pip install -e .
 ```
