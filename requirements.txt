@@ -7,3 +7,4 @@ flask-socketio
 requests
 pyyaml
 jinja2
+pytest
