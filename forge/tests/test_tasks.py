@@ -144,7 +144,7 @@ def test_nested_exception_sync():
     File "<PATH>/test_tasks.py", line <NNN>, in nested_oops_sync
       oops(2)
     File "<PATH>/tasks.py", line <NNN>, in __call__
-      return execution.call(self.task, args, kwargs)
+      return execution.call(self.task, self._munge(args), kwargs)
     File "<PATH>/tasks.py", line <NNN>, in call
       return exe.get()
     File "<PATH>/tasks.py", line <NNN>, in run
@@ -178,3 +178,23 @@ def test_sh():
 def test_get():
     response = get("https://httpbin.org/get")
     assert response.json()["url"] == "https://httpbin.org/get"
+
+class C(object):
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    @task("C.task")
+    def task(self, a):
+        return self.x + self.y + a
+
+def test_task_method_sync():
+    c = C(1, 2)
+    assert 6 == c.task(3)
+
+def test_task_method_async():
+    c = C(1, 2)
+    exe = c.task.go(3)
+    assert exe.result == PENDING
+    assert exe.get() == 6

@@ -162,16 +162,28 @@ class task(object):
             self.name = self.function.__name__
         return decorator(self)
 
+_UNBOUND = Sentinel("_UNBOUND")
+
 class decorator(object):
 
-    def __init__(self, task):
+    def __init__(self, task, object = _UNBOUND):
         self.task = task
+        self.object = object
+
+    def __get__(self, object, clazz):
+        return decorator(self.task, object)
+
+    def _munge(self, args):
+        if self.object is _UNBOUND:
+            return args
+        else:
+            return (self.object,) + args
 
     def __call__(self, *args, **kwargs):
-        return execution.call(self.task, args, kwargs)
+        return execution.call(self.task, self._munge(args), kwargs)
 
     def go(self, *args, **kwargs):
-        return execution.spawn(self.task, args, kwargs)
+        return execution.spawn(self.task, self._munge(args), kwargs)
 
     def run(self, *args, **kwargs):
         terminal = blessed.Terminal()
