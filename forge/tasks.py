@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import eventlet
+import eventlet, sys
 from eventlet.corolocal import local
+from eventlet.green import time
 
-class Dummy(object):
-
-    def __getattr__(self, attr):
-        raise Exception("The tasks module has not been initialized yet. The tasks module depends on eventlet which requires monkeypatching. Please invoke tasks.setup() at the earliest possible point in your code.")
-
-logging = sys = time = traceback = blessed = Dummy()
+logging = eventlet.import_patched('logging')
+traceback = eventlet.import_patched('traceback')
+blessed = eventlet.import_patched('blessed')
 
 def setup():
     """
@@ -29,9 +27,6 @@ def setup():
 
     eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
     eventlet.monkey_patch()
-
-    global logging, sys, time, traceback, blessed
-    import logging, sys, time, traceback, blessed
 
     if 'pytest' not in sys.modules:
         import getpass
@@ -64,7 +59,7 @@ def elapsed(delta):
     hours, minutes = divmod(minutes, 60)
     return "%d:%02d:%02d" % (hours, minutes, seconds)
 
-class TaskFilter(object):
+class TaskFilter(logging.Filter):
 
     """
     This logging filter augments log records with useful context when
@@ -435,3 +430,26 @@ def status(*args, **kwargs):
     Update the status for the current task. This will log an info message with the new status.
     """
     return execution.current().update_status(*args, **kwargs)
+
+## common tasks
+
+from eventlet.green.subprocess import Popen, STDOUT, PIPE
+
+class TaskError(Exception):
+    pass
+
+@task()
+def sh(*args, **kwargs):
+    p = Popen(tuple(str(a) for a in args), stderr=STDOUT, stdout=PIPE, **kwargs)
+    result = p.stdout.read()
+    p.wait()
+    if p.returncode == 0:
+        return result
+    else:
+        raise TaskError("command failed[%s]: %s" % (p.returncode, result))
+
+requests = eventlet.import_patched('requests.__init__') # the .__init__ is a workaround for: https://github.com/eventlet/eventlet/issues/208
+
+@task()
+def get(url, **kwargs):
+    return requests.get(str(url), **kwargs)

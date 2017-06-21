@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from forge.tasks import execution, setup, status, sync, task, PENDING, ERROR
+from forge.tasks import execution, get, setup, sh, status, sync, task, PENDING, ERROR
 
 setup()
 
@@ -171,3 +171,10 @@ def test_nested_exception_async():
     ZeroDivisionError: integer division or modulo by zero
     
   Noop: 3""" == massage(exe.render())
+
+def test_sh():
+    assert "hello" == sh("echo", "-n", "hello")
+
+def test_get():
+    response = get("https://httpbin.org/get")
+    assert response.json()["url"] == "https://httpbin.org/get"
