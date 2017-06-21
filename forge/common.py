@@ -57,6 +57,7 @@ class Service(object):
     def image(self, container):
         pfx = os.path.dirname(container)
         name = os.path.join(self.name, pfx) if pfx else self.name
+        name = name.replace("/", "-")
         return name
 
     def metadata(self, registry, repo):
