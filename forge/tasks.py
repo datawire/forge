@@ -443,6 +443,16 @@ def status(*args, **kwargs):
     """
     return execution.current().update_status(*args, **kwargs)
 
+def gather(sequence):
+    """
+    Resolve a sequence of asynchronously executed tasks.
+    """
+    for obj in sequence:
+        if isinstance(obj, execution):
+            yield obj.get()
+        else:
+            yield obj
+
 ## common tasks
 
 from eventlet.green.subprocess import Popen, STDOUT, PIPE

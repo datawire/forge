@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from forge.tasks import execution, get, setup, sh, status, sync, task, PENDING, ERROR
+from forge.tasks import execution, gather, get, setup, sh, status, sync, task, PENDING, ERROR
 
 setup()
 
@@ -198,3 +198,11 @@ def test_task_method_async():
     exe = c.task.go(3)
     assert exe.result == PENDING
     assert exe.get() == 6
+
+@task()
+def gatherer(n):
+    return gather(noop.go(i) for i in range(n))
+
+def test_gather():
+    result = gatherer(10)
+    assert range(10) == list(result)
