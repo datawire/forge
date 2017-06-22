@@ -453,6 +453,25 @@ def gather(sequence):
         else:
             yield obj
 
+OMIT = Sentinel("OMIT")
+
+def project(task, sequence):
+    execs = []
+    for obj in sequence:
+        execs.append(task.go(obj))
+    for e in execs:
+        obj = e.get()
+        if obj is not OMIT:
+            yield obj
+
+def filtrate(task, sequence):
+    execs = []
+    for obj in sequence:
+        execs.append((task.go(obj), obj))
+    for e, obj in execs:
+        if e.get():
+            yield obj
+
 ## common tasks
 
 from eventlet.green.subprocess import Popen, STDOUT, PIPE

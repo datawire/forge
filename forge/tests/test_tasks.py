@@ -12,7 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from forge.tasks import execution, gather, get, setup, sh, status, sync, task, PENDING, ERROR
+from forge.tasks import (
+    execution,
+    filtrate,
+    gather,
+    get,
+    project,
+    setup,
+    sh,
+    status,
+    sync,
+    task,
+    ERROR,
+    OMIT,
+    PENDING,
+)
 
 setup()
 
@@ -206,3 +220,20 @@ def gatherer(n):
 def test_gather():
     result = gatherer(10)
     assert range(10) == list(result)
+
+@task()
+def even_project(n):
+    if (n % 2) == 0:
+        return n
+    else:
+        return OMIT
+
+def test_project():
+    assert [0, 2, 4, 6, 8] == list(project(even_project, range(10)))
+
+@task()
+def is_even(n):
+    return (n % 2) == 0
+
+def test_filtrate():
+    assert [0, 2, 4, 6, 8] == list(filtrate(is_even, range(10)))
