@@ -35,6 +35,9 @@ def setup():
     logging.getLogger("tasks").addFilter(TaskFilter())
     logging.basicConfig(level=logging.INFO, format='%(levelname)s %(task_id)s: %(message)s')
 
+class TaskError(Exception):
+    pass
+
 class Sentinel(object):
 
     """A convenience class that can be used for creating constant values that str/repr using their constant name."""
@@ -226,6 +229,7 @@ class execution(object):
         self.args = args
         self.kwargs = kwargs
         self.children = []
+        self.child_errors = 0
         if self.parent is not None:
             self.parent.children.append(self)
             self.thread = self.parent.thread
@@ -341,6 +345,18 @@ class execution(object):
     def exit(self):
         self.info("RESULT -> %s (%s)" % (self.result, elapsed(self.finished - self.started)))
 
+    def check_children(self):
+        if self.result is ERROR:
+            return
+        if self.child_errors > 0:
+            # XXX: this swallows the result, might be nicer to keep it
+            # somehow (maybe with partial result concept?)
+            errored = [ch.id for ch in self.traversal if ch.result is ERROR]
+            self.result = ERROR
+            self.exception = (TaskError,
+                              TaskError("%s child task(s) errored: %s" % (self.child_errors, ", ".join(errored))),
+                              None)
+
     def run(self):
         self.set(self)
         self.started = time.time()
@@ -351,9 +367,12 @@ class execution(object):
             self.result
             self.exception = sys.exc_info()
             self.result = ERROR
+            if self.parent:
+                self.parent.child_errors += 1
         finally:
             self.sync()
             self.finished = time.time()
+            self.check_children()
             self.exit()
             self.set(self.parent)
 
@@ -475,9 +494,6 @@ def cull(task, sequence):
 ## common tasks
 
 from eventlet.green.subprocess import Popen, STDOUT, PIPE
-
-class TaskError(Exception):
-    pass
 
 @task()
 def sh(*args, **kwargs):

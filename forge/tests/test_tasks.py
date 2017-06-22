@@ -26,6 +26,7 @@ from forge.tasks import (
     ERROR,
     OMIT,
     PENDING,
+    TaskError,
 )
 
 setup()
@@ -71,6 +72,18 @@ def test_failure_async():
         exe.get()
         assert False, "should have failed"
     except ZeroDivisionError, e:
+        pass
+
+@task()
+def background_oops(x):
+    oops.go(x)
+
+def test_background_failure():
+    try:
+        background_oops(1)
+        assert False, "should have failed"
+    except TaskError, e:
+        assert "1 child task(s) errored: background_oops[1].Oops[1]" == str(e)
         pass
 
 # used to check sync
@@ -173,7 +186,10 @@ def test_nested_exception_sync():
 def test_nested_exception_async():
     exe = nested_oops_async.go()
     exe.wait()
-    assert """nested_oops_async: 
+    assert """nested_oops_async: (error) TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
+
+  TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
+  
   Noop: 1
   Oops: (error) ZeroDivisionError: integer division or modulo by zero
 
