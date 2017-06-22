@@ -464,7 +464,7 @@ def project(task, sequence):
         if obj is not OMIT:
             yield obj
 
-def filtrate(task, sequence):
+def cull(task, sequence):
     execs = []
     for obj in sequence:
         execs.append((task.go(obj), obj))

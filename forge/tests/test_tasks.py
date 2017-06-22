@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from forge.tasks import (
+    cull,
     execution,
-    filtrate,
     gather,
     get,
     project,
@@ -235,5 +235,5 @@ def test_project():
 def is_even(n):
     return (n % 2) == 0
 
-def test_filtrate():
-    assert [0, 2, 4, 6, 8] == list(filtrate(is_even, range(10)))
+def test_cull():
+    assert [0, 2, 4, 6, 8] == list(cull(is_even, range(10)))
