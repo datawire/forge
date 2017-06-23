@@ -418,16 +418,18 @@ class execution(object):
 
     @property
     def render_line(self):
+        indent = "\n  " + self.indent
+
         summary = self.status or "(in progress)" if self.result is PENDING else \
                   "(error) %s" % self.error_summary if self.result is ERROR else \
                   str(self.result) if self.result is not None else \
                   ""
 
-        result = "%s%s: %s" % (self.indent, self.task.name, summary)
+        result = "%s%s: %s" % (self.indent, self.task.name, summary.replace("\n", indent + "  ").strip())
         if self.result == ERROR and (self.parent is None or self.thread != self.parent.thread):
-            indent = "\n  " + self.indent
             exc = "".join(traceback.format_exception(*self.exception))
             result += "\n" + indent + exc.replace("\n", indent)
+
         return result
 
     def render(self):
