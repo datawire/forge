@@ -203,7 +203,7 @@ def test_nested_exception_async():
   Noop: 3""" == massage(exe.render())
 
 def test_sh():
-    assert "hello" == sh("echo", "-n", "hello")
+    assert "hello" == sh("echo", "-n", "hello").output
 
 def test_sh_nonexist():
     try:

@@ -224,6 +224,8 @@ class decorator(object):
             sys.stdout.write(terminal.clear_eol)
             previous = screenful
 
+        return exe
+
 class execution(object):
 
     CURRENT = local()
@@ -510,6 +512,15 @@ def cull(task, sequence):
 
 from eventlet.green.subprocess import Popen, STDOUT, PIPE
 
+class Result(object):
+
+    def __init__(self, code, output):
+        self.code = code
+        self.output = output
+
+    def __str__(self):
+        return self.output
+
 @task()
 def sh(*args, **kwargs):
     expected = kwargs.pop("expected", (0,))
@@ -517,15 +528,16 @@ def sh(*args, **kwargs):
 
     try:
         p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
-        result = p.stdout.read()
+        output = p.stdout.read()
         p.wait()
+        result = Result(p.returncode, output)
     except OSError, e:
         ctx = ' %s' % kwargs if kwargs else ''
         raise TaskError("error executing command '%s'%s: %s" % (" ".join(cmd), ctx, e))
     if p.returncode in expected:
         return result
     else:
-        raise TaskError("command failed[%s]: %s" % (p.returncode, result))
+        raise TaskError("command failed[%s]: %s" % (result.code, result.output))
 
 requests = eventlet.import_patched('requests.__init__') # the .__init__ is a workaround for: https://github.com/eventlet/eventlet/issues/208
 
