@@ -205,6 +205,21 @@ def test_nested_exception_async():
 def test_sh():
     assert "hello" == sh("echo", "-n", "hello")
 
+def test_sh_nonexist():
+    try:
+        sh("nonexistent-command")
+    except TaskError, e:
+        assert 'error executing command' in str(e)
+
+def test_sh_error():
+    try:
+        sh("ls", "nonexistentfile")
+    except TaskError, e:
+        assert 'command failed' in str(e)
+
+def test_sh_expected_error():
+    sh("ls", "nonexistentfile", expected=(2,))
+
 def test_get():
     response = get("https://httpbin.org/get")
     assert response.json()["url"] == "https://httpbin.org/get"

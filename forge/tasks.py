@@ -510,10 +510,17 @@ from eventlet.green.subprocess import Popen, STDOUT, PIPE
 
 @task()
 def sh(*args, **kwargs):
-    p = Popen(tuple(str(a) for a in args), stderr=STDOUT, stdout=PIPE, **kwargs)
-    result = p.stdout.read()
-    p.wait()
-    if p.returncode == 0:
+    expected = kwargs.pop("expected", (0,))
+    cmd = tuple(str(a) for a in args)
+
+    try:
+        p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
+        result = p.stdout.read()
+        p.wait()
+    except OSError, e:
+        ctx = ' %s' % kwargs if kwargs else ''
+        raise TaskError("error executing command '%s'%s: %s" % (" ".join(cmd), ctx, e))
+    if p.returncode in expected:
         return result
     else:
         raise TaskError("command failed[%s]: %s" % (p.returncode, result))
