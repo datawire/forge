@@ -20,7 +20,8 @@ logging = eventlet.import_patched('logging')
 traceback = eventlet.import_patched('traceback')
 blessed = eventlet.import_patched('blessed')
 
-def setup():
+# XXX: need better default for logfile
+def setup(logfile='/tmp/forge.log'):
     """
     Setup the task system. This will perform eventlet monkey patching as well as set up logging.
     """
@@ -33,7 +34,9 @@ def setup():
         getpass.os = eventlet.patcher.original('os') # workaround for https://github.com/eventlet/eventlet/issues/340
 
     logging.getLogger("tasks").addFilter(TaskFilter())
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s %(task_id)s: %(message)s')
+    logging.basicConfig(filename=logfile,
+                        level=logging.INFO,
+                        format='%(levelname)s %(task_id)s: %(message)s')
 
 class TaskError(Exception):
     pass
@@ -74,9 +77,12 @@ class TaskFilter(logging.Filter):
 
     def filter(self, record):
         exe = execution.current()
-        record.task_id = exe.id
-        exe.log_record(record)
-        return False
+        if exe:
+            record.task_id = exe.id
+            exe.log_record(record)
+        else:
+            record.task_id = "(none)"
+        return True
 
 class task(object):
 
@@ -190,7 +196,7 @@ class decorator(object):
 
     def run(self, *args, **kwargs):
         terminal = blessed.Terminal()
-        moved = 0
+        previous = []
 
         exe = self.go(*args, **kwargs)
 
@@ -198,9 +204,16 @@ class decorator(object):
             lines = exe.render().splitlines()
             screenful = lines[-terminal.height:]
 
-            sys.stdout.write(terminal.move_up*moved)
+            common_head = 0
+            for old, new in zip(previous, screenful):
+                if old == new:
+                    common_head += 1
+                else:
+                    break
 
-            for idx, line in enumerate(reversed(screenful)):
+            sys.stdout.write(terminal.move_up*(len(previous)-common_head))
+
+            for line in screenful[common_head:]:
                 # XXX: should really wrap this properly somehow, but
                 #      writing out more than the terminal width will mess up
                 #      the movement logic
@@ -209,7 +222,7 @@ class decorator(object):
                 sys.stdout.write(terminal.clear_eol + terminal.move_down)
 
             sys.stdout.write(terminal.clear_eol)
-            moved = len(screenful)
+            previous = screenful
 
 class execution(object):
 
@@ -507,6 +520,7 @@ def sh(*args, **kwargs):
 
 requests = eventlet.import_patched('requests.__init__') # the .__init__ is a workaround for: https://github.com/eventlet/eventlet/issues/208
 
-@task()
+@task("GET")
 def get(url, **kwargs):
+    status(url)
     return requests.get(str(url), **kwargs)
