@@ -63,6 +63,7 @@ die() {
 }
 
 PROJECT="Forge"
+COMMANDS="forge"
 PYTHON_VERSION="python2.7"
 INSTALL_URL="git+https://github.com/datawire/forge.git"
 
@@ -109,19 +110,27 @@ required_pip virtualenv setuptools
 is_project_installed
 
 step "Creating ${INSTALL_DIR} installation directory..."
-virtualenv -q --python ${PYTHON_VERSION} ${INSTALL_DIR}
+VENV=${INSTALL_DIR}/venv
+virtualenv -q --python ${PYTHON_VERSION} ${VENV}
 
 step "Installing ${PROJECT}..."
 
-. ${INSTALL_DIR}/bin/activate
+. ${VENV}/bin/activate
 pip --quiet install ${INSTALL_URL}
 deactivate
+
+BIN=${INSTALL_DIR}/bin
+
+mkdir ${BIN}
+for CMD in $COMMANDS; do
+    mv ${VENV}/bin/${CMD} ${BIN}/${CMD}
+done
 
 step "${bold}Installed!${normal}"
 
 msg
 msg "  ${PROJECT} has been installed into '${INSTALL_DIR}'. You may want to"
-msg "  add '${INSTALL_DIR}/bin' to your PATH."
+msg "  add '${BIN}' to your PATH."
 msg
 
 } # this ensures the entire script is downloaded #
