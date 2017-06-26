@@ -67,8 +67,8 @@ def inject_token(url, token):
     else:
         return Elidable(Secret(token), "@%s" % parts[0])
 
-SETUP_TEMPLATE = Template("""# Forge configuration
-organization: twitface
+SETUP_TEMPLATE = Template("""# Global forge configuration
+# DO NOT CHECK INTO GITHUB, THIS FILE CONTAINS SECRETS
 workdir: work
 docker-repo: {{docker}}
 user: {{user}}
@@ -143,8 +143,8 @@ class Baker(object):
         while True:
             print
             registry = self.prompt("Docker registry", registry)
-            repo = self.prompt("Docker org or user for service repos", repo)
             user = self.prompt("Docker user", user)
+            repo = self.prompt("Docker organization", user)
             if user == "_json_key":
                 json_key, password = self.prompt("Path to json key", json_key, loader=file_contents)
             else:
@@ -442,7 +442,6 @@ def main(args):
     baker.registry, baker.repo = get_repo(conf)
 
     try:
-        baker.org = conf["organization"]
         baker.user = conf["user"]
     except KeyError, e:
         raise CLIError("missing config property: %s" % e)
