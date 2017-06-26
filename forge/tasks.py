@@ -229,6 +229,28 @@ class decorator(object):
 
         return exe
 
+def elide(t):
+    if isinstance(t, Secret):
+        return "<ELIDED>"
+    elif isinstance(t, Elidable):
+        return t.elide()
+    else:
+        return t
+
+class Secret(str):
+    pass
+
+class Elidable(object):
+
+    def __init__(self, *parts):
+        self.parts = parts
+
+    def elide(self):
+        return "".join(elide(p) for p in self.parts)
+
+    def __str__(self):
+        return "".join(str(p) for p in self.parts)
+
 class execution(object):
 
     CURRENT = local()
@@ -263,6 +285,8 @@ class execution(object):
         self.records = []
         # capture the current status
         self.status = None
+        # a summary of the result of the task
+        self.summary = None
         # end time
         self.finished = None
 
@@ -317,6 +341,11 @@ class execution(object):
         self.fire("status")
         self.info(message)
 
+    def summarize(self, message):
+        self.summary = message
+        self.fire("summary")
+        self.info(message)
+
     def log_record(self, record):
         self.records.append(record)
         self.fire("record")
@@ -359,7 +388,7 @@ class execution(object):
     def arg_summary(self):
         summarized = self.args[1:] if self.ignore_first else self.args
 
-        args = [str(a) for a in summarized]
+        args = [str(elide(a)) for a in summarized]
         args.extend("%s=%s" % (k, v) for k, v in self.kwargs.items())
 
         return args
@@ -430,19 +459,24 @@ class execution(object):
     def render_line(self, include=lambda x: True):
         indent = "\n  " + self.indent(include)
 
-        summary = self.status or "(in progress)" if self.result is PENDING else \
-                  self.error_summary if self.result is ERROR else \
-                  str(self.result) if self.result is not None else \
-                  ""
+        if self.summary is None:
+            summary = self.status or "(in progress)" if self.result is PENDING else \
+                      self.error_summary if self.result is ERROR else \
+                      str(self.result) if self.result is not None else \
+                      ""
+
+            args = () if self.status else self.arg_summary
+            if not summary:
+                summary = " ".join(args)
+            elif "\n" in summary:
+                summary = " ".join(args) + indent + summary
+            elif args:
+                summary = " ".join(args) + " -> " + summary
+
+        else:
+            summary = self.summary
 
         summary = summary.replace("\n", indent).strip()
-        args = self.arg_summary
-        if not summary:
-            summary = " ".join(args)
-        elif "\n" in summary:
-            summary = " ".join(args) + indent + summary
-        elif args:
-            summary = " ".join(args) + " -> " + summary
 
         result = "%s%s: %s" % (self.indent(include), self.task.name, summary)
 
@@ -496,6 +530,12 @@ def status(*args, **kwargs):
     Update the status for the current task. This will log an info message with the new status.
     """
     return execution.current().update_status(*args, **kwargs)
+
+def summarize(*args, **kwargs):
+    """
+    Provide a summary of the result of the current task. This will log an info message.
+    """
+    return execution.current().summarize(*args, **kwargs)
 
 def gather(sequence):
     """
