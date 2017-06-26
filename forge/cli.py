@@ -403,7 +403,7 @@ class Baker(object):
         cmd = "kubectl", "apply", "-f", k8s_dir
         if self.dry_run:
             cmd += "--dry-run",
-        result = sh(*cmd, expected=range(256))
+        result = sh(*cmd, expected=xrange(256))
         code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
         summarize("%s -> %s\n%s" % (" ".join(cmd), code, result.output))
 
