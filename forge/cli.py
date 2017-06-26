@@ -322,6 +322,8 @@ class Baker(object):
             sh.go("docker", "build", ".", "-t", image(self.registry, self.repo, name, svc.version),
                   cwd=os.path.join(svc.root, os.path.dirname(container)))
 
+        sync()
+
         summarize("built %s" % (", ".join(x[-1] for x in raw)))
 
     @task()
@@ -346,6 +348,8 @@ class Baker(object):
         for svc, name, container in unpushed:
             status("pushing container %s" % container)
             self.do_push.go(image(self.registry, self.repo, name, svc.version))
+
+        sync()
 
         summarize("pushed %s" % ", ".join(x[-1] for x in unpushed))
 
@@ -465,6 +469,8 @@ def main(args):
         services = baker.scan()
         for svc in services:
             service.go(svc)
+        # XXX: why is this necessary?
+        sync()
 
     INCLUDED = set(["scan", "service", "bake", "push", "manifest", "build", "deploy"])
     if args["--verbose"]:
