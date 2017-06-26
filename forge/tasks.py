@@ -331,7 +331,7 @@ class execution(object):
     def events(self):
         while True:
             events = self._pop_events()
-            if not events and not self.running:
+            if not events and self.result is not PENDING:
                 return
             yield events
             eventlet.sleep()
@@ -355,10 +355,6 @@ class execution(object):
 
     def info(self, *args, **kwargs):
         self.task.logger.info(*args, **kwargs)
-
-    @property
-    def running(self):
-        return self.result is PENDING or self.outstanding
 
     @classmethod
     def call(cls, task, args, kwargs, ignore_first=False):
@@ -399,10 +395,10 @@ class execution(object):
     def exit(self):
         self.info("RESULT -> %s (%s)" % (self.result, elapsed(self.finished - self.started)))
 
-    def check_children(self):
-        if self.result is ERROR:
-            return
-        if self.child_errors > 0:
+    def check_children(self, result):
+        if result is ERROR:
+            self.result = result
+        elif self.child_errors > 0:
             # XXX: this swallows the result, might be nicer to keep it
             # somehow (maybe with partial result concept?)
             errored = [ch.id for ch in self.traversal if ch.result is ERROR]
@@ -410,23 +406,24 @@ class execution(object):
             self.exception = (TaskError,
                               TaskError("%s child task(s) errored: %s" % (self.child_errors, ", ".join(errored))),
                               None)
+        else:
+            self.result = result
 
     def run(self):
         self.set(self)
         self.started = time.time()
         self.enter()
         try:
-            self.result = self.task.function(*self.args, **self.kwargs)
+            result = self.task.function(*self.args, **self.kwargs)
         except:
-            self.result
             self.exception = sys.exc_info()
-            self.result = ERROR
+            result = ERROR
             if self.parent:
                 self.parent.child_errors += 1
         finally:
             self.sync()
+            self.check_children(result)
             self.finished = time.time()
-            self.check_children()
             self.exit()
             self.set(self.parent)
 
@@ -459,7 +456,7 @@ class execution(object):
     def render_line(self, include=lambda x: True):
         indent = "\n  " + self.indent(include)
 
-        if self.summary is None:
+        if self.result is PENDING or self.summary is None:
             summary = self.status or "(in progress)" if self.result is PENDING else \
                       self.error_summary if self.result is ERROR else \
                       str(self.result) if self.result is not None else \

@@ -21,6 +21,7 @@ from forge.tasks import (
     setup,
     sh,
     status,
+    summarize,
     sync,
     task,
     ERROR,
@@ -167,7 +168,7 @@ def test_nested_exception_sync():
 
   Traceback (most recent call last):
     File "<PATH>/tasks.py", line <NNN>, in run
-      self.result = self.task.function(*self.args, **self.kwargs)
+      result = self.task.function(*self.args, **self.kwargs)
     File "<PATH>/test_tasks.py", line <NNN>, in nested_oops_sync
       oops(2)
     File "<PATH>/tasks.py", line <NNN>, in __call__
@@ -175,7 +176,7 @@ def test_nested_exception_sync():
     File "<PATH>/tasks.py", line <NNN>, in call
       return exe.get()
     File "<PATH>/tasks.py", line <NNN>, in run
-      self.result = self.task.function(*self.args, **self.kwargs)
+      result = self.task.function(*self.args, **self.kwargs)
     File "<PATH>/test_tasks.py", line <NNN>, in oops
       return x/0
   ZeroDivisionError: integer division or modulo by zero
@@ -195,7 +196,7 @@ def test_nested_exception_async():
 
     Traceback (most recent call last):
       File "<PATH>/tasks.py", line <NNN>, in run
-        self.result = self.task.function(*self.args, **self.kwargs)
+        result = self.task.function(*self.args, **self.kwargs)
       File "<PATH>/test_tasks.py", line <NNN>, in oops
         return x/0
     ZeroDivisionError: integer division or modulo by zero
@@ -268,3 +269,50 @@ def is_even(n):
 
 def test_cull():
     assert [0, 2, 4, 6, 8] == list(cull(is_even, range(10)))
+
+@task()
+def appender(lst, item):
+    lst.append(item)
+
+@task()
+def mutable_scatter(n):
+    result = []
+    for i in range(n):
+        appender.go(result, i)
+    return result
+
+# test that the event loop doesn't crap out early for some reason this
+# only happens when *n* is 1
+def test_autosync_events(n=1):
+    exe = mutable_scatter.go(n)
+    events = list(exe.events)
+    assert exe.result == range(n)
+
+def test_autosync_events_10():
+    test_autosync_events(10)
+
+@task()
+def sleeper(span):
+    time.sleep(span)
+
+@task()
+def steps_summary(x):
+    status("step 1")
+    time.sleep(0.1)
+    status("step 2")
+    sleeper.go(0.1)
+    summarize("done")
+
+def test_summary():
+    exe = steps_summary.go("arg")
+    frames = []
+    for events in exe.events:
+        for e, ops in events:
+            if "status" in ops or "summary" in ops:
+                frames.append(exe.render())
+    frames.append(exe.render())
+    assert exe.get() is None
+    assert ['steps_summary: step 1',
+            'steps_summary: step 2',
+            'steps_summary: step 2\n  sleeper: 0.1 -> (in progress)',
+            'steps_summary: done\n  sleeper: 0.1'] == frames
