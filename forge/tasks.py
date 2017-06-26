@@ -221,7 +221,7 @@ class decorator(object):
                 sys.stdout.write(line[:terminal.width+delta])
                 sys.stdout.write(terminal.clear_eol + terminal.move_down)
 
-            sys.stdout.write(terminal.clear_eol)
+            sys.stdout.write(terminal.clear_eos)
             previous = screenful
 
         return exe
@@ -351,11 +351,14 @@ class execution(object):
         result.reverse()
         return result
 
-    def enter(self):
+    @property
+    def arg_summary(self):
         args = [str(a) for a in self.args]
         args.extend("%s=%s" % (k, v) for k, v in self.kwargs.items())
+        return args
 
-        self.info("START(%s)" % ", ".join(args))
+    def enter(self):
+        self.info("START(%s)" % ", ".join(self.arg_summary))
 
     def exit(self):
         self.info("RESULT -> %s (%s)" % (self.result, elapsed(self.finished - self.started)))
