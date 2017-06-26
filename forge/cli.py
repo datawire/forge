@@ -17,33 +17,29 @@ Forge CLI.
 
 Usage:
   forge setup
-  forge bake [--config=<config>]
-  forge push [--config=<config>]
-  forge yaml [--config=<config>]
-  forge build [--config=<config>]
-  forge deploy [--config=<config>] [--dry-run]
+  forge bake [-v] [--config=<config>]
+  forge push [-v] [--config=<config>]
+  forge manifest [-v] [--config=<config>]
+  forge build [-v] [--config=<config>]
+  forge deploy [-v] [--config=<config>] [--dry-run]
   forge -h | --help
   forge --version
 
 Options:
-  --config=<config>     Forge config file location.
-  --filter=<pattern>    Only operate on services matching <pattern>. [default: *]
-  -h --help             Show this screen.
-  --version             Show version.
+  --config=<config>   Forge config file location.
+  --filter=<pattern>  Only operate on services matching <pattern>. [default: *]
+  -h --help           Show this screen.
+  --version           Show version.
+  -v,--verbose        Display more information.
 """
 
-#  forge pull [--config=<config>] [--filter=<pattern>]
-#  forge create <prototype> <arguments> [-o,--output <target>]
-#  forge serve [--config=<config>]
+from .tasks import cull, get, project, setup, sh, status, summarize, sync, task, ERROR, Elidable, Secret
 
-import eventlet
-eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
-eventlet.monkey_patch()
+setup()
 
 import getpass
-getpass.os = eventlet.patcher.original('os') # workaround for https://github.com/eventlet/eventlet/issues/340
 
-import atexit, base64, fnmatch, requests, os, sys, time, traceback, urllib2, yaml
+import base64, fnmatch, requests, os, urllib2, yaml
 from blessed import Terminal
 from docopt import docopt
 from collections import OrderedDict
@@ -51,46 +47,9 @@ from jinja2 import Template, TemplateError
 
 import util
 from . import __version__
-from .workstream import Workstream, Elidable, Secret, Command, WorkError
 from .common import Service, Prototype, image, containers
 
 class CLIError(Exception): pass
-
-OMIT = object()
-
-# XXX: hack for catching background errors
-ERRORS = []
-
-@atexit.register
-def spew():
-    if ERRORS:
-        filtered = [e for e in ERRORS if not isinstance(e[1], WorkError)]
-        formatted = [str(e[1]) if isinstance(e[1], CLIError) else "".join(traceback.format_exception(*e)) for e in filtered]
-        formatted.append("%s task(s) had errors" % len(ERRORS))
-        print "\n".join(formatted)
-
-def safe(f, *args):
-    try:
-        return f(*args)
-    except:
-        ERRORS.append(sys.exc_info())
-        return OMIT
-
-def async_map(fun, sequence):
-    threads = []
-    for item in sequence:
-        threads.append(eventlet.spawn(safe, fun, item))
-    for thread in threads:
-        result = thread.wait()
-        if result is not OMIT:
-            yield result
-
-def async_apply(fun, sequence):
-    return async_map(lambda i: fun(*i), sequence)
-
-def force(sequence):
-    list(sequence)
-    if ERRORS: raise CLIError()
 
 def next_page(response):
     if "Link" in response.headers:
@@ -125,34 +84,17 @@ def file_contents(path):
         print "  %s" % e
         return None
 
-class Baker(Workstream):
+class Baker(object):
 
     def __init__(self):
-        Workstream.__init__(self)
         self.terminal = Terminal()
-        self.moved = 0
-        self.spincount = 0
         self.pushed_cache = {}
-
-    def spin(self):
-        eventlet.spawn(self.do_spin)
-
-    def do_spin(self):
-        while True:
-            time.sleep(0.1)
-            self.render()
-            self.spincount = self.spincount + 1
-
-    def clear(self):
-        del self.items[:]
-        self.moved = 0
 
     def prompt(self, msg, default=None, loader=None, echo=True):
         prompt = "%s: " % msg if default is None else "%s[%s]: " % (msg, default)
         prompter = raw_input if echo else getpass.getpass
 
         while True:
-            self.clear()
             value = prompter(prompt) or default
             if value is None: continue
             if loader is not None:
@@ -168,13 +110,15 @@ class Baker(Workstream):
         print self.terminal.bold("== Checking Kubernetes Setup ==")
         print
 
-        try:
-            self.call("kubectl", "version", "--short", verbose=True)
-            self.call("kubectl", "get", "service", "kubernetes", "--namespace", "default", verbose=True)
-        except WorkError, e:
-            print
-            raise CLIError(self.terminal.red("== Kubernetes Check Failed ==") +
-                           "\n\nPlease make sure kubectl is installed/configured correctly.")
+        checks = (("kubectl", "version", "--short"),
+                  ("kubectl", "get", "service", "kubernetes", "--namespace", "default"))
+
+        for cmd in checks:
+            e = sh.run(*cmd)
+            if e.result is ERROR:
+                print
+                raise CLIError(self.terminal.red("== Kubernetes Check Failed ==") +
+                               "\n\nPlease make sure kubectl is installed/configured correctly.")
 
         registry = "registry.hub.docker.com"
         repo = None
@@ -184,11 +128,12 @@ class Baker(Workstream):
 
         test_image = "registry.hub.docker.com/datawire/forge-setup-test:1"
 
+        @task()
         def validate():
-            self.call("docker", "login", "-u", user, "-p", Secret(password), registry)
-            self.call("docker", "pull", test_image)
+            sh("docker", "login", "-u", user, "-p", Secret(password), registry)
+            sh("docker", "pull", test_image)
             img = image(registry, repo, "forge_test", "dummy")
-            self.call("docker", "tag", test_image, img)
+            sh("docker", "tag", test_image, img)
             self.do_push(img)
             assert self.pushed("forge_test", "dummy", registry=registry, repo=repo, user=user, password=password)
 
@@ -205,16 +150,14 @@ class Baker(Workstream):
             else:
                 password = self.prompt("Docker password", echo=False)
 
-            try:
-                print
-                validate()
-                break
-            except WorkError, e:
+            print
+            e = validate.run()
+            if e.result is ERROR:
                 print
                 print self.terminal.red("-- please try again --")
                 continue
-            finally:
-                self.clear()
+            else:
+                break
 
         print
 
@@ -237,72 +180,18 @@ class Baker(Workstream):
 
         print self.terminal.bold("== Done ==")
 
-    def spinner(self):
-        return "-\\|/"[self.spincount % 4]
-
-    def render_tail(self, limit):
-        unfinished = self.spinner()
-        count = 0
-        for item in reversed(self.items):
-            if item.finished:
-                if not item.visible and item.ok: continue
-                status = item.finish_summary
-                if item.ok:
-                    status = self.terminal.bold_green(status)
-                else:
-                    status = self.terminal.bold_red(status)
-            else:
-                status = unfinished
-            summary = "%s[%s]: %s" % (item.__class__.__name__, status, item.start_summary)
-            lines = [summary]
-            if (item.verbose or (item.finished and not item.ok)) and item.output:
-                for l in item.output.splitlines():
-                    lines.append("  %s" % l)
-            for l in reversed(lines):
-                yield l
-                count = count + 1
-                if count >= limit:
-                    return
-
-    def render(self):
-        screenful = list(self.render_tail(self.terminal.height))
-
-        sys.stdout.write(self.terminal.move_up*self.moved)
-
-        for idx, line in enumerate(reversed(screenful)):
-            # XXX: should really wrap this properly somehow, but
-            #      writing out more than the terminal width will mess up
-            #      the movement logic
-            delta = len(line) - self.terminal.length(line)
-            sys.stdout.write(line[:self.terminal.width+delta])
-            sys.stdout.write(self.terminal.clear_eol + self.terminal.move_down)
-        sys.stdout.write(self.terminal.clear_eol)
-
-        self.moved = len(screenful)
-
-    def started(self, item):
-        self.render()
-
-    def updated(self, item, output):
-        self.render()
-
-    def finished(self, item):
-        self.render()
-
     def dr(self, url, expected=(), user=None, password=None):
         user = user or self.user
         password = password or self.password
 
-        response = self.get(url, auth=(user, password), expected=expected + (401,), visible=False)
+        response = get(url, auth=(user, password))
         if response.status_code == 401:
             challenge = response.headers['Www-Authenticate']
             if challenge.startswith("Bearer "):
                 challenge = challenge[7:]
             opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
-            token = self.get("{realm}?service={service}&scope={scope}".format(**opts),
-                             auth=(user, password),
-                             visible=False).json()['token']
-            response = self.get(url, headers={'Authorization': 'Bearer %s' % token}, expected=expected)
+            token = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(user, password)).json()['token']
+            response = get(url, headers={'Authorization': 'Bearer %s' % token})
         return response
 
     def gh(self, api, expected=None):
@@ -336,17 +225,19 @@ class Baker(Workstream):
 
     def version(self, root):
         if self.is_git(root):
-            result = self.call("git", "diff", "--quiet", ".", cwd=root, expected=(1,), visible=False)
+            result = sh("git", "diff", "--quiet", ".", cwd=root, expected=(0, 1))
             if result.code == 0:
-                return "%s.git" % self.call("git", "rev-parse", "HEAD", cwd=root).output.strip()
+                return "%s.git" % sh("git", "rev-parse", "HEAD", cwd=root).output.strip()
         return "%s.ephemeral" % util.shadir(root)
 
+    @task()
     def scan(self):
         prototypes = OrderedDict()
         services = OrderedDict()
 
         def descend(path, parent):
             if not os.path.exists(path): return
+            status("searching %s" % path)
             names = os.listdir(path)
 
             if "proto.yaml" in names:
@@ -370,12 +261,15 @@ class Baker(Workstream):
         for root in (os.getcwd(), self.workdir):
             descend(root, None)
 
-        return list(prototypes.values()), list(services.values())
-    
-    def baked(self, name, version):
-        result = self.call("docker", "images", "-q", image(self.registry, self.repo, name, version))
-        return result.output
+        result = list(services.values())
+        summarize("%s" % ", ".join(s.name for s in result))
+        return result
 
+    @task()
+    def baked(self, name, version):
+        return bool(sh("docker", "images", "-q", image(self.registry, self.repo, name, version)).output)
+
+    @task()
     def pushed(self, name, version, registry=None, repo=None, user=None, password=None):
         registry = registry or self.registry
         repo = repo or self.repo
@@ -408,88 +302,91 @@ class Baker(Workstream):
             if "id" in repo:
                 urls.append((repo["full_name"], repo["clone_url"]))
 
-        force(async_apply(self.git_pull, urls))
+        for u in urls:
+            self.git_pull.go(u)
 
-    def is_raw(self, name, version):
-        return not (self.pushed(name, version) or self.baked(name, version))
+    @task()
+    def is_raw(self, (svc, name, _)):
+        return not (self.pushed(name, svc.version) or self.baked(name, svc.version))
 
-    def bake(self, scanned = None):
-        prototypes, services = scanned or self.scan()
+    @task()
+    def bake(self, service):
+        status("checking if images exist")
+        raw = list(cull(self.is_raw, containers([service])))
+        if not raw:
+            summarize("skipped, images exist")
+            return
 
-        raw = async_apply(lambda svc, name, container:
-                              (svc, name, container) if self.is_raw(name, svc.version) else OMIT,
-                          containers(services))
+        for svc, name, container in raw:
+            status("building %s" % container)
+            sh.go("docker", "build", ".", "-t", image(self.registry, self.repo, name, svc.version),
+                  cwd=os.path.join(svc.root, os.path.dirname(container)))
 
-        force(async_apply(lambda svc, name, container:
-                              self.call("docker", "build", ".", "-t",
-                                        image(self.registry, self.repo, name, svc.version),
-                                        cwd=os.path.join(svc.root, os.path.dirname(container))),
-                          raw))
+        summarize("built %s" % (", ".join(x[-1] for x in raw)))
 
+    @task()
+    def is_unpushed(self, (svc, name, container)):
+        return self.baked(name, svc.version) and not self.pushed(name, svc.version)
+
+    @task()
     def do_push(self, img):
         self.pushed_cache.pop(img, None)
-        return self.call("docker", "push", img)
+        sh("docker", "push", img)
 
-    def push(self, scanned = None):
-        prototypes, services = scanned or self.scan()
+    @task()
+    def push(self, service):
+        status("checking if %s containers exist" % service)
+        unpushed = list(cull(self.is_unpushed, containers([service])))
 
-        local = list(async_apply(lambda svc, name, container:
-                                     (svc, name, container) if (self.baked(name, svc.version) and
-                                                                not self.pushed(name, svc.version)) else OMIT,
-                                 containers(services)))
+        if not unpushed:
+            summarize("skipped, images exist")
+            return
 
-        if local: self.call("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
-        force(async_apply(lambda svc, name, container:
-                              self.do_push(image(self.registry, self.repo, name, svc.version)),
-                          local))
+        sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
+        for svc, name, container in unpushed:
+            status("pushing container %s" % container)
+            self.do_push.go(image(self.registry, self.repo, name, svc.version))
 
-    def render_yaml(self, svc):
+        summarize("pushed %s" % ", ".join(x[-1] for x in unpushed))
+
+    def resources(self, k8s_dir):
+        return sh("kubectl", "apply", "--dry-run", "-f", k8s_dir, "-o", "name").output.split()
+
+    def template(self, svc):
         k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
         try:
             svc.deployment(self.registry, self.repo, k8s_dir)
         except TemplateError, e:
             raise CLIError(e)
+        return k8s_dir, self.resources(k8s_dir)
+
+    @task()
+    def manifest(self, service):
+        status("generating manifests for %s" % service.name)
+        k8s_dir, resources = self.template(service)
+        summarize("generated %s\nwrote manifests to %s" % (", ".join(str(r) for r in resources),
+                                                           k8s_dir))
         return k8s_dir
 
-    def resources(self, k8s_dir):
-        return self.call("kubectl", "apply", "--dry-run", "-f", k8s_dir, "-o", "name").output.split()
+    @task()
+    def build(self, service):
+        status("baking")
+        self.bake(service)
+        status("pushing")
+        self.push(service)
+        status("generating manifests")
+        result = self.manifest(service)
+        summarize("wrote manifests to %s" % result)
+        return result
 
-    def apply_yaml(self, k8s_dir):
+    @task()
+    def deploy(self, k8s_dir):
         cmd = "kubectl", "apply", "-f", k8s_dir
         if self.dry_run:
             cmd += "--dry-run",
-        return self.call(*cmd, verbose=True)
-
-    def yaml(self, scanned = None):
-        prototypes, services = scanned or self.scan()
-
-        owners = OrderedDict()
-        conflicts = []
-        k8s_dirs = []
-
-        for svc, k8s_dir, resources in async_apply(lambda svc, k8s_dir: (svc, k8s_dir, self.resources(k8s_dir)),
-                                                   async_map(lambda svc: (svc, self.render_yaml(svc)), services)):
-            for resource in resources:
-                if resource in owners:
-                    conflicts.append((resource, owners[resource].name, svc.name))
-                else:
-                    owners[resource] = svc
-            k8s_dirs.append(k8s_dir)
-
-        if conflicts:
-            messages = ", ".join("%s defined by %s and %s" % c for c in conflicts)
-            raise CLIError("conflicts: %s" % messages)
-        return k8s_dirs
-
-    def build(self, scanned = None):
-        scanned = scanned or self.scan()
-        self.bake(scanned)
-        self.push(scanned)
-        return self.yaml(scanned)
-
-    def deploy(self):
-        k8s_dirs = self.build(self.scan())
-        force(async_map(self.apply_yaml, k8s_dirs))
+        result = sh(*cmd, expected=range(256))
+        code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
+        summarize("%s -> %s\n%s" % (" ".join(cmd), code, result.output))
 
 def get_config(args):
     if args["--config"] is not None:
@@ -529,30 +426,6 @@ def get_password(conf):
         raise CLIError("docker password must be configured")
     return base64.decodestring(pw)
 
-def create(baker, args):
-    proto = args["<prototype>"]
-    arguments_file = args["<arguments>"]
-    target = args["<target>"] or os.path.splitext(os.path.basename(arguments_file))[0]
-    prototypes, services = baker.scan()
-    selected = [p for p in prototypes if p.name == proto]
-    assert len(selected) <= 1
-    if not selected:
-        raise CLIError("no such prototype: %s" % proto)
-    prototype = selected[0]
-
-    try:
-        with open(arguments_file, "read") as fd:
-            # XXX: the Loader=blah messes up the OrderedDict stuff
-            arguments = yaml.load(fd, Loader=yaml.loader.BaseLoader)
-    except IOError, e:
-        raise CLIError(e)
-
-    errors = prototype.validate(arguments)
-    if errors:
-        raise CLIError("\n".join(errors))
-
-    prototype.instantiate(target, arguments)
-
 def main(args):
     baker = Baker()
 
@@ -580,19 +453,25 @@ def main(args):
     baker.filter = args.get("--filter")
     baker.dry_run = args["--dry-run"]
 
-    #    if not args["serve"]:
-    baker.spin()
+    @task()
+    def service(svc):
+        if args["bake"]: baker.bake(svc)
+        if args["push"]: baker.push(svc)
+        if args["manifest"]: baker.manifest(svc)
+        if args["build"]: baker.build(svc)
+        if args["deploy"]: baker.deploy(baker.build(svc))
 
-#    if args["pull"]: baker.pull()
-    if args["bake"]: baker.bake()
-    if args["push"]: baker.push()
-    if args["yaml"]: baker.yaml()
-    if args["build"]: baker.build()
-    if args["deploy"]: baker.deploy()
-#    if args["create"]: create(baker, args)
-#    if args["serve"]:
-#        from .server import serve
-#        serve(baker)
+    @task()
+    def forge():
+        services = baker.scan()
+        for svc in services:
+            service.go(svc)
+
+    INCLUDED = set(["scan", "service", "bake", "push", "manifest", "build", "deploy"])
+    if args["--verbose"]:
+        INCLUDED.update(["GET", "CMD"])
+
+    forge.run(task_include=lambda x: x.task.name in INCLUDED)
 
 def call_main():
     util.setup_yaml()
