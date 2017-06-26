@@ -195,13 +195,14 @@ class decorator(object):
         return execution.spawn(self.task, self._munge(args), kwargs)
 
     def run(self, *args, **kwargs):
+        task_include = kwargs.pop("task_include", lambda x: True)
         terminal = blessed.Terminal()
         previous = []
 
         exe = self.go(*args, **kwargs)
 
         for _ in exe.events:
-            lines = exe.render().splitlines()
+            lines = exe.render(task_include).splitlines()
             screenful = lines[-terminal.height:]
 
             common_head = 0
@@ -413,32 +414,40 @@ class execution(object):
         else:
             return self.result
 
-    @property
-    def indent(self):
-        return "  "*(len(self.stack) - 1)
+    def indent(self, include=lambda x: True):
+        return "  "*(len([e for e in self.stack if include(e)]) - 1)
 
     @property
     def error_summary(self):
         return "".join(traceback.format_exception_only(*self.exception[:2])).strip()
 
-    @property
-    def render_line(self):
-        indent = "\n  " + self.indent
+    def render_line(self, include=lambda x: True):
+        indent = "\n  " + self.indent(include)
 
         summary = self.status or "(in progress)" if self.result is PENDING else \
-                  "(error) %s" % self.error_summary if self.result is ERROR else \
+                  self.error_summary if self.result is ERROR else \
                   str(self.result) if self.result is not None else \
                   ""
 
-        result = "%s%s: %s" % (self.indent, self.task.name, summary.replace("\n", indent + "  ").strip())
+        summary = summary.replace("\n", indent).strip()
+        args = self.arg_summary
+        if not summary:
+            summary = " ".join(args)
+        elif "\n" in summary:
+            summary = " ".join(args) + indent + summary
+        elif args:
+            summary = " ".join(args) + " -> " + summary
+
+        result = "%s%s: %s" % (self.indent(include), self.task.name, summary)
+
         if self.result == ERROR and (self.parent is None or self.thread != self.parent.thread):
             exc = "".join(traceback.format_exception(*self.exception))
             result += "\n" + indent + exc.replace("\n", indent)
 
         return result
 
-    def render(self):
-        return "\n".join([e.render_line for e in self.traversal])
+    def render(self, include=lambda x: True):
+        return "\n".join([e.render_line(include) for e in self.traversal if include(e)])
 
 def sync():
     """
@@ -522,9 +531,16 @@ class Result(object):
         self.output = output
 
     def __str__(self):
-        return self.output
+        if self.code != 0:
+            code = "[exit %s]" % self.code
+            if self.output:
+                return "%s: %s" % (code, self.output)
+            else:
+                return code
+        else:
+            return self.output
 
-@task()
+@task("CMD")
 def sh(*args, **kwargs):
     expected = kwargs.pop("expected", (0,))
     cmd = tuple(str(a) for a in args)

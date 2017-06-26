@@ -118,17 +118,17 @@ def test_status():
 def test_render():
     gathered = scatter.go(10)
     gathered.wait()
-    assert """Scatter: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-  Noop: 0
-  Noop: 1
-  Noop: 2
-  Noop: 3
-  Noop: 4
-  Noop: 5
-  Noop: 6
-  Noop: 7
-  Noop: 8
-  Noop: 9""" == gathered.render()
+    assert """Scatter: 10 -> [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  Noop: 0 -> 0
+  Noop: 1 -> 1
+  Noop: 2 -> 2
+  Noop: 3 -> 3
+  Noop: 4 -> 4
+  Noop: 5 -> 5
+  Noop: 6 -> 6
+  Noop: 7 -> 7
+  Noop: 8 -> 8
+  Noop: 9 -> 9""" == gathered.render()
 
 @task()
 def nested_oops_sync():
@@ -163,7 +163,7 @@ def test_massage():
 def test_nested_exception_sync():
     exe = nested_oops_sync.go()
     exe.wait()
-    assert """nested_oops_sync: (error) ZeroDivisionError: integer division or modulo by zero
+    assert """nested_oops_sync: ZeroDivisionError: integer division or modulo by zero
 
   Traceback (most recent call last):
     File "<PATH>/tasks.py", line <NNN>, in run
@@ -180,18 +180,18 @@ def test_nested_exception_sync():
       return x/0
   ZeroDivisionError: integer division or modulo by zero
   
-  Noop: 1
-  Oops: (error) ZeroDivisionError: integer division or modulo by zero""" == massage(exe.render())
+  Noop: 1 -> 1
+  Oops: 2 -> ZeroDivisionError: integer division or modulo by zero""" == massage(exe.render())
 
 def test_nested_exception_async():
     exe = nested_oops_async.go()
     exe.wait()
-    assert """nested_oops_async: (error) TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
+    assert """nested_oops_async: TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
 
   TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
   
-  Noop: 1
-  Oops: (error) ZeroDivisionError: integer division or modulo by zero
+  Noop: 1 -> 1
+  Oops: 2 -> ZeroDivisionError: integer division or modulo by zero
 
     Traceback (most recent call last):
       File "<PATH>/tasks.py", line <NNN>, in run
@@ -200,7 +200,7 @@ def test_nested_exception_async():
         return x/0
     ZeroDivisionError: integer division or modulo by zero
     
-  Noop: 3""" == massage(exe.render())
+  Noop: 3 -> 3""" == massage(exe.render())
 
 def test_sh():
     assert "hello" == sh("echo", "-n", "hello").output
