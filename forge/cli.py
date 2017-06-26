@@ -204,8 +204,13 @@ class Baker(object):
             if challenge.startswith("Bearer "):
                 challenge = challenge[7:]
             opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
-            token = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(user, password)).json()['token']
-            response = get(url, headers={'Authorization': 'Bearer %s' % token})
+            authresp = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(user, password))
+            if authresp.ok:
+                token = authresp.json()['token']
+                response = get(url, headers={'Authorization': 'Bearer %s' % token})
+            else:
+                raise TaskError("problem authenticating with docker registry: [%s] %s" % (authresp.status_code,
+                                                                                          authresp.content))
         return response
 
     def gh(self, api, expected=None):
