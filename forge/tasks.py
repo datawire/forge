@@ -189,10 +189,12 @@ class decorator(object):
             return (self.object,) + args
 
     def __call__(self, *args, **kwargs):
-        return execution.call(self.task, self._munge(args), kwargs)
+        return execution.call(self.task, self._munge(args), kwargs,
+                              ignore_first=self.object is not _UNBOUND)
 
     def go(self, *args, **kwargs):
-        return execution.spawn(self.task, self._munge(args), kwargs)
+        return execution.spawn(self.task, self._munge(args), kwargs,
+                               ignore_first=self.object is not _UNBOUND)
 
     def run(self, *args, **kwargs):
         task_include = kwargs.pop("task_include", lambda x: True)
@@ -239,11 +241,12 @@ class execution(object):
     def set(cls, value):
         cls.CURRENT.execution = value
 
-    def __init__(self, task, args, kwargs):
+    def __init__(self, task, args, kwargs, ignore_first = False):
         self.task = task
         self.parent = self.current()
         self.args = args
         self.kwargs = kwargs
+        self.ignore_first = ignore_first
         self.children = []
         self.child_errors = 0
         if self.parent is not None:
@@ -329,14 +332,14 @@ class execution(object):
         return self.result is PENDING or self.outstanding
 
     @classmethod
-    def call(cls, task, args, kwargs):
-        exe = execution(task, args, kwargs)
+    def call(cls, task, args, kwargs, ignore_first=False):
+        exe = execution(task, args, kwargs, ignore_first = ignore_first)
         exe.run()
         return exe.get()
 
     @classmethod
-    def spawn(cls, task, args, kwargs):
-        exe = execution(task, args, kwargs)
+    def spawn(cls, task, args, kwargs, ignore_first=False):
+        exe = execution(task, args, kwargs, ignore_first = ignore_first)
         exe.thread = eventlet.spawn(exe.run)
         if exe.parent:
             exe.parent.outstanding.append(exe)
@@ -354,8 +357,11 @@ class execution(object):
 
     @property
     def arg_summary(self):
-        args = [str(a) for a in self.args]
+        summarized = self.args[1:] if self.ignore_first else self.args
+
+        args = [str(a) for a in summarized]
         args.extend("%s=%s" % (k, v) for k, v in self.kwargs.items())
+
         return args
 
     def enter(self):

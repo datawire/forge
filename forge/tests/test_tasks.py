@@ -171,7 +171,7 @@ def test_nested_exception_sync():
     File "<PATH>/test_tasks.py", line <NNN>, in nested_oops_sync
       oops(2)
     File "<PATH>/tasks.py", line <NNN>, in __call__
-      return execution.call(self.task, self._munge(args), kwargs)
+      ignore_first=self.object is not _UNBOUND)
     File "<PATH>/tasks.py", line <NNN>, in call
       return exe.get()
     File "<PATH>/tasks.py", line <NNN>, in run
