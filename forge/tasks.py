@@ -173,6 +173,13 @@ class task(object):
 
 _UNBOUND = Sentinel("_UNBOUND")
 
+def _wrap(terminal, lines):
+    for line in lines:
+        while terminal.length(line) > terminal.width:
+            yield line[:terminal.width]
+            line = line[terminal.width:]
+        yield line
+
 class decorator(object):
 
     def __init__(self, task, object = _UNBOUND):
@@ -203,8 +210,13 @@ class decorator(object):
 
         exe = self.go(*args, **kwargs)
 
+        if not terminal.does_styling:
+            exe.wait()
+            print exe.render()
+            return exe
+
         for _ in exe.events:
-            lines = exe.render(task_include).splitlines()
+            lines = list(_wrap(terminal, exe.render(task_include).splitlines()))
             screenful = lines[-terminal.height:]
 
             common_head = 0
