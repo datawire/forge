@@ -1,6 +1,6 @@
 blessed
 docopt
-eventlet
+eventlet==0.20.0
 flask
 flask-cors
 flask-socketio
