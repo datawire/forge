@@ -478,7 +478,10 @@ class execution(object):
         result = "%s%s: %s" % (self.indent(include), self.task.name, summary)
 
         if self.result == ERROR and (self.parent is None or self.thread != self.parent.thread):
-            exc = "".join(traceback.format_exception(*self.exception))
+            if issubclass(self.exception[0], TaskError):
+                exc = "".join(traceback.format_exception_only(*self.exception[:2]))
+            else:
+                exc = "".join(traceback.format_exception(*self.exception))
             result += "\n" + indent + exc.replace("\n", indent)
 
         return result

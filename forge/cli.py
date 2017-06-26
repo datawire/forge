@@ -33,7 +33,21 @@ Options:
   -v,--verbose        Display more information.
 """
 
-from .tasks import cull, get, project, setup, sh, status, summarize, sync, task, ERROR, Elidable, Secret
+from .tasks import (
+    cull,
+    get,
+    project,
+    setup,
+    sh,
+    status,
+    summarize,
+    sync,
+    task,
+    ERROR,
+    Elidable,
+    Secret,
+    TaskError
+)
 
 setup()
 
@@ -290,7 +304,7 @@ class Baker(object):
             if result['errors'][0]['code'] == 'MANIFEST_UNKNOWN':
                 self.pushed_cache[img] = False
                 return False
-        raise CLIError(response.content)
+        raise TaskError(response.content)
 
     def pull(self):
         repos = self.gh("orgs/%s/repos" % self.org)
@@ -357,7 +371,7 @@ class Baker(object):
         try:
             svc.deployment(self.registry, self.repo, k8s_dir)
         except TemplateError, e:
-            raise CLIError(e)
+            raise TaskError(e)
         return k8s_dir, self.resources(k8s_dir)
 
     @task()
