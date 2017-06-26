@@ -105,7 +105,7 @@ class Service(object):
                 'tasks': []}
 
     def __repr__(self):
-        return "Service(%r, %r, %r)" % (self.version, self.descriptor, self.containers)
+        return "%s:%s" % (self.name, self.version)
 
 def ensure_dir(path):
     dir = os.path.dirname(path)
