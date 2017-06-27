@@ -19,14 +19,32 @@ permalink: /
 
 <div class="container">
   <h5>
-    <ul class="fa-ul">
-      <li><i class="fa-li fa fa-fighter-jet"></i><strong>Fast</strong> Get a service from source to running in Kubernetes in seconds</li>
-      <li><i class="fa-li fa fa-external-link-square"></i><strong>Create services quickly</strong> Use service templates to create new services, or define your own templates.</li>
-      <li><i class="fa-li fa fa-wrench"></i><strong>Build runnable services, not just binaries</strong> Don't leave it to operations to figure out how to run a service. Forge builds a fully deployable service, with all the deployment metadata needed to run.</li>
-      <li><i class="fa-li fa fa-cogs"></i><strong>Works with any language or build system</strong> Forge works with your existing build system, and integrates the deployment metadata needed to create a runnable service</li>
-    </ul></h5>
+  You're developing services on Kubernetes. Are you frustrated by:
+  <p>
+    <ul>
+      <li>a (frequently broken) shared dev environment because everyone is using it to test code?</li>
+      <li>Waiting for your CD pipeline to finish building and deploying so you can just run one test?</li>
+      <li>Depending on someone else to write your Kubernetes manifest (or trying to figure out how to write a bunch of YAML yourself)?</li>
+      </ul></h5>
 </div>
 
+
+<div class="container">
+
+<h5>Introducing Forge. Forge is a minimalist, fast, deployment tool for developers on Kubernetes. Why Forge?
+
+<p>
+  
+    <ul class="fa-ul">
+      <li><i class="fa-li fa fa-external-link-square"></i><strong>Develop in your own isolated environment</strong> Deploy your service(s) the same way, every time, into minikube or any other Kubernetes cluster.</li>
+
+      <li><i class="fa-li fa fa-wrench"></i><strong>Build, deploy, and test your service without committing</strong> Stop waiting on your CD pipeline to test a small change. Just do this all locally.</li>
+
+      <li><i class="fa-li fa fa-fighter-jet"></i><strong>Fast</strong> Native incremental builds and deploys. </li>
+
+      <li><i class="fa-li fa fa-cogs"></i><strong>Zero infrastructure required</strong> Forge runs locally, anywhere. It integrates with your CI system, or just runs on your laptop.</li>
+    </ul></h5>
+</div>
 
 <div class="container">
   <h5><br><strong>How it works:</strong><br>Forge builds services based on Docker and Kubernetes. With Forge, a user specifies the deployment configuration for a service in a YAML file. Forge uses this metadata along with the source code to build a Docker image and the necessary Kubernetes deployment data to create a runnable service. For more information, see <a href="/discussion/how-it-works.html">how Forge works</a>.</h5>
