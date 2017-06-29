@@ -27,3 +27,12 @@ Similar to Compose, Forge can deploy a set of services as a group for easy devel
 
 * Forge targets Kubernetes clusters only, whether locally (via minikube) or remote Kubernetes clusters.
 * Forge is designed so that developers can use the same workflow for development and production. With Docker Compose, a different workflow is required for production deployment, which introduces possible environmental differences (and hard-to-reproduce bugs).
+
+## Helm
+
+Helm is a package manager for Kubernetes. Helm is focused on packaging/distributing Kubernetes services. Forge differs from Helm in a few different ways:
+
+* Forge is focused on the developer workflow (e.g., deploy code without committing), versus packaging/distribution.
+* Forge is entirely client-side, and runs on your laptop (Helm, etc. require server-side components).
+
+Forge could be extended to produce Helm charts (see https://github.com/datawire/forge/issues/15 and upvote!).
