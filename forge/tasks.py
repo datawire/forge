@@ -18,7 +18,7 @@ from eventlet.green import time
 
 logging = eventlet.import_patched('logging')
 traceback = eventlet.import_patched('traceback')
-blessed = eventlet.import_patched('blessed')
+output = eventlet.import_patched('forge.output')
 
 # XXX: need better default for logfile
 def setup(logfile='/tmp/forge.log'):
@@ -173,13 +173,6 @@ class task(object):
 
 _UNBOUND = Sentinel("_UNBOUND")
 
-def _wrap(terminal, lines):
-    for line in lines:
-        while terminal.length(line) > terminal.width:
-            yield line[:terminal.width]
-            line = line[terminal.width:]
-        yield line
-
 class decorator(object):
 
     def __init__(self, task, object = _UNBOUND):
@@ -205,39 +198,17 @@ class decorator(object):
 
     def run(self, *args, **kwargs):
         task_include = kwargs.pop("task_include", lambda x: True)
-        terminal = blessed.Terminal()
-        previous = []
-
         exe = self.go(*args, **kwargs)
 
-        if not terminal.does_styling:
+        renderer = Renderer(exe, task_include)
+
+        if not renderer.terminal.does_styling:
             exe.wait()
-            print exe.render()
-            return exe
-
-        for _ in exe.events:
-            lines = list(_wrap(terminal, exe.render(task_include).splitlines()))
-            screenful = lines[-terminal.height:]
-
-            common_head = 0
-            for old, new in zip(previous, screenful):
-                if old == new:
-                    common_head += 1
-                else:
-                    break
-
-            sys.stdout.write(terminal.move_up*(len(previous)-common_head))
-
-            for line in screenful[common_head:]:
-                # XXX: should really wrap this properly somehow, but
-                #      writing out more than the terminal width will mess up
-                #      the movement logic
-                delta = len(line) - terminal.length(line)
-                sys.stdout.write(line[:terminal.width+delta])
-                sys.stdout.write(terminal.clear_eol + terminal.move_down)
-
-            sys.stdout.write(terminal.clear_eos)
-            previous = screenful
+            print "".join(exe.render(task_include))
+        else:
+            exe.handler = renderer
+            exe.wait()
+            renderer.render()
 
         return exe
 
@@ -263,9 +234,35 @@ class Elidable(object):
     def __str__(self):
         return "".join(str(p) for p in self.parts)
 
+class BaseHandler(object):
+
+    def default(self, exe, event):
+        pass
+
+class Renderer(BaseHandler, output.Drawer):
+
+    def __init__(self, exe, include):
+        output.Drawer.__init__(self)
+        self.exe = exe
+        self.include = include
+
+    def lines(self):
+        return self.exe.render(self.include, tail=self.terminal.height, wrap=self.terminal.wrap)
+
+    def render(self):
+        self.draw(self.lines())
+
+    def status(self, ctx, evt):
+        self.render()
+
+    def summary(self, ctx, evt):
+        self.render()
+
 class execution(object):
 
     CURRENT = local()
+
+    DEFAULT_HANDLER = BaseHandler()
 
     @classmethod
     def current(cls):
@@ -286,10 +283,11 @@ class execution(object):
         if self.parent is not None:
             self.parent.children.append(self)
             self.thread = self.parent.thread
+            self.handler = self.parent.handler
         else:
             self.thread = None
+            self.handler = self.DEFAULT_HANDLER
 
-        self._dirty_events = set()
 
         # start time
         self.started = None
@@ -316,6 +314,16 @@ class execution(object):
             self.index = len([c for c in self.parent.children if c.task == task])
 
         self.id = ".".join("%s[%s]" % (e.task.name, e.index) for e in self.stack)
+        self.arg_summary = self._arg_summary
+
+    @property
+    def _arg_summary(self):
+        summarized = self.args[1:] if self.ignore_first else self.args
+
+        args = [str(elide(a)) for a in summarized]
+        args.extend("%s=%s" % (k, v) for k, v in self.kwargs.items())
+
+        return args
 
     @property
     def traversal(self):
@@ -325,28 +333,8 @@ class execution(object):
                 yield d
 
     def fire(self, event):
-        self._dirty_events.add(event)
-        eventlet.sleep()
-
-    def _pop_events(self):
-        result = []
-        for e in self.traversal:
-            if e._dirty_events:
-                popped = list(e._dirty_events)
-                popped.sort()
-                e._dirty_events.clear()
-                for evt in popped:
-                    result.append((e, evt))
-        return result
-
-    @property
-    def events(self):
-        while True:
-            events = self._pop_events()
-            if not events and self.result is not PENDING:
-                return
-            yield events
-            eventlet.sleep()
+        meth = getattr(self.handler, event, self.handler.default)
+        meth(self, event)
 
     def update_status(self, message):
         self.status = message
@@ -355,7 +343,6 @@ class execution(object):
 
     def summarize(self, message):
         self.summary = message
-        self.fire("summary")
         self.info(message)
 
     def log_record(self, record):
@@ -391,15 +378,6 @@ class execution(object):
             exe = exe.parent
         result.reverse()
         return result
-
-    @property
-    def arg_summary(self):
-        summarized = self.args[1:] if self.ignore_first else self.args
-
-        args = [str(elide(a)) for a in summarized]
-        args.extend("%s=%s" % (k, v) for k, v in self.kwargs.items())
-
-        return args
 
     def enter(self):
         self.info("START(%s)" % ", ".join(self.arg_summary))
@@ -438,6 +416,7 @@ class execution(object):
             self.finished = time.time()
             self.exit()
             self.set(self.parent)
+            self.fire("summary")
 
     def sync(self):
         result = []
@@ -465,8 +444,8 @@ class execution(object):
     def error_summary(self):
         return "".join(traceback.format_exception_only(*self.exception[:2])).strip()
 
-    def render_line(self, include=lambda x: True):
-        indent = "\n  " + self.indent(include)
+    def report(self):
+        indent = "\n  "
 
         if self.result is PENDING or self.summary is None:
             summary = self.status or "(in progress)" if self.result is PENDING else \
@@ -487,7 +466,7 @@ class execution(object):
 
         summary = summary.replace("\n", indent).strip()
 
-        result = "%s%s: %s" % (self.indent(include), self.task.name, summary)
+        result = "%s: %s" % (self.task.name, summary)
 
         if self.result == ERROR and (self.parent is None or self.thread != self.parent.thread):
             if issubclass(self.exception[0], TaskError):
@@ -498,8 +477,17 @@ class execution(object):
 
         return result
 
-    def render(self, include=lambda x: True):
-        return "\n".join([e.render_line(include) for e in self.traversal if include(e)])
+    def render_node(self, indent):
+        return indent + self.report().replace("\n", "\n" + indent)
+
+    def render(self, include=lambda x: True, tail=None, wrap=lambda x: [x]):
+        exes = [e for e in self.traversal if include(e)]
+        lines = []
+        for e in reversed(exes):
+            lines[:0] = wrap(e.render_node(e.indent(include)))
+            if tail and len(lines) > tail:
+                break
+        return lines[:tail or len(lines)]
 
 def sync():
     """
@@ -603,15 +591,21 @@ def sh(*args, **kwargs):
     expected = kwargs.pop("expected", (0,))
     cmd = tuple(str(a) for a in args)
 
+    argsum = " ".join(execution.current().arg_summary)
+
     try:
         p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
-        output = p.stdout.read()
+        output = ""
+        for line in p.stdout:
+            output += line
+            status("%s -> (in progress)\n%s" % (argsum, output))
         p.wait()
         result = Result(p.returncode, output)
     except OSError, e:
         ctx = ' %s' % kwargs if kwargs else ''
         raise TaskError("error executing command '%s'%s: %s" % (" ".join(cmd), ctx, e))
     if p.returncode in expected:
+        summarize("%s -> %s" % (argsum, output))
         return result
     else:
         raise TaskError("command failed[%s]: %s" % (result.code, result.output))
@@ -620,5 +614,6 @@ requests = eventlet.import_patched('requests.__init__') # the .__init__ is a wor
 
 @task("GET")
 def get(url, **kwargs):
-    status(url)
-    return requests.get(str(url), **kwargs)
+    response = requests.get(str(url), **kwargs)
+    summarize("%s -> [%s]" % (" ".join(execution.current().arg_summary), response.status_code))
+    return response

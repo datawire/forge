@@ -107,13 +107,23 @@ def steps():
     time.sleep(0.1)
     status("step 3")
 
+class Filter(object):
+
+    def __init__(self, visitor, *events):
+        self.visitor = visitor
+        self.events = set(events)
+        self.log = []
+
+    def default(self, ctx, evt):
+        if evt in self.events:
+            self.visitor(ctx, evt)
+
 def test_status():
     exe = steps.go()
     statuses = []
-    for events in exe.events:
-        for e, evt in events:
-            if evt == "status":
-                statuses.append(e.status)
+    exe.handler = Filter(lambda e, evt: statuses.append(e.status), "status")
+    exe.wait()
+    assert exe.result is not ERROR, exe.render()
     assert statuses == ["step 1", "step 2", "step 3"]
 
 def test_render():
@@ -129,7 +139,7 @@ def test_render():
   Noop: 6 -> 6
   Noop: 7 -> 7
   Noop: 8 -> 8
-  Noop: 9 -> 9""" == gathered.render()
+  Noop: 9 -> 9""" == "\n".join(gathered.render())
 
 @task()
 def nested_oops_sync():
@@ -182,7 +192,7 @@ def test_nested_exception_sync():
   ZeroDivisionError: integer division or modulo by zero
   
   Noop: 1 -> 1
-  Oops: 2 -> ZeroDivisionError: integer division or modulo by zero""" == massage(exe.render())
+  Oops: 2 -> ZeroDivisionError: integer division or modulo by zero""" == massage("\n".join(exe.render()))
 
 def test_nested_exception_async():
     exe = nested_oops_async.go()
@@ -193,7 +203,7 @@ def test_nested_exception_async():
   
   Noop: 1 -> 1
   Oops: 2 -> ZeroDivisionError: integer division or modulo by zero
-
+  
     Traceback (most recent call last):
       File "<PATH>/tasks.py", line <NNN>, in run
         result = self.task.function(*self.args, **self.kwargs)
@@ -201,7 +211,7 @@ def test_nested_exception_async():
         return x/0
     ZeroDivisionError: integer division or modulo by zero
     
-  Noop: 3 -> 3""" == massage(exe.render())
+  Noop: 3 -> 3""" == massage("\n".join(exe.render()))
 
 def test_sh():
     assert "hello" == sh("echo", "-n", "hello").output
@@ -283,13 +293,13 @@ def mutable_scatter(n):
 
 # test that the event loop doesn't crap out early for some reason this
 # only happens when *n* is 1
-def test_autosync_events(n=1):
+def test_autosync_async(n=1):
     exe = mutable_scatter.go(n)
-    events = list(exe.events)
+    exe.wait()
     assert exe.result == range(n)
 
-def test_autosync_events_10():
-    test_autosync_events(10)
+def test_autosync_async_10():
+    test_autosync_async(10)
 
 @task()
 def sleeper(span):
@@ -306,13 +316,10 @@ def steps_summary(x):
 def test_summary():
     exe = steps_summary.go("arg")
     frames = []
-    for events in exe.events:
-        for e, ops in events:
-            if "status" in ops or "summary" in ops:
-                frames.append(exe.render())
-    frames.append(exe.render())
+    exe.handler = Filter(lambda e, ops: frames.append("\n".join(exe.render())), "status", "summary")
+    exe.wait()
     assert exe.get() is None
     assert ['steps_summary: step 1',
             'steps_summary: step 2',
-            'steps_summary: step 2\n  sleeper: 0.1 -> (in progress)',
+            'steps_summary: step 2\n  sleeper: 0.1',
             'steps_summary: done\n  sleeper: 0.1'] == frames
