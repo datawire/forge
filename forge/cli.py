@@ -143,7 +143,7 @@ class Forge(object):
                 password = self.prompt("Docker password", echo=False)
 
             print
-            e = validate.run()
+            e = validate.run(task_include=lambda x: x.task.name in ('pull', 'push', 'tag'))
             if e.result is ERROR:
                 print
                 print self.terminal.red("-- please try again --")
