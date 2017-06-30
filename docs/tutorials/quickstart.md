@@ -1,9 +1,34 @@
 ---
 layout: doc
 weight: 1
-title: "Forge Quickstart"
+title: "Quickstart: Deploy Service in Kubernetes"
 categories: tutorials
 ---
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+<script>
+$(document).ready(function() {
+  $("#toggleinstall").click(function() {
+    $("#install-forge").toggle();
+    var button = $("#toggleinstall");
+    if (button.html() == "Show") {
+        button.html("Hide");
+    } else {
+        button.html("Show");
+    }
+  });
+});
+</script>
+
+## Goal
+
+In this tutorial, we'll show how you can get quickly get a service (in source code form) deployed into Kubernetes, without requiring any server-side infrastructure. We'll then show how you can extend this to a network of services.
+
+If you're a developer, this lets you quickly test your service *exactly as it's supposed to be deployed in production* without committing your code / waiting on a CD pipeline.
+
+### Install / Configure Forge
+#### **<a class="button" id="toggleinstall">Show</a>**
+
+<div id="install-forge" style="display: none;" markdown="1">
 
 ## Prerequisites
 
@@ -33,6 +58,8 @@ mkdir forge-quickstart
 cd forge-quickstart
 forge setup
 ```
+
+</div>
 
 ## Deploy a service
 
