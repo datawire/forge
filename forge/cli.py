@@ -62,6 +62,7 @@ import util
 from . import __version__
 from .common import Service, Prototype, image, containers
 from .docker import Docker
+from .istio import istio
 from .output import Terminal
 
 class CLIError(Exception): pass
@@ -268,8 +269,13 @@ class Forge(object):
     def manifest(self, service):
         status("generating manifests for %s" % service.name)
         k8s_dir, resources = self.template(service)
-        summarize("generated %s\nwrote manifests to %s" % (", ".join(str(r) for r in resources),
-                                                           k8s_dir))
+        istioify = service.info().get("istio", False)
+        if istioify:
+            status("istioifying kube manifests")
+            istio(k8s_dir)
+        summarize("generated %s\nwrote %smanifests to %s" % (", ".join(str(r) for r in resources),
+                                                             "istioified " if istioify else "",
+                                                             k8s_dir))
         return k8s_dir
 
     @task()

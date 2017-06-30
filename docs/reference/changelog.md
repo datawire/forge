@@ -5,7 +5,11 @@ title: "Changelog"
 categories: reference
 ---
 
-#### 0.2.4 (June 26, 2017)
+#### 0.2.5 (June 30, 2017)
+
+* Added istio support: [#13](https://github.com/datawire/forge/issues/13)
+
+#### 0.2.4 (June 30, 2017)
 
 * Less noise on setup.
 
