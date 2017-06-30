@@ -8,3 +8,4 @@ requests
 pyyaml
 jinja2
 pytest
+pexpect

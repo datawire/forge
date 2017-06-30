@@ -549,7 +549,17 @@ def gather(sequence):
 
 OMIT = Sentinel("OMIT")
 
+def _taskify(obj):
+    if isinstance(obj, decorator):
+        return obj
+    else:
+        @task()
+        def applicator(*args, **kwargs):
+            return obj(*args, **kwargs)
+        return applicator
+
 def project(task, sequence):
+    task = _taskify(task)
     execs = []
     for obj in sequence:
         execs.append(task.go(obj))
@@ -559,6 +569,7 @@ def project(task, sequence):
             yield obj
 
 def cull(task, sequence):
+    task = _taskify(task)
     execs = []
     for obj in sequence:
         execs.append((task.go(obj), obj))

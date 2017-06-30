@@ -53,8 +53,7 @@ setup()
 
 import getpass
 
-import base64, fnmatch, requests, os, urllib2, yaml
-from blessed import Terminal
+import base64, fnmatch, requests, os, sys, yaml
 from docopt import docopt
 from collections import OrderedDict
 from jinja2 import Template, TemplateError
@@ -62,24 +61,10 @@ from jinja2 import Template, TemplateError
 import util
 from . import __version__
 from .common import Service, Prototype, image, containers
+from .docker import Docker
+from .output import Terminal
 
 class CLIError(Exception): pass
-
-def next_page(response):
-    if "Link" in response.headers:
-        links = requests.utils.parse_header_links(response.headers["Link"])
-        for link in links:
-            if link['rel'] == 'next':
-                return link['url']
-    return None
-
-def inject_token(url, token):
-    if not token: return url
-    parts = url.split("://", 1)
-    if len(parts) == 2:
-        return Elidable("%s://" % parts[0], Secret(token), "@%s" % parts[1])
-    else:
-        return Elidable(Secret(token), "@%s" % parts[0])
 
 SETUP_TEMPLATE = Template("""# Global forge configuration
 # DO NOT CHECK INTO GITHUB, THIS FILE CONTAINS SECRETS
@@ -98,11 +83,10 @@ def file_contents(path):
         print "  %s" % e
         return None
 
-class Baker(object):
+class Forge(object):
 
     def __init__(self):
         self.terminal = Terminal()
-        self.pushed_cache = {}
 
     def prompt(self, msg, default=None, loader=None, echo=True):
         prompt = "%s: " % msg if default is None else "%s[%s]: " % (msg, default)
@@ -140,16 +124,10 @@ class Baker(object):
         password = None
         json_key = None
 
-        test_image = "registry.hub.docker.com/datawire/forge-setup-test:1"
-
         @task()
         def validate():
-            sh("docker", "login", "-u", user, "-p", Secret(password), registry)
-            sh("docker", "pull", test_image)
-            img = image(registry, repo, "forge_test", "dummy")
-            sh("docker", "tag", test_image, img)
-            self.do_push(img)
-            assert self.pushed("forge_test", "dummy", registry=registry, repo=repo, user=user, password=password)
+            dr = Docker(registry, repo, user, password)
+            dr.validate()
 
         print
         print self.terminal.bold("== Setting up Docker ==")
@@ -193,44 +171,6 @@ class Baker(object):
         print
 
         print self.terminal.bold("== Done ==")
-
-    def dr(self, url, expected=(), user=None, password=None):
-        user = user or self.user
-        password = password or self.password
-
-        response = get(url, auth=(user, password))
-        if response.status_code == 401:
-            challenge = response.headers['Www-Authenticate']
-            if challenge.startswith("Bearer "):
-                challenge = challenge[7:]
-            opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
-            authresp = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(user, password))
-            if authresp.ok:
-                token = authresp.json()['token']
-                response = get(url, headers={'Authorization': 'Bearer %s' % token})
-            else:
-                raise TaskError("problem authenticating with docker registry: [%s] %s" % (authresp.status_code,
-                                                                                          authresp.content))
-        return response
-
-    def gh(self, api, expected=None):
-        headers = {'Authorization': 'token %s' % self.token} if self.token else None
-        response = self.get("https://api.github.com/%s" % api, headers=headers, expected=expected)
-        result = response.json()
-        if response.ok:
-            next_url = next_page(response)
-            while next_url:
-                response = self.get(next_url, headers=headers)
-                result.extend(response.json())
-                next_url = next_page(response)
-        return result
-
-    def git_pull(self, name, url):
-        repodir = os.path.join(self.workdir, name)
-        if not os.path.exists(repodir):
-            os.makedirs(repodir)
-            self.call("git", "init", cwd=repodir)
-        self.call("git", "pull", inject_token(url, self.token), cwd=repodir)
 
     EXCLUDED = set([".git"])
 
@@ -285,86 +225,31 @@ class Baker(object):
         return result
 
     @task()
-    def baked(self, name, version):
-        return bool(sh("docker", "images", "-q", image(self.registry, self.repo, name, version)).output)
-
-    @task()
-    def pushed(self, name, version, registry=None, repo=None, user=None, password=None):
-        registry = registry or self.registry
-        repo = repo or self.repo
-        user = user or self.user
-        password = password or self.password
-
-        img = image(registry, repo, name, version)
-        if img in self.pushed_cache:
-            return self.pushed_cache[img]
-
-        response = self.dr("https://%s/v2/%s/%s/manifests/%s" % (registry, repo, name, version), expected=(404,),
-                           user=user, password=password)
-        result = response.json()
-        if 'signatures' in result and 'fsLayers' in result:
-            self.pushed_cache[img] = True
-            return True
-        elif 'errors' in result and result['errors']:
-            if result['errors'][0]['code'] == 'MANIFEST_UNKNOWN':
-                self.pushed_cache[img] = False
-                return False
-        raise TaskError(response.content)
-
-    def pull(self):
-        repos = self.gh("orgs/%s/repos" % self.org)
-        filtered = [r for r in repos if fnmatch.fnmatch(r["full_name"], self.filter)]
-
-        urls = []
-        for repo in async_map(lambda r: self.gh("repos/%s" % r["full_name"], expected=(404,)),
-                              filtered):
-            if "id" in repo:
-                urls.append((repo["full_name"], repo["clone_url"]))
-
-        for u in urls:
-            self.git_pull.go(u)
-
-    @task()
-    def is_raw(self, (svc, name, _)):
-        return not (self.pushed(name, svc.version) or self.baked(name, svc.version))
-
-    @task()
     def bake(self, service):
         status("checking if images exist")
-        raw = list(cull(self.is_raw, containers([service])))
+        raw = list(cull(lambda (svc, name, _): not self.docker.exists(name, svc.version), containers([service])))
         if not raw:
             summarize("skipped, images exist")
             return
 
         for svc, name, container in raw:
-            status("building %s" % container)
-            sh.go("docker", "build", ".", "-t", image(self.registry, self.repo, name, svc.version),
-                  cwd=os.path.join(svc.root, os.path.dirname(container)))
+            status("building %s for %s " % (container, svc.name))
+            self.docker.build.go(os.path.join(svc.root, os.path.dirname(container)), name, svc.version)
 
         summarize("built %s" % (", ".join(x[-1] for x in raw)))
 
     @task()
-    def is_unpushed(self, (svc, name, container)):
-        return self.baked(name, svc.version) and not self.pushed(name, svc.version)
-
-    @task()
-    def do_push(self, img):
-        self.pushed_cache.pop(img, None)
-        sh("docker", "push", img)
-
-    @task()
     def push(self, service):
         status("checking if %s containers exist" % service)
-        unpushed = list(cull(self.is_unpushed, containers([service])))
+        unpushed = list(cull(lambda (svc, name, _): self.docker.needs_push(name, svc.version), containers([service])))
 
         if not unpushed:
             summarize("skipped, images exist")
             return
 
-        sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
         for svc, name, container in unpushed:
             status("pushing container %s" % container)
-            self.do_push.go(image(self.registry, self.repo, name, svc.version))
+            self.docker.push(name, svc.version)
 
         summarize("pushed %s" % ", ".join(x[-1] for x in unpushed))
 
@@ -374,7 +259,7 @@ class Baker(object):
     def template(self, svc):
         k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
         try:
-            svc.deployment(self.registry, self.repo, k8s_dir)
+            svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
         except TemplateError, e:
             raise TaskError(e)
         return k8s_dir, self.resources(k8s_dir)
@@ -430,25 +315,33 @@ def get_workdir(conf, base):
         workdir = os.path.join(base, workdir)
     return workdir
 
-def get_repo(conf):
-    url = conf.get("docker-repo")
-    if url is None:
-        raise CLIError("docker-repo must be configured")
-    if "/" not in url:
-        raise CLIError("docker-repo must be in the form <registry-url>/<name>")
-    registry, repo = url.split("/", 1)
-    return registry, repo
-
 def get_password(conf):
     pw = conf.get("password")
     if not pw:
         raise CLIError("docker password must be configured")
     return base64.decodestring(pw)
 
-def main(args):
-    baker = Baker()
+def get_docker(conf):
+    url = conf.get("docker-repo")
 
-    if args["setup"]: return baker.setup()
+    if url is None:
+        raise CLIError("docker-repo must be configured")
+    if "/" not in url:
+        raise CLIError("docker-repo must be in the form <registry-url>/<namespace>")
+    registry, namespace = url.split("/", 1)
+
+    try:
+        user = conf["user"]
+    except KeyError, e:
+        raise CLIError("missing config property: %s" % e)
+
+    return Docker(registry, namespace, user, get_password(conf))
+
+def main(argv=None):
+    args = docopt(__doc__, argv or sys.argv[1:], version="Forge %s" % __version__)
+    forge = Forge()
+
+    if args["setup"]: return forge.setup()
 
     conf_file = get_config(args)
     if not conf_file:
@@ -457,31 +350,23 @@ def main(args):
     with open(conf_file, "read") as fd:
         conf = yaml.load(fd)
 
-    baker.workdir = get_workdir(conf, os.path.dirname(os.path.abspath(conf_file)))
-    baker.registry, baker.repo = get_repo(conf)
+    forge.workdir = get_workdir(conf, os.path.dirname(os.path.abspath(conf_file)))
+    forge.docker = get_docker(conf)
 
-    try:
-        baker.user = conf["user"]
-    except KeyError, e:
-        raise CLIError("missing config property: %s" % e)
-
-    baker.token = conf.get("token")
-    baker.password = get_password(conf)
-
-    baker.filter = args.get("--filter")
-    baker.dry_run = args["--dry-run"]
+    forge.filter = args.get("--filter")
+    forge.dry_run = args["--dry-run"]
 
     @task()
     def service(svc):
-        if args["bake"]: baker.bake(svc)
-        if args["push"]: baker.push(svc)
-        if args["manifest"]: baker.manifest(svc)
-        if args["build"]: baker.build(svc)
-        if args["deploy"]: baker.deploy(baker.build(svc))
+        if args["bake"]: forge.bake(svc)
+        if args["push"]: forge.push(svc)
+        if args["manifest"]: forge.manifest(svc)
+        if args["build"]: forge.build(svc)
+        if args["deploy"]: forge.deploy(forge.build(svc))
 
     @task()
-    def forge():
-        services = baker.scan()
+    def root():
+        services = forge.scan()
         for svc in services:
             service.go(svc)
 
@@ -489,13 +374,12 @@ def main(args):
     if args["--verbose"]:
         INCLUDED.update(["GET", "CMD"])
 
-    forge.run(task_include=lambda x: x.task.name in INCLUDED)
+    root.run(task_include=lambda x: x.task.name in INCLUDED)
 
 def call_main():
     util.setup_yaml()
-    args = docopt(__doc__, version="Forge %s" % __version__)
     try:
-        exit(main(args))
+        exit(main())
     except CLIError, e:
         exit(e)
     except KeyboardInterrupt, e:
