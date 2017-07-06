@@ -39,7 +39,27 @@ def setup(logfile='/tmp/forge.log'):
                         format='%(levelname)s %(task_id)s: %(message)s')
 
 class TaskError(Exception):
+
+    """
+    Used to signal anticipated errors has occured. A task error will
+    be rendered without it's stack trace, so it should include enough
+    information in the error message to diagnose the issue.
+    """
+
     pass
+
+class ChildError(TaskError):
+
+    """
+    Used to indicate that a background task has had an error. The
+    details are reported at the source of the error, so this error
+    message is intentionally sparse.
+    """
+
+    def __init__(self, parent, *children):
+        self.parent = parent
+        self.children = children
+        TaskError.__init__(self, "%s child task(s) errored" % len(self.children))
 
 class Sentinel(object):
 
@@ -190,11 +210,13 @@ class decorator(object):
 
     def __call__(self, *args, **kwargs):
         return execution.call(self.task, self._munge(args), kwargs,
-                              ignore_first=self.object is not _UNBOUND)
+                              ignore_first=self.object is not _UNBOUND,
+                              stack = _capture_stack())
 
     def go(self, *args, **kwargs):
         return execution.spawn(self.task, self._munge(args), kwargs,
-                               ignore_first=self.object is not _UNBOUND)
+                               ignore_first=self.object is not _UNBOUND,
+                               stack = _capture_stack())
 
     def run(self, *args, **kwargs):
         task_include = kwargs.pop("task_include", lambda x: True)
@@ -257,6 +279,9 @@ class Renderer(BaseHandler, output.Drawer):
 
     def summary(self, ctx, evt):
         self.render()
+
+def _capture_stack():
+    return traceback.extract_stack()
 
 class execution(object):
 
@@ -356,14 +381,16 @@ class execution(object):
         self.task.logger.info(*args, **kwargs)
 
     @classmethod
-    def call(cls, task, args, kwargs, ignore_first=False):
+    def call(cls, task, args, kwargs, ignore_first=False, stack = None):
         exe = execution(task, args, kwargs, ignore_first = ignore_first)
+        exe._stack = stack
         exe.run()
         return exe.get()
 
     @classmethod
-    def spawn(cls, task, args, kwargs, ignore_first=False):
+    def spawn(cls, task, args, kwargs, ignore_first=False, stack = None):
         exe = execution(task, args, kwargs, ignore_first = ignore_first)
+        exe._stack = stack
         exe.thread = eventlet.spawn(exe.run)
         if exe.parent:
             exe.parent.outstanding.append(exe)
@@ -385,17 +412,23 @@ class execution(object):
     def exit(self):
         self.info("RESULT -> %s (%s)" % (self.result, elapsed(self.finished - self.started)))
 
+    def record_exc(self, type, value, traceback):
+        self.exception = (type, value, traceback)
+        if self.parent:
+            self.parent.child_errors += 1
+
+    @property
+    def descendant_errors(self):
+        return [ch for ch in self.traversal if ch.result is ERROR and ch is not self]
+
     def check_children(self, result):
         if result is ERROR:
             self.result = result
         elif self.child_errors > 0:
             # XXX: this swallows the result, might be nicer to keep it
             # somehow (maybe with partial result concept?)
-            errored = [ch.id for ch in self.traversal if ch.result is ERROR]
             self.result = ERROR
-            self.exception = (TaskError,
-                              TaskError("%s child task(s) errored: %s" % (self.child_errors, ", ".join(errored))),
-                              None)
+            self.record_exc(ChildError, ChildError(self, *self.descendant_errors), None)
         else:
             self.result = result
 
@@ -406,10 +439,8 @@ class execution(object):
         try:
             result = self.task.function(*self.args, **self.kwargs)
         except:
-            self.exception = sys.exc_info()
+            self.record_exc(*sys.exc_info())
             result = ERROR
-            if self.parent:
-                self.parent.child_errors += 1
         finally:
             self.sync()
             self.check_children(result)
@@ -442,7 +473,13 @@ class execution(object):
 
     @property
     def error_summary(self):
-        return "".join(traceback.format_exception_only(*self.exception[:2])).strip()
+        if not self.is_leaf_error():
+            return "%s child task(s) errored" % len(self.descendant_errors)
+
+        if issubclass(self.exception[0], TaskError):
+            return str(self.exception[1])
+        else:
+            return "unexpected error"
 
     def report(self):
         indent = "\n  "
@@ -468,23 +505,63 @@ class execution(object):
 
         result = "%s: %s" % (self.task.name, summary)
 
-        if self.result == ERROR and (self.parent is None or self.thread != self.parent.thread):
-            if issubclass(self.exception[0], TaskError):
-                exc = "".join(traceback.format_exception_only(*self.exception[:2]))
-            else:
-                exc = "".join(traceback.format_exception(*self.exception))
-            result += "\n" + indent + exc.replace("\n", indent)
+        if self.result == ERROR:
+            if not issubclass(self.exception[0], TaskError):
+                exc = self.get_traceback()
+                if exc:
+                    result += "\n" + indent + exc.replace("\n", indent)
 
         return result
+
+    def is_leaf_error(self):
+        if self.result is ERROR:
+            for ch in self.children:
+                if ch.result is ERROR and ch.exception[1] == self.exception[1]:
+                    return False
+            return True
+        else:
+            return False
+
+    def is_signal(self, (filename, lineno, funcname, text)):
+        noise = {"forge/tasks.py": ("go", "__call__", "_capture_stack", "run", "call"),
+                 "eventlet/greenthread.py": ("main",)}
+        for k, v in noise.items():
+            if filename.endswith(k) and funcname in v:
+                return False
+        return True
+
+    def get_traceback(self):
+        if not self.is_leaf_error():
+            return None
+
+        stack = []
+        for exe in reversed(self.stack):
+            if not stack:
+                stack = traceback.extract_tb(exe.exception[2])
+                stack[:0] = exe._stack
+            elif exe.parent and exe.parent.thread != exe.thread:
+                stack[:0] = exe._stack
+
+        # Noise is considered to be dispatch/glue code that clutters
+        # stack traces due to bugs in the actual business logic of
+        # tasks. We only filter out noise if the last line of the
+        # stack is business logic. That way if there is a bug in the
+        # dispatch/glue code it doesn't get filtered out.
+        if self.is_signal(stack[-1]):
+            stack = filter(self.is_signal, stack)
+        return "".join(["Traceback (most recent call last):\n"] + traceback.format_list(stack) +
+                       traceback.format_exception_only(*self.exception[:2]))
 
     def render_node(self, indent):
         return indent + self.report().replace("\n", "\n" + indent)
 
     def render(self, include=lambda x: True, tail=None, wrap=lambda x: [x]):
-        exes = [e for e in self.traversal if include(e)]
+        def _include(e):
+            return include(e) or e.result is ERROR
+        exes = [e for e in self.traversal if _include(e)]
         lines = []
         for e in reversed(exes):
-            lines[:0] = wrap(e.render_node(e.indent(include)))
+            lines[:0] = wrap(e.render_node(e.indent(_include)))
             if tail and len(lines) > tail:
                 break
         return lines[:tail or len(lines)]

@@ -28,6 +28,7 @@ from forge.tasks import (
     OMIT,
     PENDING,
     TaskError,
+    ChildError
 )
 
 setup()
@@ -83,8 +84,8 @@ def test_background_failure():
     try:
         background_oops(1)
         assert False, "should have failed"
-    except TaskError, e:
-        assert "1 child task(s) errored: background_oops[1].Oops[1]" == str(e)
+    except ChildError, e:
+        assert "1 child task(s) errored" == str(e)
         pass
 
 # used to check sync
@@ -174,39 +175,28 @@ def test_massage():
 def test_nested_exception_sync():
     exe = nested_oops_sync.go()
     exe.wait()
-    assert """nested_oops_sync: ZeroDivisionError: integer division or modulo by zero
-
-  Traceback (most recent call last):
-    File "<PATH>/tasks.py", line <NNN>, in run
-      result = self.task.function(*self.args, **self.kwargs)
-    File "<PATH>/test_tasks.py", line <NNN>, in nested_oops_sync
-      oops(2)
-    File "<PATH>/tasks.py", line <NNN>, in __call__
-      ignore_first=self.object is not _UNBOUND)
-    File "<PATH>/tasks.py", line <NNN>, in call
-      return exe.get()
-    File "<PATH>/tasks.py", line <NNN>, in run
-      result = self.task.function(*self.args, **self.kwargs)
-    File "<PATH>/test_tasks.py", line <NNN>, in oops
-      return x/0
-  ZeroDivisionError: integer division or modulo by zero
-  
+    assert """nested_oops_sync: 1 child task(s) errored
   Noop: 1 -> 1
-  Oops: 2 -> ZeroDivisionError: integer division or modulo by zero""" == massage("\n".join(exe.render()))
+  Oops: 2 -> unexpected error
+  
+    Traceback (most recent call last):
+      File "<PATH>/test_tasks.py", line <NNN>, in nested_oops_sync
+        oops(2)
+      File "<PATH>/test_tasks.py", line <NNN>, in oops
+        return x/0
+    ZeroDivisionError: integer division or modulo by zero
+    """ == massage("\n".join(exe.render()))
 
 def test_nested_exception_async():
     exe = nested_oops_async.go()
     exe.wait()
-    assert """nested_oops_async: TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
-
-  TaskError: 1 child task(s) errored: nested_oops_async[1].Oops[1]
-  
+    assert """nested_oops_async: 1 child task(s) errored
   Noop: 1 -> 1
-  Oops: 2 -> ZeroDivisionError: integer division or modulo by zero
+  Oops: 2 -> unexpected error
   
     Traceback (most recent call last):
-      File "<PATH>/tasks.py", line <NNN>, in run
-        result = self.task.function(*self.args, **self.kwargs)
+      File "<PATH>/test_tasks.py", line <NNN>, in nested_oops_async
+        oops.go(2)
       File "<PATH>/test_tasks.py", line <NNN>, in oops
         return x/0
     ZeroDivisionError: integer division or modulo by zero
@@ -323,3 +313,91 @@ def test_summary():
             'steps_summary: step 2',
             'steps_summary: step 2\n  sleeper: 0.1',
             'steps_summary: done\n  sleeper: 0.1'] == frames
+
+@task()
+def root(node_async, leaf_async):
+    if node_async:
+        node.go(leaf_async)
+    else:
+        node(leaf_async)
+
+@task()
+def node(leaf_async):
+    if leaf_async:
+        leaf.go()
+    else:
+        leaf()
+
+class LeafError(Exception):
+    pass
+
+@task()
+def leaf():
+    raise LeafError("barf")
+
+def exception_render(node_async, leaf_async, expected):
+    exe = root.go(node_async, leaf_async)
+    exe.wait()
+    assert exe.result is ERROR
+    massaged = massage("\n".join(exe.render()))
+    assert massaged == expected
+
+def test_exception_render_TT():
+    exception_render(True, True, """root: True True -> 2 child task(s) errored
+  node: True -> 1 child task(s) errored
+    leaf: unexpected error
+    
+      Traceback (most recent call last):
+        File "<PATH>/test_tasks.py", line <NNN>, in root
+          node.go(leaf_async)
+        File "<PATH>/test_tasks.py", line <NNN>, in node
+          leaf.go()
+        File "<PATH>/test_tasks.py", line <NNN>, in leaf
+          raise LeafError("barf")
+      LeafError: barf
+      """)
+
+def test_exception_render_TF():
+    exception_render(True, False, """root: True False -> 2 child task(s) errored
+  node: False -> 1 child task(s) errored
+    leaf: unexpected error
+    
+      Traceback (most recent call last):
+        File "<PATH>/test_tasks.py", line <NNN>, in root
+          node.go(leaf_async)
+        File "<PATH>/test_tasks.py", line <NNN>, in node
+          leaf()
+        File "<PATH>/test_tasks.py", line <NNN>, in leaf
+          raise LeafError("barf")
+      LeafError: barf
+      """)
+
+def test_exception_render_FT():
+    exception_render(False, True, """root: False True -> 2 child task(s) errored
+  node: True -> 1 child task(s) errored
+    leaf: unexpected error
+    
+      Traceback (most recent call last):
+        File "<PATH>/test_tasks.py", line <NNN>, in root
+          node(leaf_async)
+        File "<PATH>/test_tasks.py", line <NNN>, in node
+          leaf.go()
+        File "<PATH>/test_tasks.py", line <NNN>, in leaf
+          raise LeafError("barf")
+      LeafError: barf
+      """)
+
+def test_exception_render_FF():
+    exception_render(False, False, """root: False False -> 2 child task(s) errored
+  node: False -> 1 child task(s) errored
+    leaf: unexpected error
+    
+      Traceback (most recent call last):
+        File "<PATH>/test_tasks.py", line <NNN>, in root
+          node(leaf_async)
+        File "<PATH>/test_tasks.py", line <NNN>, in node
+          leaf()
+        File "<PATH>/test_tasks.py", line <NNN>, in leaf
+          raise LeafError("barf")
+      LeafError: barf
+      """)
