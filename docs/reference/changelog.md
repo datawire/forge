@@ -5,6 +5,10 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.6 (July 7, 2017)
+
+* Reduce some noise when reporting errors.
+
 #### 0.2.5 (June 30, 2017)
 
 * Added istio support: [#13](https://github.com/datawire/forge/issues/13)
