@@ -343,7 +343,7 @@ def exception_render(node_async, leaf_async, expected):
     assert massaged == expected
 
 def test_exception_render_TT():
-    exception_render(True, True, """root: True True -> 2 child task(s) errored
+    exception_render(True, True, """root: True True -> 1 child task(s) errored
   node: True -> 1 child task(s) errored
     leaf: unexpected error
     
@@ -358,7 +358,7 @@ def test_exception_render_TT():
       """)
 
 def test_exception_render_TF():
-    exception_render(True, False, """root: True False -> 2 child task(s) errored
+    exception_render(True, False, """root: True False -> 1 child task(s) errored
   node: False -> 1 child task(s) errored
     leaf: unexpected error
     
@@ -373,7 +373,7 @@ def test_exception_render_TF():
       """)
 
 def test_exception_render_FT():
-    exception_render(False, True, """root: False True -> 2 child task(s) errored
+    exception_render(False, True, """root: False True -> 1 child task(s) errored
   node: True -> 1 child task(s) errored
     leaf: unexpected error
     
@@ -388,7 +388,7 @@ def test_exception_render_FT():
       """)
 
 def test_exception_render_FF():
-    exception_render(False, False, """root: False False -> 2 child task(s) errored
+    exception_render(False, False, """root: False False -> 1 child task(s) errored
   node: False -> 1 child task(s) errored
     leaf: unexpected error
     

@@ -418,8 +418,8 @@ class execution(object):
             self.parent.child_errors += 1
 
     @property
-    def descendant_errors(self):
-        return [ch for ch in self.traversal if ch.result is ERROR and ch is not self]
+    def leaf_errors(self):
+        return [ch for ch in self.traversal if ch is not self and ch.is_leaf_error()]
 
     def check_children(self, result):
         if result is ERROR:
@@ -428,7 +428,7 @@ class execution(object):
             # XXX: this swallows the result, might be nicer to keep it
             # somehow (maybe with partial result concept?)
             self.result = ERROR
-            self.record_exc(ChildError, ChildError(self, *self.descendant_errors), None)
+            self.record_exc(ChildError, ChildError(self, *self.leaf_errors), None)
         else:
             self.result = result
 
@@ -474,7 +474,7 @@ class execution(object):
     @property
     def error_summary(self):
         if not self.is_leaf_error():
-            return "%s child task(s) errored" % len(self.descendant_errors)
+            return "%s child task(s) errored" % len(self.leaf_errors)
 
         if issubclass(self.exception[0], TaskError):
             return str(self.exception[1])
@@ -515,6 +515,8 @@ class execution(object):
 
     def is_leaf_error(self):
         if self.result is ERROR:
+            if issubclass(self.exception[0], ChildError):
+                return False
             for ch in self.children:
                 if ch.result is ERROR and ch.exception[1] == self.exception[1]:
                     return False
