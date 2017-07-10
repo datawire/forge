@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tasks import sh
-
-# XXX: this stuff is not currently used and probably bit rotted but
-#      saved for reference
+from .tasks import sh, get, project, Elidable, Secret
+import fnmatch
+import os
 
 def next_page(response):
     if "Link" in response.headers:
@@ -60,12 +59,6 @@ class Github(object):
         repos = self.get("orgs/%s/repos" % organization)
         filtered = [r for r in repos if fnmatch.fnmatch(r["full_name"], filter)]
 
-        urls = []
-        for repo in async_map(lambda r: self.get("repos/%s" % r["full_name"], expected=(404,)),
-                              filtered):
-            if "id" in repo:
-                urls.append((repo["full_name"], repo["clone_url"]))
-
-        for u in urls:
-            self.pull.go(u)
-
+        real_repos = project(self.get, ["repos/%s" % r["full_name"] for r in filtered])
+        urls = [(r["full_name"], r["clone_url"]) for r in real_repos if "id" in r]
+        return urls
