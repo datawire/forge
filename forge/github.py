@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .tasks import sh, get, project, Elidable, Secret
+from .tasks import sh, get, project, Elidable, Secret, TaskError
 import fnmatch
 import os
+import re
 
 def next_page(response):
     if "Link" in response.headers:
@@ -31,6 +32,9 @@ def inject_token(url, token):
         return Elidable("%s://" % parts[0], Secret(token), "@%s" % parts[1])
     else:
         return Elidable(Secret(token), "@%s" % parts[0])
+
+def _not_found(text):
+    return re.search(r"fatal: repository '.*' not found", text)
 
 class Github(object):
 
@@ -62,3 +66,19 @@ class Github(object):
         real_repos = project(self.get, ["repos/%s" % r["full_name"] for r in filtered])
         urls = [(r["full_name"], r["clone_url"]) for r in real_repos if "id" in r]
         return urls
+
+    def exists(self, url):
+        result = sh("git", "-c", "core.askpass=true", "ls-remote", inject_token(url, self.token), "HEAD",
+                    expected=xrange(256))
+        if result.code == 0:
+            return True
+        elif _not_found(result.output):
+            return False
+        else:
+            raise TaskError(result)
+
+    def remote(self, directory):
+        return sh("git", "remote", "get-url", "origin", cwd=directory).output
+
+    def clone(self, url, directory):
+        sh("git", "-c", "core.askpass=true", "clone", inject_token(url, self.token), directory)

@@ -34,3 +34,21 @@ def test_pull():
     gh.pull(url, os.path.join(output, name))
     assert os.path.exists(os.path.join(output, name, "README.md"))
     rmtree(output)
+
+def test_exists():
+    gh = Github(token)
+    assert gh.exists("https://github.com/forgeorg/foo.git")
+    assert not gh.exists("https://github.com/forgeorg/nosuchrepo.git")
+    unauth_gh = Github(None)
+    try:
+        unauth_gh.exists("https://github.com/forgeorg/nosuchrepo.git")
+        assert False
+    except TaskError, e:
+        assert "Authentication failed" in str(e)
+
+def test_clone():
+    gh = Github(token)
+    output = mkdtemp()
+    gh.clone("https://github.com/forgeorg/foo.git", os.path.join(output, 'foo'))
+    assert os.path.exists(os.path.join(output, 'foo', "README.md"))
+    rmtree(output)
