@@ -122,7 +122,7 @@ class Forge(object):
 
         registry = "registry.hub.docker.com"
         repo = None
-        user = os.environ["USER"]
+        user = os.environ.get("USER", "")
         password = None
         json_key = None
 
