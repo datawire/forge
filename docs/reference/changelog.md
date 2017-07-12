@@ -5,6 +5,10 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.7 (July 12, 2017)
+
+* Don't blow up when there is no USER variable set: [#18](https://github.com/datawire/forge/issues/18)
+
 #### 0.2.6 (July 7, 2017)
 
 * Reduce some noise when reporting errors.
