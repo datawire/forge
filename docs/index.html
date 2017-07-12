@@ -33,18 +33,29 @@ permalink: /
 </div>
 
 
+
 <div class="container">
 
-<h5>Introducing Forge. Forge is a minimalist, fast, deployment tool for developers on Kubernetes. Why Forge?
+<h5>Introducing Forge. With Forge, you:
+  <p>
+
+  <ul>
+    <li>Define your application in a <code>service.yaml</code> file. This file specifies all of your application dependencies, as well as any runtime configuration for your services.</li>
+    <li>Run <code>forge deploy</code> which will create and run all your services in Kubernetes.</li>
+  </ul>
+
+  (If you've used Docker Compose, think of Forge as Kubernetes-native Docker Compose.)
 
 <p>
 
     <ul class="fa-ul">
-      <li><i class="fa-li fa fa-external-link-square"></i><strong>Develop in your own isolated environment</strong> Deploy your service(s) the same way, every time, into minikube or any other Kubernetes cluster.</li>
+      <li><i class="fa-li fa fa-external-link-square"></i><strong>Develop/test in your own isolated environment</strong> Deploy your service(s) the same way, every time, into minikube or any other Kubernetes cluster.</li>
+
+      <li><i class="fa-li fa fa-bolt"></i><strong>Kubernetes-native</strong> Forge uses standard Kubernetes manifest files, so you can use any Kubernetes feature. (Or, use optional Jinja2 templating.)</li>
+
+      <li><i class="fa-li fa fa-cubes"></i><strong>Works with 1 service, or 1000 services</strong> The Forge model supports organizations with a handful of dependent services, or 1000s of services.</li>
 
       <li><i class="fa-li fa fa-wrench"></i><strong>Build, deploy, and test your service without committing</strong> Stop waiting on your CD pipeline to test a small change. Just do this all locally.</li>
-
-      <li><i class="fa-li fa fa-fighter-jet"></i><strong>Fast</strong> Native incremental builds and deploys. </li>
 
       <li><i class="fa-li fa fa-cogs"></i><strong>Zero infrastructure required</strong> Forge runs locally, anywhere. It integrates with your CI system, or just runs on your laptop.</li>
     </ul></h5>
