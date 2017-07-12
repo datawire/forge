@@ -60,7 +60,7 @@ from jinja2 import Template, TemplateError
 
 import util
 from . import __version__
-from .common import Service, Prototype, image, containers
+from .service import Service, containers
 from .docker import Docker
 from .istio import istio
 from .output import Terminal
@@ -88,6 +88,7 @@ class Forge(object):
 
     def __init__(self):
         self.terminal = Terminal()
+        self.services = OrderedDict()
 
     def prompt(self, msg, default=None, loader=None, echo=True):
         prompt = "%s: " % msg if default is None else "%s[%s]: " % (msg, default)
@@ -191,39 +192,34 @@ class Forge(object):
         return "%s.ephemeral" % util.shadir(root)
 
     @task()
-    def scan(self):
-        prototypes = OrderedDict()
-        services = OrderedDict()
-
+    def scan(self, root):
+        workexists = os.path.exists(self.workdir)
+        found = []
         def descend(path, parent):
             if not os.path.exists(path): return
             status("searching %s" % path)
             names = os.listdir(path)
 
-            if "proto.yaml" in names:
-                proto = Prototype(os.path.join(path, "proto.yaml"))
-                if proto.name not in prototypes:
-                    prototypes[proto.name] = proto
-                return
             if "service.yaml" in names:
                 version = self.version(path)
                 svc = Service(version, os.path.join(path, "service.yaml"), [])
-                if svc.name not in services:
-                    services[svc.name] = svc
+                if svc.name not in self.services:
+                    self.services[svc.name] = svc
+                    found.append(svc.name)
+                    status("searching %s, found %s" % (path, svc.name))
                 parent = svc
             if "Dockerfile" in names and parent:
                 parent.containers.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
 
             for n in names:
-                if n not in self.EXCLUDED and os.path.isdir(os.path.join(path, n)):
-                    descend(os.path.join(path, n), parent)
+                child = os.path.join(path, n)
+                if n not in self.EXCLUDED and os.path.isdir(child) and (not workexists or
+                                                                        not os.path.samefile(child, self.workdir)):
+                    descend(child, parent)
 
-        for root in (os.getcwd(), self.workdir):
-            descend(root, None)
+        descend(root, None)
+        summarize("%s -> %s" % (root, ", ".join(found) or "(no services)"))
 
-        result = list(services.values())
-        summarize("%s" % ", ".join(s.name for s in result))
-        return result
 
     @task()
     def bake(self, service):
@@ -370,10 +366,11 @@ def main(argv=None):
         if args["build"]: forge.build(svc)
         if args["deploy"]: forge.deploy(forge.build(svc))
 
-    @task()
+    @task("forge")
     def root():
-        services = forge.scan()
-        for svc in services:
+        for root in (os.getcwd(), forge.workdir):
+            forge.scan(root)
+        for svc in forge.services.values():
             service.go(svc)
 
     INCLUDED = set(["scan", "service", "bake", "push", "manifest", "build", "deploy"])
