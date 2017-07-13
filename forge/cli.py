@@ -62,6 +62,7 @@ import util
 from . import __version__
 from .service import Service, containers
 from .docker import Docker
+from .github import Github
 from .istio import istio
 from .output import Terminal
 
@@ -219,7 +220,47 @@ class Forge(object):
 
         descend(root, None)
         summarize("%s -> %s" % (root, ", ".join(found) or "(no services)"))
+        return found
 
+    def resolve(self, svc, dep):
+        gh = Github(None)
+        target = os.path.join(self.workdir, dep)
+        if not os.path.exists(target):
+            url = gh.remote(svc.root)
+            if url is None: return False
+            parts = url.split("/")
+            prefix = "/".join(parts[:-1])
+            remote = prefix + "/" + dep + ".git"
+            if gh.exists(remote):
+                gh.clone(remote, target)
+        found = self.scan(target)
+        return dep in found
+
+    @task()
+    def dependencies(self, targets):
+        status(", ".join(targets))
+        todo = [self.services[t] for t in targets]
+        visited = set()
+        added = []
+        missing = []
+        while todo:
+            svc = todo.pop()
+            if svc in visited:
+                continue
+            visited.add(svc)
+            for r in svc.requires:
+                if r not in self.services:
+                    if not self.resolve(svc, r): missing.append(r)
+                if r not in targets and r not in added:
+                    added.append(r)
+                if r in self.services:
+                    todo.append(self.services[r])
+
+        if missing:
+            raise TaskError("required service(s) missing: %s" % ", ".join(missing))
+        else:
+            summarize("%s -> %s" % (", ".join(targets), ", ".join(added)))
+            return added
 
     @task()
     def bake(self, service):
@@ -294,6 +335,17 @@ class Forge(object):
         code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
         summarize("%s -> %s\n%s" % (" ".join(cmd), code, result.output))
 
+def search_parents(name, start=None):
+    prev = None
+    path = start or os.getcwd()
+    while path != prev:
+        prev = path
+        candidate = os.path.join(path, name)
+        if os.path.exists(candidate):
+            return candidate
+        path = os.path.dirname(path)
+    return None
+
 def get_config(args):
     if args["--config"] is not None:
         return args["--config"]
@@ -301,15 +353,7 @@ def get_config(args):
     if "FORGE_CONFIG" in os.environ:
         return os.environ["FORGE_CONFIG"]
 
-    prev = None
-    path = os.getcwd()
-    while path != prev:
-        prev = path
-        candidate = os.path.join(path, "forge.yaml")
-        if os.path.exists(candidate):
-            return candidate
-        path = os.path.dirname(path)
-    return None
+    return search_parents("forge.yaml")
 
 def get_workdir(conf, base):
     workdir = conf.get("workdir") or base
@@ -352,14 +396,16 @@ def main(argv=None):
     with open(conf_file, "read") as fd:
         conf = yaml.load(fd)
 
-    forge.workdir = get_workdir(conf, os.path.dirname(os.path.abspath(conf_file)))
+    base = os.path.dirname(os.path.abspath(conf_file))
+    forge.workdir = get_workdir(conf, base)
     forge.docker = get_docker(conf)
 
     forge.filter = args.get("--filter")
     forge.dry_run = args["--dry-run"]
 
     @task()
-    def service(svc):
+    def service(name):
+        svc = forge.services[name]
         if args["bake"]: forge.bake(svc)
         if args["push"]: forge.push(svc)
         if args["manifest"]: forge.manifest(svc)
@@ -368,12 +414,20 @@ def main(argv=None):
 
     @task("forge")
     def root():
-        for root in (os.getcwd(), forge.workdir):
-            forge.scan(root)
-        for svc in forge.services.values():
-            service.go(svc)
+        start = search_parents("service.yaml")
+        if start:
+            path = os.path.dirname(start)
+        else:
+            path = os.getcwd()
+        services = forge.scan(path)
+        if not os.path.samefile(path, base):
+            forge.scan(base)
+        if services:
+            services.extend(forge.dependencies(services))
+        for name in services:
+            service.go(name)
 
-    INCLUDED = set(["scan", "service", "bake", "push", "manifest", "build", "deploy"])
+    INCLUDED = set(["scan", "dependencies", "service", "bake", "push", "manifest", "build", "deploy"])
     if args["--verbose"]:
         INCLUDED.update(["GET", "CMD"])
 
