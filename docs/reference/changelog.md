@@ -5,6 +5,11 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.8 (July 13, 2017)
+
+* Service level dependencies: [#8](https://github.com/datawire/forge/issues/8), [#16](https://github.com/datawire/forge/issues/16)
+* Search for service.yaml in parent directories: [#20](https://github.com/datawire/forge/issues/20)
+
 #### 0.2.7 (July 12, 2017)
 
 * Don't blow up when there is no USER variable set: [#18](https://github.com/datawire/forge/issues/18)
