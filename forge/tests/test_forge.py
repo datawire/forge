@@ -147,16 +147,21 @@ def root():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
-""".replace("MANGLE", MANGLE)
+""".replace("MANGLE", MANGLE),
+    ################################################################################
+    "forgetest/subdir/EMPTY": ""
 }
 
 user = 'forgetest'
 password = 'forgetest'
 org = 'forgeorg'
 
-def test_e2e():
+def launch(directory, cmd):
+    return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout)
+
+def setup():
     directory = mktree(APP)
-    forge = pexpect.spawn("forge setup", cwd=directory, logfile=sys.stdout)
+    forge = launch(directory, "forge setup")
     forge.expect_exact('Docker registry[registry.hub.docker.com]: ')
     forge.sendline('')
     forge.expect_exact('Docker user[%s]: ' % os.environ["USER"])
@@ -169,8 +174,17 @@ def test_e2e():
     forge.expect_exact("== Done ==")
     forge.expect(pexpect.EOF)
     forge.wait()
+    return directory
 
-    forge = pexpect.spawn("forge deploy", cwd=directory, logfile=sys.stdout)
+def test_e2e():
+    directory = setup()
+    forge = launch(directory, "forge deploy")
     forge.expect('service "forgetest-.*" created')
     forge.expect('deployment "forgetest-.*" created')
     forge.wait()
+
+    for sub in ("forgetest", "forgetest/subdir"):
+        forge = launch(os.path.join(directory, "forgetest/subdir"), "forge deploy")
+        forge.expect('service "forgetest-.*" configured')
+        forge.expect('deployment "forgetest-.*" configured')
+        forge.wait()
