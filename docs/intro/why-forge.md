@@ -2,7 +2,7 @@
 layout: doc
 weight: 1
 title: "Why Forge?"
-categories: discussion
+categories: introduction
 ---
 
 Kubernetes provides the powerful primitive of infrastructure as

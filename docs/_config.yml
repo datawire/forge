@@ -14,6 +14,7 @@ github_username:  datawire
 
 # use this to define the categories of your documentation
 category-list:
+  - "introduction"
   - "tutorials"
   - "discussion"
   - "reference"

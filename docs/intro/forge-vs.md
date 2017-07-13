@@ -2,10 +2,24 @@
 layout: doc
 weight: 2
 title: "Forge vs other software"
-categories: discussion
+categories: introduction
 ---
 
 Forge tackles a variety of long-standing problems with developing services on Kubernetes. Individual features of some existing solutions address the same set of problems as Forge. This section contrasts Forge with other solutions.
+
+## Docker Compose
+
+Forge is perhaps most similar to Docker Compose. With Docker Compose, a set of services can be easily deployed as a group on your laptop for development. The primary difference between Forge and Compose is that Forge is designed for Kubernetes. In practice this means:
+
+* Forge automates building a docker image (like Compose), but also tagging the image, pushing the image into a registry, and updating the Kubernetes manifest to include the registry (steps not necessary with a Docker-only environment)
+* Forge supports full-blown Kubernetes manifests
+
+## Kompose
+
+Kompose converts Docker Compose to Kubernetes. Kompose will convert existing Docker Compose files to Kubernetes manifests. Forge differs from Kompose in two basic ways:
+
+* Forge automates the process of deploying source into Kubernetes
+* Kompose relies on the semantics of Docker Compose, which do not support the full range of Kubernetes semantics
 
 ## CI/CD systems
 
@@ -18,15 +32,6 @@ Forge differs from Jenkins/Travis/etc in a few ways:
 * Jenkins/Travis/etc do not directly deploy code into a Kubernetes cluster. Instead, they rely on you writing a custom script to create a Kubernetes manifest and deploy the code. Forge has a templating system that lets you create your own Kubernetes manifests.
 
 One of the reasons why Forge is designed to run entirely client-side is to facilitate easy integration with a CI system. Forge can be invoked as part of your CI/CD pipeline post-commit to automatically package/deploy a service into a Kubernetes cluster.
-
-## Docker Compose
-
-Docker Compose is a popular choice to create isolated development environments on a local system. With Docker Compose, a set of services can be easily deployed as a group on your laptop for development.
-
-Similar to Compose, Forge can deploy a set of services as a group for easy development. Forge differs in a few different ways from Compose:
-
-* Forge targets Kubernetes clusters only, whether locally (via minikube) or remote Kubernetes clusters.
-* Forge is designed so that developers can use the same workflow for development and production. With Docker Compose, a different workflow is required for production deployment, which introduces possible environmental differences (and hard-to-reproduce bugs).
 
 ## Helm
 
