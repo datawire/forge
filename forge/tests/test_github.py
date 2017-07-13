@@ -57,3 +57,15 @@ def test_clone():
     gh.clone("https://github.com/forgeorg/foo.git", os.path.join(output, 'foo'))
     assert os.path.exists(os.path.join(output, 'foo', "README.md"))
     rmtree(output)
+
+def test_remote():
+    gh = Github(token)
+    base = mkdtemp()
+    target = os.path.join(base, 'foo')
+    gh.clone("https://github.com/forgeorg/foo.git", target)
+    assert os.path.exists(os.path.join(target, "README.md"))
+    # XXX: this is necessary because of the injected token
+    remote = gh.remote(target)
+    assert remote.endswith("github.com/forgeorg/foo.git"), remote
+    assert gh.remote(base) == None
+    rmtree(base)

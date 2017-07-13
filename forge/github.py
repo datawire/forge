@@ -33,9 +33,6 @@ def inject_token(url, token):
     else:
         return Elidable(Secret(token), "@%s" % parts[0])
 
-def _not_found(text):
-    return re.search(r"fatal: repository '.*' not found", text)
-
 class Github(object):
 
     def __init__(self, token):
@@ -72,13 +69,20 @@ class Github(object):
                     expected=xrange(256))
         if result.code == 0:
             return True
-        elif _not_found(result.output):
+        elif re.search(r"fatal: repository '.*' not found", result.output):
             return False
         else:
             raise TaskError(result)
 
     def remote(self, directory):
-        return sh("git", "remote", "get-url", "origin", cwd=directory).output
+        result = sh("git", "remote", "get-url", "origin", cwd=directory, expected=xrange(256))
+        if result.code == 0:
+            return result.output.strip()
+        else:
+            if "Not a git repository" in result.output:
+                return None
+            else:
+                raise TaskError(str(result))
 
     def clone(self, url, directory):
         sh("git", "-c", "core.askpass=true", "clone", inject_token(url, self.token), directory)
