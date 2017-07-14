@@ -9,7 +9,16 @@ Forge is a tool that lets you define and run containerized applications in Kuber
 
 1. Define how each of your services is built with a Dockerfile.
 2. Define how each of your services is run, with a Kubernetes manifest.
-3. Define the services that make up your application, with a `service.yaml` file.
+3. Define the services that make up your application, with a `service.yaml` file. A sample `service.yaml` file looks like:
+
+   ```
+   name: ratings   # the name of this service
+   requires:       # the name of any services necessary for this service to function
+   - users
+   - products
+   ...
+   ```
+   
 4. Run `forge deploy` to build and deploy your services to Kubernetes.
 
 ## Why Forge?
