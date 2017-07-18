@@ -16,6 +16,8 @@ import eventlet, sys
 
 re = eventlet.import_patched('re')
 blessed = eventlet.import_patched('blessed')
+logging = eventlet.import_patched('logging')
+logger = logging.getLogger("tasks")
 
 class Terminal(blessed.Terminal):
 
@@ -78,8 +80,16 @@ class Drawer(object):
         self.previous = []
         self.terminal = Terminal()
 
-    def draw(self, lines):
-        screenful = lines[-self.terminal.height:]
+    def draw(self, lines, trim=True):
+        if trim:
+            # we subtract one for the initial shell line, and one for
+            # the last line
+            screenful = lines[-(self.terminal.height-2):]
+        else:
+            screenful = lines[:]
+
+        old = None
+        new = None
 
         common_head = 0
         for old, new in zip(self.previous, screenful):

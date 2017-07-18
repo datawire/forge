@@ -230,7 +230,7 @@ class decorator(object):
         else:
             exe.handler = renderer
             exe.wait()
-            renderer.render()
+            renderer.done()
 
         return exe
 
@@ -268,8 +268,11 @@ class Renderer(BaseHandler, output.Drawer):
         self.exe = exe
         self.include = include
 
-    def lines(self):
-        return self.exe.render(self.include, tail=self.terminal.height, wrap=self.terminal.wrap)
+    def lines(self, trim=True):
+        if trim:
+            return self.exe.render(self.include, tail=self.terminal.height, wrap=self.terminal.wrap)
+        else:
+            return self.exe.render(self.include, wrap=self.terminal.wrap)
 
     def render(self):
         self.draw(self.lines())
@@ -279,6 +282,9 @@ class Renderer(BaseHandler, output.Drawer):
 
     def summary(self, ctx, evt):
         self.render()
+
+    def done(self):
+        self.draw(self.lines(trim=False), trim=False)
 
 def _capture_stack():
     return traceback.extract_stack()
