@@ -100,8 +100,9 @@ class Docker(object):
         img = image(self.registry, self.namespace, name, version)
         self.image_cache.pop(img, None)
         sh("docker", "push", img)
+        return img
 
-    @task()
+    @task("docker-build")
     def build(self, directory, name, version):
         sh("docker", "build", ".", "-t", image(self.registry, self.namespace, name, version), cwd=directory)
 

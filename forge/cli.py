@@ -266,30 +266,35 @@ class Forge(object):
     def bake(self, service):
         status("checking if images exist")
         raw = list(cull(lambda (svc, name, _): not self.docker.exists(name, svc.version), containers([service])))
+        baked = []
         if not raw:
             summarize("skipped, images exist")
-            return
+            return baked
 
         for svc, name, container in raw:
             status("building %s for %s " % (container, svc.name))
             self.docker.build.go(os.path.join(svc.root, os.path.dirname(container)), name, svc.version)
+            baked.append(container)
 
         summarize("built %s" % (", ".join(x[-1] for x in raw)))
+        return baked
 
     @task()
     def push(self, service):
         status("checking if %s containers exist" % service)
         unpushed = list(cull(lambda (svc, name, _): self.docker.needs_push(name, svc.version), containers([service])))
 
+        pushed = []
         if not unpushed:
             summarize("skipped, images exist")
-            return
+            return []
 
         for svc, name, container in unpushed:
             status("pushing container %s" % container)
-            self.docker.push(name, svc.version)
+            pushed.append(self.docker.push(name, svc.version))
 
         summarize("pushed %s" % ", ".join(x[-1] for x in unpushed))
+        return pushed
 
     def resources(self, k8s_dir):
         return sh("kubectl", "apply", "--dry-run", "-f", k8s_dir, "-o", "name").output.split()
@@ -317,13 +322,18 @@ class Forge(object):
 
     @task()
     def build(self, service):
-        status("baking")
-        self.bake(service)
-        status("pushing")
-        self.push(service)
-        status("generating manifests")
+        baked = self.bake(service)
+        pushed = self.push(service)
         result = self.manifest(service)
-        summarize("wrote manifests to %s" % result)
+
+        lines = []
+        if baked:
+            lines.append("%s" % ", ".join(baked))
+        if pushed:
+            lines.append("%s %s" % (self.terminal.green("pushed"), (", ".join(pushed))))
+        lines.append("%s %s" % (self.terminal.green("manifests"), result))
+
+        summarize("\n".join(lines))
         return result
 
     @task()
@@ -411,6 +421,7 @@ def main(argv=None):
         if args["manifest"]: forge.manifest(svc)
         if args["build"]: forge.build(svc)
         if args["deploy"]: forge.deploy(forge.build(svc))
+        summarize(forge.terminal.white(name))
 
     @task("forge")
     def root():
@@ -427,7 +438,7 @@ def main(argv=None):
         for name in services:
             service.go(name)
 
-    INCLUDED = set(["scan", "dependencies", "service", "bake", "push", "manifest", "build", "deploy"])
+    INCLUDED = set(["scan", "dependencies", "service", "build", "deploy"])
     if args["--verbose"]:
         INCLUDED.update(["GET", "CMD"])
 
