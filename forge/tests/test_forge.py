@@ -157,7 +157,7 @@ password = 'forgetest'
 org = 'forgeorg'
 
 def launch(directory, cmd):
-    return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout)
+    return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout, timeout=60)
 
 def setup():
     directory = mktree(APP)
