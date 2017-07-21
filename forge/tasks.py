@@ -277,10 +277,13 @@ class Renderer(BaseHandler, output.Drawer):
     def render(self):
         self.draw(self.lines())
 
-    def status(self, ctx, evt):
+    def on_status(self, ctx, evt):
         self.render()
 
-    def summary(self, ctx, evt):
+    def on_started(self, ctx, evt):
+        self.render()
+
+    def on_finished(self, ctx, evt):
         self.render()
 
     def done(self):
@@ -288,6 +291,18 @@ class Renderer(BaseHandler, output.Drawer):
 
 def _capture_stack():
     return traceback.extract_stack()
+
+def _truncate(s, limit):
+    if len(s) > limit:
+        return "%s..." % s[:limit-3]
+    else:
+        return s
+
+def _format_arg(s):
+    if "\n" in s:
+        return repr(s)
+    else:
+        return s
 
 class execution(object):
 
@@ -345,14 +360,14 @@ class execution(object):
             self.index = len([c for c in self.parent.children if c.task == task])
 
         self.id = ".".join("%s[%s]" % (e.task.name, e.index) for e in self.stack)
-        self.arg_summary = self._arg_summary
+        self.args_formatted = self._format_args()
+        self.args_summary = [_truncate(a, 60) for a in self.args_formatted]
 
-    @property
-    def _arg_summary(self):
+    def _format_args(self):
         summarized = self.args[1:] if self.ignore_first else self.args
 
-        args = [str(elide(a)) for a in summarized]
-        args.extend("%s=%s" % (k, v) for k, v in self.kwargs.items())
+        args = [_format_arg(str(elide(a))) for a in summarized]
+        args.extend("%s=%s" % (k, _format_arg(str(v))) for k, v in self.kwargs.items())
 
         return args
 
@@ -364,7 +379,7 @@ class execution(object):
                 yield d
 
     def fire(self, event):
-        meth = getattr(self.handler, event, self.handler.default)
+        meth = getattr(self.handler, "on_%s" % event, self.handler.default)
         meth(self, event)
 
     def update_status(self, message):
@@ -378,7 +393,7 @@ class execution(object):
 
     def log_record(self, record):
         self.records.append(record)
-        self.fire("record")
+        self.fire("log")
 
     def log(self, *args, **kwargs):
         self.task.logger.log(*args, **kwargs)
@@ -413,7 +428,7 @@ class execution(object):
         return result
 
     def enter(self):
-        self.info("START(%s)" % ", ".join(self.arg_summary))
+        self.info("START(%s)" % ", ".join(self.args_formatted))
 
     def exit(self):
         self.info("RESULT -> %s (%s)" % (self.result, elapsed(self.finished - self.started)))
@@ -442,6 +457,7 @@ class execution(object):
         self.set(self)
         self.started = time.time()
         self.enter()
+        self.fire("started")
         try:
             result = self.task.function(*self.args, **self.kwargs)
         except:
@@ -453,7 +469,7 @@ class execution(object):
             self.finished = time.time()
             self.exit()
             self.set(self.parent)
-            self.fire("summary")
+            self.fire("finished")
 
     def sync(self):
         result = []
@@ -496,13 +512,16 @@ class execution(object):
                       str(self.result) if self.result is not None else \
                       ""
 
-            args = () if self.status else self.arg_summary
+            args = () if self.status else self.args_summary
             if not summary:
                 summary = " ".join(args)
             elif "\n" in summary:
                 summary = " ".join(args) + indent + summary
             elif args:
-                summary = " ".join(args) + " -> " + summary
+                if summary:
+                    summary = " ".join(args) + " -> " + summary
+                else:
+                    summary = " ".join(args)
 
         else:
             summary = self.summary
@@ -687,7 +706,7 @@ def sh(*args, **kwargs):
     expected = kwargs.pop("expected", (0,))
     cmd = tuple(str(a) for a in args)
 
-    argsum = " ".join(execution.current().arg_summary)
+    argsum = " ".join(execution.current().args_summary)
 
     try:
         p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
@@ -701,7 +720,10 @@ def sh(*args, **kwargs):
         ctx = ' %s' % kwargs if kwargs else ''
         raise TaskError("error executing command '%s'%s: %s" % (" ".join(cmd), ctx, e))
     if p.returncode in expected:
-        summarize("%s -> %s" % (argsum, output))
+        if output.strip():
+            summarize("%s -> %s" % (argsum, output))
+        else:
+            summarize(argsum)
         return result
     else:
         raise TaskError("command failed[%s]: %s" % (result.code, result.output))
@@ -710,6 +732,9 @@ requests = eventlet.import_patched('requests.__init__') # the .__init__ is a wor
 
 @task("GET")
 def get(url, **kwargs):
-    response = requests.get(str(url), **kwargs)
-    summarize("%s -> [%s]" % (" ".join(execution.current().arg_summary), response.status_code))
-    return response
+    try:
+        response = requests.get(str(url), **kwargs)
+        summarize("%s -> [%s]" % (" ".join(execution.current().args_summary), response.status_code))
+        return response
+    except requests.RequestException, e:
+        raise TaskError(e)

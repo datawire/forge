@@ -306,7 +306,7 @@ def steps_summary(x):
 def test_summary():
     exe = steps_summary.go("arg")
     frames = []
-    exe.handler = Filter(lambda e, ops: frames.append("\n".join(exe.render())), "status", "summary")
+    exe.handler = Filter(lambda e, ops: frames.append("\n".join(exe.render())), "status", "finished")
     exe.wait()
     assert exe.get() is None
     assert ['steps_summary: step 1',
