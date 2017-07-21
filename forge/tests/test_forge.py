@@ -91,6 +91,7 @@ spec:
   type: LoadBalancer
 
 ---
+# FORGE_PROFILE is {{env.FORGE_PROFILE}}
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata: {name: {{name}}}
@@ -178,6 +179,7 @@ def setup():
 
 def test_e2e():
     directory = setup()
+    os.environ["FORGE_PROFILE"] = "dev"
     forge = launch(directory, "forge deploy")
     forge.expect('service "forgetest-.*" created')
     forge.expect('deployment "forgetest-.*" created')

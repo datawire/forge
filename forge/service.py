@@ -49,6 +49,7 @@ class Service(object):
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()
+        metadata["env"] = os.environ
         metadata["service"] = self.info()
         if "name" not in metadata["service"]:
             metadata["service"]["name"] = self.name
