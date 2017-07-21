@@ -55,6 +55,7 @@ import getpass
 
 import base64, fnmatch, requests, os, sys, yaml
 from docopt import docopt
+from dotenv import find_dotenv, load_dotenv
 from collections import OrderedDict
 from jinja2 import Template, TemplateError
 
@@ -65,6 +66,9 @@ from .docker import Docker
 from .github import Github
 from .istio import istio
 from .output import Terminal
+
+ENV = find_dotenv()
+if ENV: load_dotenv(ENV)
 
 class CLIError(Exception): pass
 
