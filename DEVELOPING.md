@@ -1,39 +1,28 @@
 # Forge
 
-The forge project contains a frontend (react GUI) and backend for
-a deployment controller for kubernetes.
+The forge command line tool depends on a functioning docker and
+kubectl. You will also need istioctl in order to test the istio
+integration.
 
-## Developing
+PLEASE NOTE: Make sure that kubectl is pointed at a disposable
+kubernetes cluster when you hack on forge since running the tests will
+perform deployments into your cluster.
 
-The frontend has a react implementation of a UI for the
-controller. The backend has the flask implementation of the
-controller.
+## Setting up a dev environment:
 
-### Deploying
+0. Create a python virtualenv for forge development.
 
-The `deploy` script has the code necessary to deploy the local code
-into whatever kubernetes cluster your kubectl happens to be point at.
+1. `git clone` this repo
 
-NOTE: This will create/overwrite a deployment and a service named forge.
+2. `cd` into the directory containing this file
 
-### Running the frontend locally:
+3. From your virtualenv run `pip install -e .`
 
-1. Follow the setup directions in frontend/README.md
+4. Hack away...
 
-2. Set the REACT_APP_FORGE_RTM environment variable to point to
-   wherever you want to run the backend. (If you are running the backend
-   locally, this is likely `http://localhost:5000`.)
+## Running tests:
 
-3. From the frontend directory, run `npm run start`. This should
-   automatically open up a new browser tap with app running.
-
-### Running the backend locally:
-
-1. Create a python virtualenv.
-
-2. From your virtualenv run `pip install -r requirements.txt`
-
-3. Then run `pip install -e .`
-
-3. From your virtualenv run `forge serve`.
-   This will run the backend on `http://localhost:5000` by default.
+You can run tests by running `py.test` from your repo. As noted above,
+the tests will perform kubectl apply operations against your cluster,
+so make sure kubectl is pointed at a cluster where this is ok to
+do. An easy way to do this is to point it at minikube.
