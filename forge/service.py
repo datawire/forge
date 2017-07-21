@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, shutil, yaml
+import os, yaml
 from collections import OrderedDict
-from jinja2 import Environment, FileSystemLoader, TemplateError
+from .jinja2 import render
 from .docker import image
 
 def containers(services):
@@ -62,22 +62,8 @@ class Service(object):
 
     def deployment(self, registry, repo, target):
         k8s_dir = os.path.join(self.root, "k8s")
-
         metadata = self.metadata(registry, repo)
-        env = Environment(loader=FileSystemLoader(k8s_dir))
-
-        if os.path.exists(target):
-            shutil.rmtree(target)
-        os.makedirs(target)
-
-        for path, dirs, files in os.walk(k8s_dir):
-            for name in files:
-                try:
-                    rendered = env.get_template(name).render(**metadata)
-                except TemplateError, e:
-                    raise TemplateError("%s/%s: %s" % (path, name, e))
-                with open(os.path.join(target, os.path.relpath(path, start=k8s_dir), name), "write") as f:
-                    f.write(rendered)
+        render(k8s_dir, target, **metadata)
 
     def info(self):
         with open(self.descriptor, "read") as f:

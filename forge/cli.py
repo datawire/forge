@@ -57,13 +57,13 @@ import base64, fnmatch, requests, os, sys, yaml
 from docopt import docopt
 from dotenv import find_dotenv, load_dotenv
 from collections import OrderedDict
-from jinja2 import Template, TemplateError
 
 import util
 from . import __version__
 from .service import Service, containers
 from .docker import Docker
 from .github import Github
+from .jinja2 import renders
 from .istio import istio
 from .output import Terminal
 
@@ -72,14 +72,14 @@ if ENV: load_dotenv(ENV)
 
 class CLIError(Exception): pass
 
-SETUP_TEMPLATE = Template("""# Global forge configuration
+SETUP_TEMPLATE = """# Global forge configuration
 # DO NOT CHECK INTO GITHUB, THIS FILE CONTAINS SECRETS
 workdir: work
 docker-repo: {{docker}}
 user: {{user}}
 password: >
   {{password}}
-""")
+"""
 
 def file_contents(path):
     try:
@@ -160,11 +160,10 @@ class Forge(object):
 
         print
 
-        config = SETUP_TEMPLATE.render(
-            docker="%s/%s" % (registry, repo),
-            user=user,
-            password=base64.encodestring(password).replace("\n", "\n  ")
-        )
+        config = renders(SETUP_TEMPLATE,
+                         docker="%s/%s" % (registry, repo),
+                         user=user,
+                         password=base64.encodestring(password).replace("\n", "\n  "))
 
         config_file = "forge.yaml"
 
@@ -305,10 +304,7 @@ class Forge(object):
 
     def template(self, svc):
         k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
-        try:
-            svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
-        except TemplateError, e:
-            raise TaskError(e)
+        svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
         return k8s_dir, self.resources(k8s_dir)
 
     @task()
