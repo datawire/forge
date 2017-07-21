@@ -14,7 +14,7 @@
 
 import os, yaml
 from collections import OrderedDict
-from .jinja2 import render
+from .jinja2 import render, renders
 from .docker import image
 
 def containers(services):
@@ -28,6 +28,7 @@ class Service(object):
         self.version = version
         self.descriptor = descriptor
         self.containers = containers
+        self._info = None
 
     @property
     def root(self):
@@ -67,8 +68,10 @@ class Service(object):
         render(k8s_dir, target, **metadata)
 
     def info(self):
-        with open(self.descriptor, "read") as f:
-            return yaml.load(f)
+        if self._info is None:
+            with open(self.descriptor, "read") as f:
+                self._info = yaml.load(renders(self.descriptor, f.read(), env=os.environ))
+        return self._info
 
     @property
     def requires(self):

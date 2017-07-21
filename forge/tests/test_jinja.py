@@ -14,7 +14,7 @@
 
 import os
 from forge.tasks import TaskError
-from forge.jinja2 import render
+from forge.jinja2 import render, renders
 from .common import mktree
 
 TEMPLATE_TREE = {
@@ -45,5 +45,16 @@ def test_render_error():
     source = os.path.join(root, "template_err.in")
     try:
         render(source, os.path.join(root, "template_err"), hello="Hello", world="World")
+        assert False, "should error"
     except TaskError, e:
         assert "template_err.in: 'foo' is undefined" in str(e)
+
+def test_renders():
+    assert renders("foo", "{{hello}} {{world}}!", hello="Hello", world="World") == "Hello World!"
+
+def test_renders_err():
+    try:
+        renders("foo", "{{foo.bar}}")
+        assert False, "should error"
+    except TaskError, e:
+        assert "foo: 'foo' is undefined" in str(e)

@@ -160,7 +160,7 @@ class Forge(object):
 
         print
 
-        config = renders(SETUP_TEMPLATE,
+        config = renders("SETUP_TEMPLATE", SETUP_TEMPLATE,
                          docker="%s/%s" % (registry, repo),
                          user=user,
                          password=base64.encodestring(password).replace("\n", "\n  "))

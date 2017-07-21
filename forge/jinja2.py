@@ -26,6 +26,20 @@ def _do_render(env, root, name, variables):
 
 @task()
 def render(source, target, **variables):
+    """Renders a file or directory as a jinja template using the supplied
+    variables.
+
+    The source is a path pointing to either an individual file or a
+    directory. The target is a path pointing to the desired location
+    of the output.
+
+    If the source points to a file, then the target is
+    created/overwritten as a file.
+
+    If the source points to a directory, the target is created as a
+    directory. If the target already exists, it is removed and
+    recreated prior to rendering the template.
+    """
     root = source if os.path.isdir(source) else os.path.dirname(source)
     env = Environment(loader=FileSystemLoader(root))
     if os.path.isdir(source):
@@ -49,5 +63,12 @@ def render(source, target, **variables):
             f.write(rendered)
 
 @task()
-def renders(source, **variables):
-    return Template(source).render(**variables)
+def renders(name, source, **variables):
+    """
+    Renders a string as a jinja template. The name is used where
+    filename would normally appear in error messages.
+    """
+    try:
+        return Template(source).render(**variables)
+    except TemplateError, e:
+        raise TaskError("%s: %s" % (name, e))
