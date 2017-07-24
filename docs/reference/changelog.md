@@ -5,6 +5,11 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.9 (July 24, 2017)
+
+* Environment based customization of service configuration: [#23](https://github.com/datawire/forge/issues/23)
+* Make the forge setup validation image configurable:  [#24](https://github.com/datawire/forge/issues/24)
+
 #### 0.2.8 (July 13, 2017)
 
 * Service level dependencies: [#8](https://github.com/datawire/forge/issues/8), [#16](https://github.com/datawire/forge/issues/16)
