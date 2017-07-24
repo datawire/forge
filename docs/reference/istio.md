@@ -1,6 +1,6 @@
 ---
 layout: doc
-weight: 2
+weight: 5
 title: "Using forge with istio"
 categories: reference
 ---

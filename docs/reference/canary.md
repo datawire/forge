@@ -1,6 +1,6 @@
 ---
 layout: doc
-weight: 2
+weight: 4
 title: "Canary deploys with Kubernetes"
 categories: reference
 ---
