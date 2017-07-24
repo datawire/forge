@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import urllib2
+import os, urllib2
 from tasks import task, TaskError, get, sh, Secret
 
 def image(registry, namespace, name, version):
@@ -108,7 +108,7 @@ class Docker(object):
 
     @task()
     def validate(self):
-        test_image = "registry.hub.docker.com/datawire/forge-setup-test:1"
+        test_image = os.environ.get("FORGE_SETUP_IMAGE", "registry.hub.docker.com/datawire/forge-setup-test:1")
         self.pull(test_image)
         name, version = "forge_test", "dummy"
         self.tag(test_image, name, version)
