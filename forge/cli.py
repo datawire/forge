@@ -67,7 +67,7 @@ from .jinja2 import renders
 from .istio import istio
 from .output import Terminal
 
-ENV = find_dotenv()
+ENV = find_dotenv(usecwd=True)
 if ENV: load_dotenv(ENV)
 
 class CLIError(Exception): pass
