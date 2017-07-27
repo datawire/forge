@@ -192,7 +192,12 @@ class Forge(object):
         if self.is_git(root):
             result = sh("git", "diff", "--quiet", ".", cwd=root, expected=(0, 1))
             if result.code == 0:
-                return "%s.git" % sh("git", "rev-parse", "HEAD", cwd=root).output.strip()
+                line = sh("git", "log", "-n1", "--format=oneline", "--", ".", cwd=root).output.strip()
+                if line:
+                    version = line.split()[0]
+                else:
+                    version = "espilon"
+                return "%s.git" % version
         return "%s.ephemeral" % util.shadir(root)
 
     @task()
