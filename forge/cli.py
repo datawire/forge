@@ -195,9 +195,7 @@ class Forge(object):
                 line = sh("git", "log", "-n1", "--format=oneline", "--", ".", cwd=root).output.strip()
                 if line:
                     version = line.split()[0]
-                else:
-                    version = "espilon"
-                return "%s.git" % version
+                    return "%s.git" % version
         return "%s.ephemeral" % util.shadir(root)
 
     @task()
