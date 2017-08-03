@@ -1,3 +1,6 @@
 *.pyc
 *.egg-info
 work
+
+# --- IntelliJ IDEA ---
+.idea
