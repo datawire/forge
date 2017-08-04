@@ -1,3 +1,11 @@
+# --- Intellij IDEA ---
+.idea
+
+# --- Python ---
+virtualenv
 *.pyc
 *.egg-info
+
+# --- Miscellaneous ---
 work
+
