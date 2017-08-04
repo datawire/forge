@@ -4,7 +4,7 @@ VERSION=$(shell git describe --tags)
 SHELL:=/bin/bash
 
 default:
-	@echo "See http://forge.sh/additional-information/developing.html"
+	@echo "See https://github.com/datawire/forge/blob/master/DEVELOPING.md"
 
 version:
 	@echo $(VERSION)
