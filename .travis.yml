@@ -1,4 +1,8 @@
 language: python
+sudo: required
+
+services:
+ - docker
 
 script:
-  - py.test -svv
+ - py.test -svv
