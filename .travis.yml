@@ -18,7 +18,8 @@ script:
 deploy:
   provider: s3
   bucket: datawire-static-files
-  local-dir: artifacts
+  skip_cleanup: true
+  local_dir: artifacts
   upload-dir: forge
   on:
     branch: travis
