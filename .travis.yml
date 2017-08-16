@@ -1,6 +1,10 @@
 language: python
 sudo: required
 
+os:
+ - linux
+ - osx
+
 services:
  - docker
 
@@ -13,7 +17,7 @@ install:
 script:
 # - py.test -svv
  - mkdir artifacts
- - touch artifacts/HELLO
+ - pip wheel -r requirements.txt -w artifacts/$TRAVIS_OS_NAME
 
 deploy:
   provider: s3
