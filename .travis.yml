@@ -1,1 +1,4 @@
 language: python
+
+script:
+  - py.test -svv
