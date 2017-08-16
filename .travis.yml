@@ -9,6 +9,7 @@ services:
  - docker
 
 before_install:
+ - brew install python2
  - pip install awscli
 
 install:
