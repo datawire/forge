@@ -1,9 +1,19 @@
 language: python
 sudo: required
 
-os:
- - linux
- - osx
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      cache:
+        directories:
+          - "$HOME/.cache/pip/wheels/"
+    - os: osx
+      language: generic
+      cache:
+        directories:
+          - "$HOME/Library/Caches/Homebrew"
+          - "$HOME/Library/Caches/pip/wheels/"
 
 services:
  - docker
