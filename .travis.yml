@@ -9,7 +9,7 @@ services:
  - docker
 
 before_install:
- - brew install python2
+ - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python2; fi
  - pip install awscli
 
 install:
