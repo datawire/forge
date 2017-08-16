@@ -4,5 +4,8 @@ sudo: required
 services:
  - docker
 
+install:
+ - pip install .
+
 script:
  - py.test -svv
