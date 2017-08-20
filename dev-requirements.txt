@@ -1,2 +1,2 @@
-aws-cli
+awscli
 pex
