@@ -14,13 +14,19 @@ install:
  - scripts/setup.sh
  - pip3 install kubernaut
  - kubernaut set-token $KUBERNAUT_TOKEN
- - scripts/istio.sh
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
 
+before_script:
+ - kubernaut claim
+ - scripts/istio.sh
+
 script:
  - scripts/test.sh
+
+after_script:
+ - kubernaut discard
 
 deploy:
   provider: s3
