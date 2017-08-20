@@ -7,6 +7,7 @@ services:
  - docker
 
 install:
+ - scripts/setup.sh
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
