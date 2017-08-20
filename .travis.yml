@@ -1,40 +1,27 @@
 language: python
 sudo: required
-
-matrix:
-  include:
-    - os: linux
-      dist: trusty
-      cache:
-        directories:
-          - "$HOME/.cache/pip/wheels/"
-    - os: osx
-      language: generic
-      cache:
-        directories:
-          - "$HOME/Library/Caches/Homebrew"
-          - "$HOME/Library/Caches/pip/wheels/"
+os: linux
+dist: trusty
 
 services:
  - docker
 
 before_install:
-# - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python2; fi
  - pip install awscli
 
 install:
- - pip install .
+ - pip install -r requirements.txt
+ - scripts/build.sh
 
 script:
-# - py.test -svv
- - mkdir artifacts
- - pip wheel -r requirements.txt -w artifacts/$TRAVIS_OS_NAME
+ - which forge
+ - py.test -svv
 
 deploy:
   provider: s3
   bucket: datawire-static-files
   skip_cleanup: true
-  local_dir: artifacts
+  local_dir: dist
   upload-dir: forge
   on:
     branch: travis
