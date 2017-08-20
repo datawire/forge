@@ -9,6 +9,7 @@ services:
 env:
   global:
     - KUBECONFIG=${HOME}/.kube/kubernaut
+    - SCOUT_DISABLE=1
 
 install:
  - scripts/setup.sh
