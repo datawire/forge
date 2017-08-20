@@ -14,7 +14,8 @@ install:
  - scripts/build.sh
 
 script:
- - PATH=${PATH}:${PWD}/dist py.test -svv
+ - PATH=${PATH}:${PWD}/dist which forge
+ - py.test -svv
 
 deploy:
   provider: s3
