@@ -13,4 +13,6 @@ SRC_DIR=${DIR}/..
 
 export PATH=${SRC_DIR}/dist:${PATH}
 forge --version
+kubernaut claim
 py.test -svv
+kubernaut discard

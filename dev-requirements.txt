@@ -1,2 +1,3 @@
+kubernaut
 awscli
 pex

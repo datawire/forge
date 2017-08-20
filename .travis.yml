@@ -6,11 +6,16 @@ dist: trusty
 services:
  - docker
 
+env:
+  global:
+    - KUBECONFIG=${HOME}/.kube/kubernaut
+
 install:
  - scripts/setup.sh
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
+ - kubernaut set-token $KUBERNAUT_TOKEN
 
 script:
  - scripts/test.sh
