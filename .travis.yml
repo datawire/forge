@@ -6,10 +6,8 @@ dist: trusty
 services:
  - docker
 
-before_install:
- - pip install awscli
-
 install:
+ - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
 
