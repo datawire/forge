@@ -12,10 +12,10 @@ env:
 
 install:
  - scripts/setup.sh
+ - kubernaut set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
- - kubernaut set-token $KUBERNAUT_TOKEN
 
 script:
  - scripts/test.sh

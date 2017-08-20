@@ -22,3 +22,6 @@ curl -L https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${ISTI
 tar --no-overwrite-dir -C /tmp -xzf /tmp/istio.tar.gz
 mv /tmp/${ISTIO}/bin/istioctl ${HOME}/bin
 chmod +x ${BIN_DIR}/istioctl
+
+curl -s https://packagecloud.io/install/repositories/datawireio/stable/script.deb.sh | sudo bash
+sudo apt install kubernaut
