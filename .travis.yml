@@ -33,6 +33,7 @@ before_deploy:
  - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
  - mkdir dist/$(cat dist/latest.txt)
  - mv dist/forge dist/$(cat dist/latest.txt)
+ - cat dist/latest.txt | python -c 'import sys, urllib; print urllib.quote(sys.stdin.read().strip())' > dist/latest.url
 
 deploy:
   provider: s3
