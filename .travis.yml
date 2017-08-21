@@ -30,7 +30,7 @@ after_script:
  - kubernaut discard
 
 before_deploy:
- - echo $(forge --version | cut -d" " -f2) > dist/latest.txt
+ - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
  - mkdir $(cat dist/latest.txt)
  - mv dist/forge dist/$(cat dist/latest.txt)
 
