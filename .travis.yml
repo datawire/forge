@@ -31,7 +31,7 @@ after_script:
 
 before_deploy:
  - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
- - mkdir $(cat dist/latest.txt)
+ - mkdir dist/$(cat dist/latest.txt)
  - mv dist/forge dist/$(cat dist/latest.txt)
 
 deploy:
