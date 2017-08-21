@@ -33,6 +33,7 @@ deploy:
   provider: s3
   bucket: datawire-static-files
   skip_cleanup: true
+  acl: public_read
   local_dir: dist
   upload-dir: forge
   on:
