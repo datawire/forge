@@ -687,7 +687,8 @@ from eventlet.green.subprocess import Popen, STDOUT, PIPE
 
 class Result(object):
 
-    def __init__(self, code, output):
+    def __init__(self, command, code, output):
+        self.command = command
         self.code = code
         self.output = output
 
@@ -715,7 +716,7 @@ def sh(*args, **kwargs):
             output += line
             status("%s -> (in progress)\n%s" % (argsum, output))
         p.wait()
-        result = Result(p.returncode, output)
+        result = Result(cmd, p.returncode, output)
     except OSError, e:
         ctx = ' %s' % kwargs if kwargs else ''
         raise TaskError("error executing command '%s'%s: %s" % (" ".join(cmd), ctx, e))

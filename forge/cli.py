@@ -63,6 +63,7 @@ from . import __version__
 from .service import Service, containers
 from .docker import Docker
 from .github import Github
+from .kubernetes import Kubernetes
 from .jinja2 import renders
 from .istio import istio
 from .output import Terminal
@@ -302,13 +303,10 @@ class Forge(object):
         summarize("pushed %s" % ", ".join(x[-1] for x in unpushed))
         return pushed
 
-    def resources(self, k8s_dir):
-        return sh("kubectl", "apply", "--dry-run", "-f", k8s_dir, "-o", "name").output.split()
-
     def template(self, svc):
         k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
         svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
-        return k8s_dir, self.resources(k8s_dir)
+        return k8s_dir, self.kube.resources(k8s_dir)
 
     @task()
     def manifest(self, service):
@@ -341,12 +339,9 @@ class Forge(object):
 
     @task()
     def deploy(self, k8s_dir):
-        cmd = "kubectl", "apply", "-f", k8s_dir
-        if self.dry_run:
-            cmd += "--dry-run",
-        result = sh(*cmd, expected=xrange(256))
+        result = self.kube.apply(k8s_dir)
         code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
-        summarize("%s -> %s\n%s" % (" ".join(cmd), code, result.output))
+        summarize("%s -> %s\n%s" % (" ".join(result.command), code, result.output))
 
 def search_parents(name, start=None):
     prev = None
@@ -414,7 +409,7 @@ def main(argv=None):
     forge.docker = get_docker(conf)
 
     forge.filter = args.get("--filter")
-    forge.dry_run = args["--dry-run"]
+    forge.kube = Kubernetes(dry_run=args["--dry-run"])
 
     @task()
     def service(name):
