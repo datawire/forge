@@ -21,16 +21,17 @@ Usage:
   forge push [-v] [--config=<config>]
   forge manifest [-v] [--config=<config>]
   forge build [-v] [--config=<config>]
-  forge deploy [-v] [--config=<config>] [--dry-run]
+  forge deploy [-v] [--config=<config>] [--dry-run] [--namespace=<name>]
   forge -h | --help
   forge --version
 
 Options:
-  --config=<config>   Forge config file location.
-  --filter=<pattern>  Only operate on services matching <pattern>. [default: *]
-  -h --help           Show this screen.
-  --version           Show version.
-  -v,--verbose        Display more information.
+  --config=<config>      Forge config file location.
+  --filter=<pattern>     Only operate on services matching <pattern>. [default: *]
+  -h --help              Show this screen.
+  --version              Show version.
+  -v,--verbose           Display more information.
+  -n,--namespace=<name>  Deploy to specified namespace.
 """
 
 from .tasks import (
@@ -397,6 +398,8 @@ def main(argv=None):
 
     if args["setup"]: return forge.setup()
 
+    print args["--namespace"]
+
     conf_file = get_config(args)
     if not conf_file:
         raise CLIError("unable to find forge.yaml, try running `forge setup`")
@@ -409,7 +412,7 @@ def main(argv=None):
     forge.docker = get_docker(conf)
 
     forge.filter = args.get("--filter")
-    forge.kube = Kubernetes(dry_run=args["--dry-run"])
+    forge.kube = Kubernetes(namespace=args["--namespace"], dry_run=args["--dry-run"])
 
     @task()
     def service(name):
