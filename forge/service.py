@@ -56,6 +56,7 @@ class Service(object):
             metadata["service"]["name"] = self.name
         build = OrderedDict()
         metadata["build"] = build
+        build["version"] = self.version
         build["images"] = OrderedDict()
         for container in self.containers:
             img = image(registry, repo, self.image(container), self.version)
