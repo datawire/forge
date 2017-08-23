@@ -5,6 +5,19 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.12 (Agust 22, 2017)
+
+* Pass the K8S_NAMESPACE environment variable through to kubectl
+
+#### 0.2.11 (August 21, 2017)
+
+* noop release for travis
+
+#### 0.2.10 (August 16, 2017)
+
+* Change to standalone pex binary for easier distribution/installation.
+* Compute version based on service subdirectory rather than entire repo.
+
 #### 0.2.9 (July 24, 2017)
 
 * Environment based customization of service configuration: [#23](https://github.com/datawire/forge/issues/23)
