@@ -5,6 +5,10 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.13 (Agust 23, 2017)
+
+* Add command line arg: -n,--namespace=<name> for deploy.
+
 #### 0.2.12 (Agust 22, 2017)
 
 * Pass the K8S_NAMESPACE environment variable through to kubectl
