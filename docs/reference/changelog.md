@@ -5,6 +5,10 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.14 (Agust 23, 2017)
+
+* Add version to build metadata.
+
 #### 0.2.13 (Agust 23, 2017)
 
 * Add command line arg: -n,--namespace=<name> for deploy.
