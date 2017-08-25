@@ -398,8 +398,6 @@ def main(argv=None):
 
     if args["setup"]: return forge.setup()
 
-    print args["--namespace"]
-
     conf_file = get_config(args)
     if not conf_file:
         raise CLIError("unable to find forge.yaml, try running `forge setup`")
