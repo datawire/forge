@@ -10,11 +10,9 @@ perform deployments into your cluster.
 
 ## Setting up a dev environment:
 
-0. Create a python virtualenv for forge development.
+1. `git clone` this repository then change directory into it.
 
-1. `git clone` this repo
-
-2. `cd` into the directory containing this file
+2. Make a Python2 virtualenv with `make virtualenv`
 
 3. From your virtualenv run `pip install -e .`
 

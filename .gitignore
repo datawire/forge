@@ -1,5 +1,14 @@
+# --- Intellij IDEA ---
+.idea
+
+# --- Python ---
+virtualenv
 *.pyc
 *.egg-info
+
+# --- Miscellaneous ---
+=======
 build
 dist
 work
+
