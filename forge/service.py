@@ -137,8 +137,13 @@ class Service(object):
 
     @property
     def containers(self):
-        for dockerfile in self.dockerfiles:
-            yield Container(self, dockerfile)
+        info = self.info()
+        containers = info.get("containers", self.dockerfiles)
+        for c in containers:
+            if isinstance(c, basestring):
+                yield Container(self, c)
+            else:
+                yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None))
 
     def json(self):
         return {'name': self.name,
@@ -152,12 +157,15 @@ class Service(object):
 
 class Container(object):
 
-    def __init__(self, service, dockerfile):
+    def __init__(self, service, dockerfile, context=None, args=None):
         self.service = service
         self.dockerfile = dockerfile
-# XXX: these will be added soon
-#        self.context = context
-#        self.args = args
+        self.context = context or os.path.dirname(self.dockerfile)
+        self.args = args or {}
+
+    @property
+    def version(self):
+        return self.service.version
 
     @property
     def image(self):
@@ -165,8 +173,8 @@ class Container(object):
 
     @property
     def abs_dockerfile(self):
-        return os.path.join(self.service.root, os.path.dirname(self.dockerfile))
+        return os.path.join(self.service.root, self.dockerfile)
 
     @property
-    def version(self):
-        return self.service.version
+    def abs_context(self):
+        return os.path.join(self.service.root, self.context)

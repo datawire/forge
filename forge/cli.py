@@ -281,7 +281,7 @@ class Forge(object):
 
         for container in raw:
             status("building %s for %s " % (container.dockerfile, container.service.name))
-            self.docker.build.go(container.abs_dockerfile, container.image, container.version)
+            self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
             baked.append(container.dockerfile)
 
         summarize("built %s" % (", ".join(c.dockerfile for c in raw)))

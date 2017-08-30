@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
+import os, time
 from forge.tasks import TaskError
 from forge.docker import Docker
 from .common import mktree
@@ -57,7 +57,7 @@ def test_build_push():
     directory = mktree(DOCKER_SOURCE_TREE)
     name = "dockertest"
     version = "t%s" % START_TIME
-    dr.build(directory, name, version)
+    dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
     dr.push(name, version)
     assert dr.remote_exists(name, version)
 
@@ -76,7 +76,7 @@ def test_build_error():
     name = "dockertestbad"
     version = "t%s" % START_TIME
     try:
-        dr.build(directory, name, version)
+        dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
     except TaskError, e:
         msg = str(e)
         assert "command failed" in msg
