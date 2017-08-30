@@ -12,10 +12,69 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, yaml
+import jsonschema, os, yaml
 from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
+from .tasks import task, TaskError
+
+SCHEMA = {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "requires": {
+            "anyOf": [
+                {"type": "string"},
+                {
+                    "type": "array",
+                    "items": { "type": "string"}
+                }
+            ]
+        },
+        "containers": {
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {"type": "string"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "dockerfile": {"type": "string"},
+                            "context": {"type": "string"},
+                            "args": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "anyOf": [{"type": "string"},
+                                              {"type": "number"},
+                                              {"type": "boolean"},
+                                              {"type": "null"}]
+                                }
+                            }
+                        },
+                        "required": ["dockerfile"],
+                        "additionalProperties": False,
+                    }
+                ]
+            }
+        }
+    },
+    "required": ["name"]
+}
+
+def load_service_yaml(path):
+    with open(path, "read") as f:
+        return load_service_yamls(path, f.read())
+
+@task()
+def load_service_yamls(name, content):
+    try:
+        info = yaml.load(renders(name, content, env=os.environ))
+        jsonschema.validate(info, SCHEMA)
+        return info
+    except jsonschema.ValidationError, e:
+        best = jsonschema.exceptions.best_match(e.context)
+        raise TaskError((best or e).message)
 
 def containers(services):
     for svc in services:
@@ -70,8 +129,7 @@ class Service(object):
 
     def info(self):
         if self._info is None:
-            with open(self.descriptor, "read") as f:
-                self._info = yaml.load(renders(self.descriptor, f.read(), env=os.environ))
+            self._info = load_service_yaml(self.descriptor)
         return self._info
 
     @property
