@@ -15,7 +15,8 @@
 import os
 from tempfile import mkdtemp
 
-def mktree(files):
+def mktree(treespec, **substitutions):
+    files = parse_treespec(treespec, **substitutions)
     root = mkdtemp()
     for name, content in files.items():
         path = os.path.join(root, name)
@@ -25,3 +26,29 @@ def mktree(files):
         with open(path, "write") as f:
             f.write(content)
     return root
+
+def parse_treespec(treespec, **substitutions):
+    result = {}
+
+    filename = None
+    filelines = []
+    for lineno, line in enumerate(treespec.splitlines()):
+        if filename is None:
+            if line[:2] == "@@":
+                filename = line[2:]
+                if not filename:
+                    raise ValueError("%s: found '@@', expecting filename" % lineno)
+        else:
+            if line == "@@":
+                content = "\n".join(filelines)
+                for k, v in substitutions.items():
+                    content = content.replace(k, v)
+                result[filename] = content
+                filename = None
+                filelines = []
+            else:
+                filelines.append(line)
+
+    if filename:
+        raise ValueError("unterminated file: %s" % filename)
+    return result

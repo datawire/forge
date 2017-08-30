@@ -18,9 +18,9 @@ from .common import mktree
 START_TIME = time.time()
 MANGLE = str(START_TIME).replace('.', '-')
 
-APP = {
-    ################################################################################
-    "forgetest/Dockerfile": r"""# Run server
+APP = """
+@@forgetest/Dockerfile
+# Run server
 FROM alpine:3.5
 RUN apk add --no-cache python py2-pip py2-gevent
 COPY requirements.txt .
@@ -30,10 +30,10 @@ WORKDIR /app
 EXPOSE 8080
 ENTRYPOINT ["python"]
 CMD ["app.py"]
-""",
+@@
 
-    ################################################################################
-    "forgetest/service.yaml": r"""name: forgetest-MANGLE  # name of the service
+@@forgetest/service.yaml
+name: forgetest-MANGLE  # name of the service
 
 # The service 'track' can be used to easily implement the pattern described here:
 #
@@ -48,14 +48,13 @@ targetPort: 8080   # port the container exposes
 
 memory: 0.25G      # minimum available memory necessary to schedule the service
 cpu: 0.25          # minimum available cpu necessary to schedule the service
-""".replace("MANGLE", MANGLE),
+@@
 
-    ################################################################################
-    "forgetest/requirements.txt": r"""flask
-""",
+@@forgetest/requirements.txt
+flask
+@@
 
-    ################################################################################
-    "forgetest/k8s/deployment.yaml": r"""
+@@forgetest/k8s/deployment.yaml
 {#
 
 This template encodes the canary deployment practices described here:
@@ -125,10 +124,10 @@ spec:
       restartPolicy: Always
       securityContext: {}
       terminationGracePeriodSeconds: 30
-""",
+@@
 
-    ################################################################################
-    "forgetest/app.py": r"""#!/usr/bin/python
+@@forgetest/app.py
+#!/usr/bin/python
 
 import time
 from flask import Flask
@@ -148,10 +147,11 @@ def root():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
-""".replace("MANGLE", MANGLE),
-    ################################################################################
-    "forgetest/subdir/EMPTY": ""
-}
+@@
+
+@@forgetest/subdir/EMPTY
+@@
+"""
 
 user = 'forgetest'
 password = 'forgetest'
@@ -161,7 +161,7 @@ def launch(directory, cmd):
     return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout, timeout=60)
 
 def setup():
-    directory = mktree(APP)
+    directory = mktree(APP, MANGLE=MANGLE)
     forge = launch(directory, "forge setup")
     forge.expect_exact('Docker registry[registry.hub.docker.com]: ')
     forge.sendline('')

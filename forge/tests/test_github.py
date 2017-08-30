@@ -15,7 +15,6 @@
 import time, os
 from forge.tasks import TaskError
 from forge.github import Github
-from .common import mktree
 from tempfile import mkdtemp
 from shutil import rmtree
 
