@@ -35,7 +35,7 @@ If you're a developer, this lets you quickly test your service *exactly as it's 
 Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, you're going to need the following installed on your system:
 
 * Python 2.7
-* Docker ([Mac OS X](https://docs.docker.com/docker-for-mac/),  [Ubuntu](https://docs.docker.com/engine/installation/linux/ubuntu/), [Fedora](https://docs.docker.com/engine/installation/linux/fedora/) install instructions)
+* Docker ([Mac OS X](https://docs.docker.com/docker-for-mac/),  [Ubuntu](https://docs.docker.com/engine/installation/linux/ubuntu/), [Fedora](https://docs.docker.com/engine/installation/linux/fedora/) install instructions). If you're using Docker on Mac OS X, we recommend you disable the "securely store docker logins in macOS keychain" option in the preferences section (see [issue #28](https://github.com/datawire/forge/issues/28) for details)
 * [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl)
 
 You will also need access to the following services either locally or remotely:
