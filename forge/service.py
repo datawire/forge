@@ -76,17 +76,12 @@ def load_service_yamls(name, content):
         best = jsonschema.exceptions.best_match(e.context)
         raise TaskError((best or e).message)
 
-def containers(services):
-    for svc in services:
-        for container in svc.containers:
-            yield svc, svc.image(container), container
-
 class Service(object):
 
-    def __init__(self, version, descriptor, containers):
+    def __init__(self, version, descriptor):
         self.version = version
         self.descriptor = descriptor
-        self.containers = containers
+        self.dockerfiles = []
         self._info = None
 
     @property
@@ -117,7 +112,7 @@ class Service(object):
         metadata["build"] = build
         build["version"] = self.version
         build["images"] = OrderedDict()
-        for container in self.containers:
+        for container in self.dockerfiles:
             img = image(registry, repo, self.image(container), self.version)
             build["images"][container] = img
         return metadata
@@ -140,6 +135,11 @@ class Service(object):
         else:
             return value
 
+    @property
+    def containers(self):
+        for dockerfile in self.dockerfiles:
+            yield Container(self, dockerfile)
+
     def json(self):
         return {'name': self.name,
                 'owner': self.name,
@@ -149,3 +149,24 @@ class Service(object):
 
     def __repr__(self):
         return "%s:%s" % (self.name, self.version)
+
+class Container(object):
+
+    def __init__(self, service, dockerfile):
+        self.service = service
+        self.dockerfile = dockerfile
+# XXX: these will be added soon
+#        self.context = context
+#        self.args = args
+
+    @property
+    def image(self):
+        return self.service.image(self.dockerfile)
+
+    @property
+    def abs_dockerfile(self):
+        return os.path.join(self.service.root, os.path.dirname(self.dockerfile))
+
+    @property
+    def version(self):
+        return self.service.version
