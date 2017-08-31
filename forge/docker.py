@@ -103,8 +103,17 @@ class Docker(object):
         return img
 
     @task("docker-build")
-    def build(self, directory, name, version):
-        sh("docker", "build", ".", "-t", image(self.registry, self.namespace, name, version), cwd=directory)
+    def build(self, directory, dockerfile, name, version, args=None):
+        args = args or {}
+
+        buildargs = []
+        for k, v in args.items():
+            buildargs.append("--build-arg")
+            buildargs.append("%s=%s" % (k, v))
+
+        img = image(self.registry, self.namespace, name, version)
+
+        sh("docker", "build", directory, "-f", dockerfile, "-t", img, *buildargs)
 
     @task()
     def validate(self):

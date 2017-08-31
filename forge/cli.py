@@ -61,7 +61,7 @@ from collections import OrderedDict
 
 import util
 from . import __version__
-from .service import Service, containers
+from .service import Service
 from .docker import Docker
 from .github import Github
 from .kubernetes import Kubernetes
@@ -211,14 +211,14 @@ class Forge(object):
 
             if "service.yaml" in names:
                 version = self.version(path)
-                svc = Service(version, os.path.join(path, "service.yaml"), [])
+                svc = Service(version, os.path.join(path, "service.yaml"))
                 if svc.name not in self.services:
                     self.services[svc.name] = svc
                     found.append(svc.name)
                     status("searching %s, found %s" % (path, svc.name))
                 parent = svc
             if "Dockerfile" in names and parent:
-                parent.containers.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
+                parent.dockerfiles.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
 
             for n in names:
                 child = os.path.join(path, n)
@@ -273,35 +273,35 @@ class Forge(object):
     @task()
     def bake(self, service):
         status("checking if images exist")
-        raw = list(cull(lambda (svc, name, _): not self.docker.exists(name, svc.version), containers([service])))
+        raw = list(cull(lambda c: not self.docker.exists(c.image, c.version), service.containers))
         baked = []
         if not raw:
             summarize("skipped, images exist")
             return baked
 
-        for svc, name, container in raw:
-            status("building %s for %s " % (container, svc.name))
-            self.docker.build.go(os.path.join(svc.root, os.path.dirname(container)), name, svc.version)
-            baked.append(container)
+        for container in raw:
+            status("building %s for %s " % (container.dockerfile, container.service.name))
+            self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
+            baked.append(container.dockerfile)
 
-        summarize("built %s" % (", ".join(x[-1] for x in raw)))
+        summarize("built %s" % (", ".join(c.dockerfile for c in raw)))
         return baked
 
     @task()
     def push(self, service):
         status("checking if %s containers exist" % service)
-        unpushed = list(cull(lambda (svc, name, _): self.docker.needs_push(name, svc.version), containers([service])))
+        unpushed = list(cull(lambda c: self.docker.needs_push(c.image, c.version), service.containers))
 
         pushed = []
         if not unpushed:
             summarize("skipped, images exist")
             return []
 
-        for svc, name, container in unpushed:
-            status("pushing container %s" % container)
-            pushed.append(self.docker.push(name, svc.version))
+        for container in unpushed:
+            status("pushing container %s" % container.dockerfile)
+            pushed.append(self.docker.push(container.image, container.version))
 
-        summarize("pushed %s" % ", ".join(x[-1] for x in unpushed))
+        summarize("pushed %s" % ", ".join(c.dockerfile for c in unpushed))
         return pushed
 
     def template(self, svc):

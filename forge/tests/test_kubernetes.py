@@ -23,9 +23,8 @@ MANGLE = str(START_TIME).replace('.', '-')
 def mangle(st):
     return st.replace("MANGLE", MANGLE)
 
-K8S_TREE = {
-    ################################################################################
-    "k8s/deployment.yaml": mangle(r"""
+K8S_TREE = """
+@@k8s/deployment.yaml
 ---
 apiVersion: v1
 kind: Service
@@ -61,12 +60,11 @@ spec:
       containers:
       - name: alpine
         image: alpine:3.5
-""")
-}
-
+@@
+"""
 
 def test_resources():
-    directory = mktree(K8S_TREE)
+    directory = mktree(K8S_TREE, MANGLE=MANGLE)
     kube = Kubernetes()
     resources = kube.resources(os.path.join(directory, "k8s"))
     assert mangle('service/kube-test-service-MANGLE') in resources
@@ -82,7 +80,7 @@ def kcheck(namespace, type, name):
     assert mangle("%s/%s" % (type, name)) == kget(namespace, type, mangle(name)).output.strip()
 
 def test_apply(namespace=None):
-    directory = mktree(K8S_TREE)
+    directory = mktree(K8S_TREE, MANGLE=MANGLE)
     kube = Kubernetes(namespace=namespace)
     kube.apply(os.path.join(directory, "k8s"))
     kcheck(namespace, "services", "kube-test-service-MANGLE")

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
+import os, time
 from forge.tasks import TaskError
 from forge.docker import Docker
 from .common import mktree
@@ -43,40 +43,48 @@ def test_validate():
 
 START_TIME = time.time()
 
-DOCKER_SOURCE_TREE = {
-    "Dockerfile": """FROM alpine:3.5
+DOCKER_SOURCE_TREE = """
+@@Dockerfile
+FROM alpine:3.5
 COPY timestamp.txt .
 ENTRYPOINT ["echo"]
 CMD ["timstamp.txt"]
-""",
-    "timestamp.txt": time.ctime(START_TIME)
-}
+@@
+
+@@timestamp.txt
+START_TIME
+@@
+"""
 
 def test_build_push():
     dr = Docker(registry, namespace, user, password)
-    directory = mktree(DOCKER_SOURCE_TREE)
+    directory = mktree(DOCKER_SOURCE_TREE, START_TIME=time.ctime(START_TIME))
     name = "dockertest"
     version = "t%s" % START_TIME
-    dr.build(directory, name, version)
+    dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
     dr.push(name, version)
     assert dr.remote_exists(name, version)
 
-DOCKER_SOURCE_TREE_BAD = {
-    "Dockerfile": """XXXFROM alpine:3.5
+DOCKER_SOURCE_TREE_BAD = """
+@@Dockerfile
+XXXFROM alpine:3.5
 COPY timestamp.txt .
 ENTRYPOINT ["echo"]
 CMD ["timstamp.txt"]
-""",
-    "timestamp.txt": time.ctime(START_TIME)
-}
+@@
+
+@@timestamp.txt
+START_TIME
+@@
+"""
 
 def test_build_error():
     dr = Docker(registry, namespace, user, password)
-    directory = mktree(DOCKER_SOURCE_TREE_BAD)
+    directory = mktree(DOCKER_SOURCE_TREE_BAD, START_TIME=time.ctime(START_TIME))
     name = "dockertestbad"
     version = "t%s" % START_TIME
     try:
-        dr.build(directory, name, version)
+        dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
     except TaskError, e:
         msg = str(e)
         assert "command failed" in msg

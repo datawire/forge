@@ -12,22 +12,76 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, yaml
+import jsonschema, os, yaml
 from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
+from .tasks import task, TaskError
 
-def containers(services):
-    for svc in services:
-        for container in svc.containers:
-            yield svc, svc.image(container), container
+SCHEMA = {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "requires": {
+            "anyOf": [
+                {"type": "string"},
+                {
+                    "type": "array",
+                    "items": { "type": "string"}
+                }
+            ]
+        },
+        "containers": {
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    {"type": "string"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "dockerfile": {"type": "string"},
+                            "context": {"type": "string"},
+                            "args": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "anyOf": [{"type": "string"},
+                                              {"type": "number"},
+                                              {"type": "boolean"},
+                                              {"type": "null"}]
+                                }
+                            }
+                        },
+                        "required": ["dockerfile"],
+                        "additionalProperties": False,
+                    }
+                ]
+            }
+        }
+    },
+    "required": ["name"]
+}
+
+def load_service_yaml(path):
+    with open(path, "read") as f:
+        return load_service_yamls(path, f.read())
+
+@task()
+def load_service_yamls(name, content):
+    try:
+        info = yaml.load(renders(name, content, env=os.environ))
+        jsonschema.validate(info, SCHEMA)
+        return info
+    except jsonschema.ValidationError, e:
+        best = jsonschema.exceptions.best_match(e.context)
+        raise TaskError((best or e).message)
 
 class Service(object):
 
-    def __init__(self, version, descriptor, containers):
+    def __init__(self, version, descriptor):
         self.version = version
         self.descriptor = descriptor
-        self.containers = containers
+        self.dockerfiles = []
         self._info = None
 
     @property
@@ -58,7 +112,7 @@ class Service(object):
         metadata["build"] = build
         build["version"] = self.version
         build["images"] = OrderedDict()
-        for container in self.containers:
+        for container in self.dockerfiles:
             img = image(registry, repo, self.image(container), self.version)
             build["images"][container] = img
         return metadata
@@ -70,8 +124,7 @@ class Service(object):
 
     def info(self):
         if self._info is None:
-            with open(self.descriptor, "read") as f:
-                self._info = yaml.load(renders(self.descriptor, f.read(), env=os.environ))
+            self._info = load_service_yaml(self.descriptor)
         return self._info
 
     @property
@@ -82,6 +135,16 @@ class Service(object):
         else:
             return value
 
+    @property
+    def containers(self):
+        info = self.info()
+        containers = info.get("containers", self.dockerfiles)
+        for c in containers:
+            if isinstance(c, basestring):
+                yield Container(self, c)
+            else:
+                yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None))
+
     def json(self):
         return {'name': self.name,
                 'owner': self.name,
@@ -91,3 +154,27 @@ class Service(object):
 
     def __repr__(self):
         return "%s:%s" % (self.name, self.version)
+
+class Container(object):
+
+    def __init__(self, service, dockerfile, context=None, args=None):
+        self.service = service
+        self.dockerfile = dockerfile
+        self.context = context or os.path.dirname(self.dockerfile)
+        self.args = args or {}
+
+    @property
+    def version(self):
+        return self.service.version
+
+    @property
+    def image(self):
+        return self.service.image(self.dockerfile)
+
+    @property
+    def abs_dockerfile(self):
+        return os.path.join(self.service.root, self.dockerfile)
+
+    @property
+    def abs_context(self):
+        return os.path.join(self.service.root, self.context)

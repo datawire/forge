@@ -17,13 +17,27 @@ from forge.tasks import TaskError
 from forge.jinja2 import render, renders
 from .common import mktree
 
-TEMPLATE_TREE = {
-    "template_dir/file1": "{{hello}} {{world}}!",
-    "template_dir/file2": "{{hello}} {{world}}!",
-    "template_dir/sub/file3": "{{hello}} {{world}}!",
-    "template_file.in": "{{hello}} {{world}}!",
-    "template_err.in": "{{foo.bar}}"
-}
+TEMPLATE_TREE = """
+@@template_dir/file1
+{{hello}} {{world}}!
+@@
+
+@@template_dir/file2
+{{hello}} {{world}}!
+@@
+
+@@template_dir/sub/file3
+{{hello}} {{world}}!
+@@
+
+@@template_file.in
+{{hello}} {{world}}!
+@@
+
+@@template_err.in
+{{foo.bar}}
+@@
+"""
 
 def test_render_dir():
     root = mktree(TEMPLATE_TREE)

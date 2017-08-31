@@ -16,8 +16,9 @@ import os
 from forge.istio import istio
 from .common import mktree
 
-YAML = {
-    "kube.yaml": """---
+YAML = """
+@@kube.yaml
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -62,8 +63,8 @@ spec:
       restartPolicy: Always
       securityContext: {}
       terminationGracePeriodSeconds: 30
+@@
 """
-}
 
 def test_isto():
     directory = mktree(YAML)
