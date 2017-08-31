@@ -160,7 +160,7 @@ org = 'forgeorg'
 def launch(directory, cmd):
     return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout, timeout=60)
 
-def setup():
+def test_setup():
     directory = mktree(APP, MANGLE=MANGLE)
     forge = launch(directory, "forge setup")
     forge.expect_exact('Docker registry[registry.hub.docker.com]: ')
@@ -175,10 +175,21 @@ def setup():
     forge.expect_exact("== Done ==")
     forge.expect(pexpect.EOF)
     forge.wait()
-    return directory
 
-def test_e2e():
-    directory = setup()
+FORGE_YAML = """
+@@forge.yaml
+# Global forge configuration
+# DO NOT CHECK INTO GITHUB, THIS FILE CONTAINS SECRETS
+workdir: work
+docker-repo: registry.hub.docker.com/forgeorg
+user: forgetest
+password: >
+  Zm9yZ2V0ZXN0
+@@
+"""
+
+def test_deploy():
+    directory = mktree(FORGE_YAML + APP, MANGLE=MANGLE)
     os.environ["FORGE_PROFILE"] = "dev"
     forge = launch(directory, "forge deploy")
     forge.expect('service "forgetest-.*" created')
@@ -190,3 +201,57 @@ def test_e2e():
         forge.expect('service "forgetest-.*" configured')
         forge.expect('deployment "forgetest-.*" configured')
         forge.wait()
+
+DOCKERFILES = """
+@@svc/service.yaml
+name: baketest
+containers:
+ - Dockerfile
+ - dockerfile: Snowflakefile
+ - dockerfile: a/Dockerfile
+   context: .
+ - dockerfile: b/Dockerfile
+@@
+
+@@svc/timestamp.txt
+START_TIME
+@@
+
+@@svc/Dockerfile
+FROM alpine:3.5
+COPY timestamp.txt .
+ENTRYPOINT ["echo"]
+CMD ["timstamp.txt"]
+@@
+
+@@svc/Snowflakefile
+FROM alpine:3.5
+COPY timestamp.txt .
+ENTRYPOINT ["echo"]
+CMD ["timstamp.txt"]
+@@
+
+@@svc/a/Dockerfile
+FROM alpine:3.5
+COPY timestamp.txt .
+ENTRYPOINT ["echo"]
+CMD ["timstamp.txt"]
+@@
+
+@@svc/b/Dockerfile
+FROM alpine:3.5
+COPY b-timestamp.txt .
+ENTRYPOINT ["echo"]
+CMD ["b-timstamp.txt"]
+@@
+
+@@svc/b/b-timestamp.txt
+START_TIME
+@@
+"""
+
+def test_bake_containers():
+    directory = mktree(FORGE_YAML + DOCKERFILES, START_TIME=time.ctime(START_TIME))
+    forge = launch(directory, "forge bake -v")
+    forge.expect(pexpect.EOF)
+    forge.wait()
