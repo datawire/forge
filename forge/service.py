@@ -18,49 +18,8 @@ from .jinja2 import render, renders
 from .docker import image
 from .tasks import task, TaskError
 
-SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
-    "type": "object",
-    "properties": {
-        "name": {"type": "string"},
-        "requires": {
-            "anyOf": [
-                {"type": "string"},
-                {
-                    "type": "array",
-                    "items": { "type": "string"}
-                }
-            ]
-        },
-        "containers": {
-            "type": "array",
-            "items": {
-                "anyOf": [
-                    {"type": "string"},
-                    {
-                        "type": "object",
-                        "properties": {
-                            "dockerfile": {"type": "string"},
-                            "context": {"type": "string"},
-                            "args": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "anyOf": [{"type": "string"},
-                                              {"type": "number"},
-                                              {"type": "boolean"},
-                                              {"type": "null"}]
-                                }
-                            }
-                        },
-                        "required": ["dockerfile"],
-                        "additionalProperties": False,
-                    }
-                ]
-            }
-        }
-    },
-    "required": ["name"]
-}
+with open(os.path.join(os.path.dirname(__file__), "service.json")) as f:
+    SCHEMA = yaml.load(f)
 
 def load_service_yaml(path):
     with open(path, "read") as f:
