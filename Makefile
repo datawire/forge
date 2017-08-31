@@ -2,7 +2,7 @@
 
 VERSION=$(shell python -c "import versioneer; print versioneer.get_versions()['version']")
 SHELL:=/bin/bash
-SOURCE=$(shell find forge -name "*.py")
+SOURCE=$(shell find forge -name "*.py" -or -name "*.json")
 
 default:
 	@echo "See https://github.com/datawire/forge/blob/master/DEVELOPING.md"
@@ -20,7 +20,7 @@ virtualenv:
 
 forge: dist/forge
 
-dist/forge: ${SOURCE}
+dist/forge: ${SOURCE} setup.py
 	scripts/build.sh
 
 clean:

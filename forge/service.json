@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+
+  "definitions": {
+    "Container": {
+      "id": "Container",
+      "description": "Build instructions for a container.",
+      "anyOf": [
+        {"type": "string"},
+        {
+          "type": "object",
+          "title": "Container",
+          "properties": {
+            "dockerfile": {
+              "type": "string",
+              "description": "Relative path to the Dockerfile used to build this container."
+            },
+            "context": {
+              "type": "string",
+              "description": "The build context for the container. This defaults to the directory containing the dockerfile."
+            },
+            "args": {
+              "type": "object",
+              "description": "A map containing entries to be passed to --build-arg when building the container.",
+              "additionalProperties": {
+                "anyOf": [{"type": "string"},
+                          {"type": "number"},
+                          {"type": "boolean"},
+                          {"type": "null"}]
+              }
+            }
+          },
+          "required": ["dockerfile"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+
+  "type": "object",
+  "title": "Service",
+  "description": "Metadata necessary to build and deploy a service from source.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the service."
+    },
+    "requires": {
+      "description": "A list of any services required for this service to function.",
+      "anyOf": [
+        {"type": "string"},
+        {
+          "type": "array",
+          "items": { "type": "string"}
+        }
+      ]
+    },
+    "containers": {
+      "type": "array",
+      "description": "A list of containers that form this service. If this is not supplied then any Dockerfile is assumed.",
+      "items": {"$ref": "#/definitions/Container"}
+    }
+  },
+  "required": ["name"]
+}
