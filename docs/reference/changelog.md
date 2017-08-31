@@ -5,6 +5,11 @@ title: "Changelog"
 categories: reference
 ---
 
+#### 0.2.16 (Agust 23, 2017)
+
+* Added a schema for service.yaml: [#22](https://github.com/datawire/forge/issues/22)
+* Added support for customizing docker builds: [#33](https://github.com/datawire/forge/issues/33)
+
 #### 0.2.14 (Agust 23, 2017)
 
 * Add version to build metadata.
