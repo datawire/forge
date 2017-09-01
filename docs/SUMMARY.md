@@ -6,8 +6,8 @@
 
 ## Introduction
 
-* [Forge vs other software](docs/intro/forge-vs.md)
 * [Introduction to Forge](docs/intro/overview.md)
+* [Forge vs other software](docs/intro/forge-vs.md)
 
 ## Tutorials
 
