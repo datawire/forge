@@ -12,3 +12,9 @@ build
 dist
 work
 
+# --- Docs ---
+=======
+docs/_book
+docs/node_modules
+.netlify
+

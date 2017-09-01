@@ -1,9 +1,4 @@
----
-layout: doc
-weight: 2
-title: "Introduction to Forge"
-categories: introduction
----
+# Introduction to Forge
 
 Forge is a tool that lets you define and run containerized applications in Kubernetes, from source code. Forge is designed with microservices in mind. With Forge, you:
 
@@ -62,3 +57,5 @@ Automated, end-to-end testing can be an important part of a continuous deploymen
 ## Forge development
 
 Forge is under active development. For information about the latest release, see the [CHANGELOG](../reference/changelog.html).
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

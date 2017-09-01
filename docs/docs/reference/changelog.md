@@ -1,9 +1,4 @@
----
-layout: doc
-weight: 6
-title: "Changelog"
-categories: reference
----
+# Changelog
 
 #### 0.2.16 (Agust 23, 2017)
 
@@ -78,3 +73,5 @@ categories: reference
 #### 0.1 (May 24, 2017)
 
 * Initial release
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

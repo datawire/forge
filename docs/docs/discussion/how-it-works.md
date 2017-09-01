@@ -1,9 +1,4 @@
----
-layout: doc
-weight: 2
-title: "How it works"
-categories: discussion
----
+# How it works
 
 Forge builds services based on Docker and Kubernetes. It assumes the
 output of any service build consists of one or more docker containers
@@ -68,3 +63,5 @@ Template variables:
 After generating the kubernetes yaml for all services, forge validates
 the yaml and ensures that there are no resource name conflicts between
 services.
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**
