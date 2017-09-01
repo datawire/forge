@@ -44,5 +44,6 @@ if (script.attributes["data-schema"]) {
     }
     window.addEventListener("message", receiveMessage, false);
 } else {
-    alert("<p style='color:red'>Missing data-schema (url to schema)</p>")
+    //alert("<p style='color:red'>Missing data-schema (url to schema)</p>")
+    location.reload();
 }
