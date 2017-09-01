@@ -25,4 +25,4 @@ perl -pi \
 cp index.html _book/
 
 # Copy YAML into _book/ as well.
-cp -prv yaml _book/
+# cp -prv yaml _book/
