@@ -6,26 +6,26 @@
 
 ## Introduction
 
-* [Forge vs other software](intro/forge-vs.md)
-* [Introduction to Forge](intro/overview.md)
+* [Forge vs other software](docs/intro/forge-vs.md)
+* [Introduction to Forge](docs/intro/overview.md)
 
 ## Tutorials
 
-* [Quickstart: Deploy Service in Kubernetes](tutorials/quickstart.md)
-* [Using Forge on your services](tutorials/using-forge.md)
+* [Quickstart: Deploy Service in Kubernetes](docs/tutorials/quickstart.md)
+* [Using Forge on your services](docs/tutorials/using-forge.md)
 
 ## Discussion
 
-* [How it works](discussion/how-it-works.md)
+* [How it works](docs/discussion/how-it-works.md)
 
 ## Reference
 
-* [Service Descriptor](reference/service-descriptor.md)
-* [Environment Customization](reference/environments.md)
-* [Service Dependencies](reference/dependencies.md)
-* [Canary deploys with Kubernetes](reference/canary.md)
-* [Using Forge with Istio](reference/istio.md)
-* [Changelog](reference/changelog.md)
+* [Service Descriptor](docs/reference/service-descriptor.md)
+* [Environment Customization](docs/reference/environments.md)
+* [Service Dependencies](docs/reference/dependencies.md)
+* [Canary deploys with Kubernetes](docs/reference/canary.md)
+* [Using Forge with Istio](docs/reference/istio.md)
+* [Changelog](docs/reference/changelog.md)
 
 ## Need Help?
 
