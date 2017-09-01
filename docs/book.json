@@ -5,12 +5,16 @@
     "readme": "INDEX.md"
   },
   "plugins": [
-    "gtm"
+    "gtm",
+    "bulk-redirect"
   ],
   "pluginsConfig": {
     "gtm": {
       "token": "GTM-PD94S6K",
       "virtualPageViews": true
+    },
+    "bulk-redirect": {
+      "redirectsFile": "redirects.json"
     }
   }
 }

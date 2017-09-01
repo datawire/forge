@@ -1,0 +1,52 @@
+{
+  "redirects": [
+    {
+      "from": "docs/index.html",
+      "to": "intro/forge-vs.html"
+    },
+    {
+      "from": "intro/forge-vs.html",
+      "to": "docs/intro/forge-vs.html"
+    },
+    {
+      "from": "intro/overview.html",
+      "to": "docs/intro/overview.html"
+    },
+    {
+      "from": "tutorials/quickstart.html",
+      "to": "docs/tutorials/quickstart.html"
+    },
+    {
+      "from": "tutorials/using-forge.html",
+      "to": "docs/tutorials/using-forge.html"
+    },
+    {
+      "from": "discussion/how-it-works.html",
+      "to": "docs/discussion/how-it-works.html"
+    },
+    {
+      "from": "reference/service-descriptor.html",
+      "to": "docs/reference/service-descriptor.html"
+    },
+    {
+      "from": "reference/environments.html",
+      "to": "docs/reference/environments.html"
+    },
+    {
+      "from": "reference/dependencies.html",
+      "to": "docs/reference/dependencies.html"
+    },
+    {
+      "from": "reference/canary.html",
+      "to": "docs/reference/canary.html"
+    },
+    {
+      "from": "reference/istio.html",
+      "to": "docs/reference/istio.html"
+    },
+    {
+      "from": "reference/changelog.html",
+      "to": "docs/reference/changelog.html"
+    }
+  ]
+}
