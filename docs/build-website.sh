@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 IFS=$'\n\t'
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 # because I don't know what I'm doing in Bash
@@ -26,4 +26,3 @@ cp index.html _book/
 
 # Copy YAML into _book/ as well.
 cp -prv yaml _book/
-
