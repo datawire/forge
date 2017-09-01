@@ -1,9 +1,5 @@
----
-layout: doc
-weight: 4
-title: "Canary deploys with Kubernetes"
-categories: reference
----
+# Canary deploys with Kubernetes
+
 People use the term canary deploys to refer to multiple related but
 different things. Anything from A/B testing UX features on users, to
 the practice of incrementally rolling out code changes in order to
@@ -79,3 +75,5 @@ details. In particular check out the `track` parameter in
 `service.yaml` for the interface, and the template in
 `k8s/deployment.yaml` for the nitty gritty details of how it utilizes
 kubernetes.
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**
