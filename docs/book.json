@@ -1,0 +1,20 @@
+{
+  "title": "Forge: Fast build system for Kubernetes services",
+  "root": ".",
+  "structure": {
+    "readme": "INDEX.md"
+  },
+  "plugins": [
+    "gtm",
+    "bulk-redirect"
+  ],
+  "pluginsConfig": {
+    "gtm": {
+      "token": "GTM-PD94S6K",
+      "virtualPageViews": true
+    },
+    "bulk-redirect": {
+      "redirectsFile": "redirects.json"
+    }
+  }
+}
