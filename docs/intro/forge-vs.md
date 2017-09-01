@@ -1,9 +1,4 @@
----
-layout: doc
-weight: 2
-title: "Forge vs other software"
-categories: introduction
----
+# Forge vs other software
 
 Forge tackles a variety of long-standing problems with developing services on Kubernetes. Individual features of some existing solutions address the same set of problems as Forge. This section contrasts Forge with other solutions.
 
@@ -41,3 +36,5 @@ Helm is a package manager for Kubernetes. Helm is focused on packaging/distribut
 * Forge is entirely client-side, and runs on your laptop (Helm, etc. require server-side components).
 
 Forge could be extended to produce Helm charts (see https://github.com/datawire/forge/issues/15 and upvote!).
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

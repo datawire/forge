@@ -1,9 +1,5 @@
----
-layout: doc
-weight: 1
-title: "Quickstart: Deploy Service in Kubernetes"
-categories: tutorials
----
+# Quickstart: Deploy Service in Kubernetes
+
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
 <script>
 $(document).ready(function() {
@@ -25,12 +21,9 @@ In this tutorial, we'll show how you can get quickly get a service (in source co
 
 If you're a developer, this lets you quickly test your service *exactly as it's supposed to be deployed in production* without committing your code / waiting on a CD pipeline.
 
-### Install / Configure Forge
-#### **<a class="button" id="toggleinstall">Show</a>**
+## Install / Configure Forge
 
-<div id="install-forge" style="display: none;" markdown="1">
-
-## Prerequisites
+#### Prerequisites
 
 Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, you're going to need the following installed on your system:
 
@@ -43,7 +36,7 @@ You will also need access to the following services either locally or remotely:
 * a Kubernetes cluster ([minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) is fine)
 * a Docker registry a Docker registry, such as Docker Hub or Google Container Registry
 
-## Installing Forge
+#### Installing Forge
 
 Once you have the prerequisites installed, you can install Forge via `curl`:
 
@@ -53,7 +46,7 @@ chmod a+x /tmp/forge
 sudo mv /tmp/forge /usr/local/bin
 ```
 
-## Configuration
+#### Configuration
 
 Create a working directory for Forge and run `forge setup` to complete the installation. Setup will ask for authentication information to a Docker Registry as part of this process:
 
@@ -63,7 +56,6 @@ cd forge-quickstart
 forge setup
 ```
 
-</div>
 
 ## Deploy a service
 
@@ -155,3 +147,5 @@ When deploying a service into Kubernetes, you need to provide not just code, but
 ## Next steps
 
 You've seen an example of how Forge can quickly build and deploy services to Kubernetes. Now, try setting up <a href="using-forge.html">Forge on your own services</a>.
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

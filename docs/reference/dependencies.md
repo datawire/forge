@@ -1,9 +1,4 @@
----
-layout: doc
-weight: 3
-title: "Service Dependencies"
-categories: reference
----
+# Service Dependencies
 
 Kubernetes is great for *running* distributed applications composed of
 many services, but *developing* this sort of application involves a
@@ -62,3 +57,5 @@ should expect your dependencies to become temporarily unavailable and
 ensure that your service can recover when this happens. If you follow
 this best practice, then your application will also be robust to
 arbitrary startup orders.
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

@@ -1,17 +1,12 @@
----
-layout: doc
-weight: 5
-title: "Using forge with istio"
-categories: reference
----
+# Using Forge with Istio
 
-Forge can automatically produce istio ready manifests if you have
+Forge can automatically produce Istio ready manifests if you have
 istioctl installed.
 
-You can install istio by following the instructions
+You can install Istio by following the instructions
 [here](https://istio.io/docs/tasks/installing-istio.html).
 
-Once istio is installed, you can use the istio property in
+Once Istio is installed, you can use the Istio property in
 `service.yaml` to enable its use:
 
 ```
@@ -20,4 +15,6 @@ istio: true        # when true, apply istioctl kube-inject to all manifests
 ...
 ```
 
-That's all. Your service is now istio enabled.
+That's all. Your service is now Istio enabled.
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

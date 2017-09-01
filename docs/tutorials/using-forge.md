@@ -1,9 +1,5 @@
----
-layout: doc
-weight: 2
-title: "Using Forge on your services"
-categories: tutorials
----
+# Using Forge on your services
+
 To start using Forge on a new or existing service, the [hello-forge example](https://github.com/datawire/hello-forge) is a good place to start. We'll walk through the steps below, based on the `hello-forge` example.
 
 1. Create a deployment template in `$REPO_HOME/k8s`. The deployment template should contain all the necessary information to deploy the service. Forge supports templating the deployment template using the [Jinja2 templating engine](http://jinja.pocoo.org/). When a template is instantiated, all the parameters in the `service.yaml` file as well as the metadata from the build is included in the output. Here is an example deployment template:
@@ -71,3 +67,5 @@ To start using Forge on a new or existing service, the [hello-forge example](htt
 3. Create a `Dockerfile` in `$REPO_HOME`. This should specify how the Docker container should be built.
 
 4. That's it! With these 3 files, you can now deploy into Kubernetes with `forge deploy`.
+
+**Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**
