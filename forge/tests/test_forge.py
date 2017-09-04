@@ -18,7 +18,7 @@ from .common import mktree
 START_TIME = time.time()
 MANGLE = str(START_TIME).replace('.', '-')
 
-APP = """
+APP = r"""
 @@forgetest/Dockerfile
 # Run server
 FROM alpine:3.5
