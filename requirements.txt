@@ -1,5 +1,4 @@
 blessed==1.14.2
-docopt==0.6.2
 eventlet==0.20.0
 flask==0.12.1
 flask-cors==3.0.2
@@ -11,3 +10,4 @@ pytest==3.1.2
 pexpect==4.2.1
 python-dotenv==0.6.4
 jsonschema==2.6.0
+click==6.7

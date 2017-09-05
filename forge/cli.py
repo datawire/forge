@@ -54,8 +54,7 @@ setup()
 
 import getpass
 
-import base64, fnmatch, requests, os, sys, yaml
-from docopt import docopt
+import click, base64, fnmatch, requests, os, sys, yaml
 from dotenv import find_dotenv, load_dotenv
 from collections import OrderedDict
 
@@ -93,7 +92,11 @@ def file_contents(path):
 
 class Forge(object):
 
-    def __init__(self):
+    def __init__(self, verbose=0, config=None):
+        self.verbose = verbose
+        self.config = config or search_parents("forge.yaml")
+        self.namespace = None
+        self.dry_run = False
         self.terminal = Terminal()
         self.services = OrderedDict()
 
@@ -344,6 +347,63 @@ class Forge(object):
         code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
         summarize("%s -> %s\n%s" % (" ".join(result.command), code, result.output))
 
+    def load_config(self):
+        if not self.config:
+            raise CLIError("unable to find forge.yaml, try running `forge setup`")
+
+        with open(self.config, "read") as fd:
+            conf = yaml.load(fd)
+
+        self.base = os.path.dirname(os.path.abspath(self.config))
+        self.workdir = get_workdir(conf, self.base)
+        self.docker = get_docker(conf)
+
+        self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
+
+    def load_services(self, deps=False):
+        start = search_parents("service.yaml")
+        if start:
+            path = os.path.dirname(start)
+        else:
+            path = os.getcwd()
+        services = self.scan(path)
+        if not os.path.samefile(path, self.base):
+            self.scan(self.base)
+        if services:
+            services.extend(self.dependencies(services))
+        return services
+
+    @task()
+    def metadata(self):
+        self.load_config()
+        services = self.load_services(deps=False)
+        if not services:
+            raise TaskError("no service found")
+        else:
+            svc = self.services[services[0]]
+            print yaml.dump(svc.metadata(self.docker.registry, self.docker.namespace))
+
+    def execute(self, goal):
+        self.load_config()
+
+        @task()
+        def service(name):
+            svc = self.services[name]
+            goal(svc)
+            summarize(self.terminal.white(name))
+
+        @task("forge")
+        def root():
+            for name in self.load_services(deps=True):
+               service.go(name)
+
+        INCLUDED = set(["scan", "dependencies", "service", "build", "deploy"])
+        if self.verbose:
+            INCLUDED.update(["GET", "CMD"])
+
+        root.run(task_include=lambda x: x.task.name in INCLUDED)
+
+
 def search_parents(name, start=None):
     prev = None
     path = start or os.getcwd()
@@ -354,15 +414,6 @@ def search_parents(name, start=None):
             return candidate
         path = os.path.dirname(path)
     return None
-
-def get_config(args):
-    if args["--config"] is not None:
-        return args["--config"]
-
-    if "FORGE_CONFIG" in os.environ:
-        return os.environ["FORGE_CONFIG"]
-
-    return search_parents("forge.yaml")
 
 def get_workdir(conf, base):
     workdir = conf.get("workdir") or base
@@ -392,61 +443,125 @@ def get_docker(conf):
 
     return Docker(registry, namespace, user, get_password(conf))
 
-def main(argv=None):
-    args = docopt(__doc__, argv or sys.argv[1:], version="Forge %s" % __version__)
-    forge = Forge()
+@click.group()
+@click.version_option(__version__, message="%(prog)s %(version)s")
+@click.option('-v', '--verbose', count=True)
+@click.option('--config', envvar='FORGE_CONFIG', type=click.Path(exists=True))
+@click.pass_context
+def forge(context, verbose, config):
+    context.obj = Forge(verbose=verbose, config=config)
 
-    if args["setup"]: return forge.setup()
+@forge.command()
+@click.pass_obj
+def setup(forge):
+    """
+    Help with first time setup of forge.
 
-    conf_file = get_config(args)
-    if not conf_file:
-        raise CLIError("unable to find forge.yaml, try running `forge setup`")
+    Forge needs access to a container registry and a kubernetes
+    cluster in order to deploy code. This command helps setup and
+    validate the configuration necessary to access these resources.
+    """
+    return forge.setup()
 
-    with open(conf_file, "read") as fd:
-        conf = yaml.load(fd)
+@forge.group(invoke_without_command=True)
+@click.pass_context
+@click.option('-n', '--namespace', envvar='K8S_NAMESPACE', type=click.STRING)
+@click.option('--dry-run', is_flag=True)
+def build(ctx, namespace, dry_run):
+    """Build deployment artifacts for a service.
 
-    base = os.path.dirname(os.path.abspath(conf_file))
-    forge.workdir = get_workdir(conf, base)
-    forge.docker = get_docker(conf)
+    Deployment artifacts for a service consist of the docker
+    containers and kubernetes manifests necessary to run your
+    service. Forge automates the process of building your containers
+    from source and producing the manifests necessary to run those
+    newly built containers in kubernetes. Use `forge build
+    [containers|manifests]` to build just containers, just manifests,
+    or (the default) all of the above.
 
-    forge.filter = args.get("--filter")
-    forge.kube = Kubernetes(namespace=args["--namespace"], dry_run=args["--dry-run"])
+    How forge builds containers:
 
-    @task()
-    def service(name):
-        svc = forge.services[name]
-        if args["bake"]: forge.bake(svc)
-        if args["push"]: forge.push(svc)
-        if args["manifest"]: forge.manifest(svc)
-        if args["build"]: forge.build(svc)
-        if args["deploy"]: forge.deploy(forge.build(svc))
-        summarize(forge.terminal.white(name))
+    By default every `Dockerfile` in your project is built and tagged
+    with a version computed from the input sources. You can customize
+    how containers are built using service.yaml. The `containers`
+    property of `service.yaml` lets you specify an array.
 
-    @task("forge")
-    def root():
-        start = search_parents("service.yaml")
-        if start:
-            path = os.path.dirname(start)
-        else:
-            path = os.getcwd()
-        services = forge.scan(path)
-        if not os.path.samefile(path, base):
-            forge.scan(base)
-        if services:
-            services.extend(forge.dependencies(services))
-        for name in services:
-            service.go(name)
+    \b
+    name: my-service
+    ...
+    container:
+     - dockerfile: path/to/Dockerfile
+       context: context/path
+       args:
+        MY_ARG: foo
+        MY_OTHER_ARG: bar
 
-    INCLUDED = set(["scan", "dependencies", "service", "build", "deploy"])
-    if args["--verbose"]:
-        INCLUDED.update(["GET", "CMD"])
+    How forge builds deployment manifests:
 
-    root.run(task_include=lambda x: x.task.name in INCLUDED)
+    The source for your deployment manifests are kept as jinja
+    templates in the k8s directory of your project. The final
+    deployment templates are produced by rendering these templates
+    with access to relevant service and build related metadata.
+
+    You can use the `forge build metadata` command to view all the
+    metadata available to these templates. See the `forge metadata`
+    help for more info.
+
+    """
+    forge = ctx.obj
+    forge.namespace = namespace
+    forge.dry_run = dry_run
+    if ctx.invoked_subcommand is None:
+        forge.execute(forge.build)
+
+@build.command()
+@click.pass_obj
+def metadata(forge):
+    """
+    Display build metadata.
+
+    This command outputs all the build metadata available to manifests.
+    """
+    forge.metadata()
+
+@build.command()
+@click.pass_obj
+def containers(forge):
+    """
+    Build containers for a service.
+
+    See `forge build --help` for details on how containers are built.
+    """
+    forge.execute(forge.bake)
+
+@build.command()
+@click.pass_obj
+def manifests(forge):
+    """
+    Build manifests for a service.
+
+    See `forge build --help` for details on how manifests are built.
+    """
+    forge.execute(forge.manifest)
+
+@forge.command()
+@click.pass_obj
+@click.option('-n', '--namespace', envvar='K8S_NAMESPACE', type=click.STRING)
+@click.option('--dry-run', is_flag=True)
+def deploy(forge, namespace, dry_run):
+    """
+    Build and deploy a service.
+
+    They deploy command performs a `forge build` and then applies the
+    resulting deployment manifests using `kubectl apply`.
+    """
+    forge.namespace = namespace
+    forge.dry_run = dry_run
+    forge.execute(lambda svc: forge.deploy(forge.build(svc)))
 
 def call_main():
     util.setup_yaml()
     try:
-        exit(main())
+        exit(forge())
     except CLIError, e:
         exit(e)
     except KeyboardInterrupt, e:

@@ -38,6 +38,7 @@ def dict_constructor(loader, node):
 def setup_yaml():
     _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
     yaml.add_representer(collections.OrderedDict, dict_representer)
+    yaml.add_representer(os._Environ, dict_representer)
     yaml.add_constructor(_mapping_tag, dict_constructor)
 
 def setup_logging():
