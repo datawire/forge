@@ -13,7 +13,7 @@ SRC_DIR=${DIR}/..
 WHL_DIR=build/wheelhouse
 OUTPUT=dist/forge
 
-aws --no-sign-request s3 sync s3://datawire-static-files/wheelhouse $WHL_DIR
+aws --no-sign-request s3 sync s3://datawire-wheelhouse/wheelhouse $WHL_DIR
 
 cd $WHL_DIR
 
