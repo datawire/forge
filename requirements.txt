@@ -11,3 +11,4 @@ pexpect==4.2.1
 python-dotenv==0.6.4
 jsonschema==2.6.0
 click==6.7
+scout.py==0.1.4
