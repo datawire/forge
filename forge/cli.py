@@ -69,9 +69,6 @@ from .istio import istio
 from .output import Terminal
 from scout import Scout
 
-scout = Scout("forge", __version__)
-scout_res = scout.report()
-
 ENV = find_dotenv(usecwd=True)
 if ENV: load_dotenv(ENV)
 
@@ -121,6 +118,9 @@ class Forge(object):
                 return value
 
     def setup(self):
+        scout = Scout("forge", __version__)
+        scout_res = scout.report()
+
         print self.terminal.bold("== Checking Kubernetes Setup ==")
         print
 
