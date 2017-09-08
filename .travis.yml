@@ -16,7 +16,7 @@ env:
 install:
  - python --version
  - python3 --version
- - python3 -c "import os; print(os.path.expanduser('~'))"
+# - python3 -c "import os; print(os.path.expanduser('~'))"
  - python3 -c "import pathlib; print(pathlib.Path.home())"
  - scripts/setup.sh
  - kubernaut
