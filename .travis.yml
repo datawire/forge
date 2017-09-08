@@ -5,8 +5,8 @@ dist: trusty
 
 cache: pip
 
-#services:
-# - docker
+services:
+ - docker
 
 env:
   global:
@@ -15,12 +15,9 @@ env:
 
 install:
  - python --version
- - env python --version
  - python3 --version
- - env python3 --version
  - scripts/setup.sh
  - kubernaut
- - python3 ${HOME}/bin/kubernaut set-token $KUBERNAUT_TOKEN
  - kubernaut set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
