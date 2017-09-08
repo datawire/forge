@@ -20,10 +20,8 @@ install:
  - env python3 --version
  - scripts/setup.sh
  - kubernaut
- - pyenv global system 2.7 3.6
  - python3 kubernaut set-token $KUBERNAUT_TOKEN
- - pyenv global system 2.7 3.4
- - python3 kubernaut set-token $KUBERNAUT_TOKEN
+ - kubernaut set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
