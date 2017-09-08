@@ -19,8 +19,6 @@ before_install:
 install:
  - scripts/setup.sh
  - python3.5 --version
- - python3.5 $(which kubernaut)
- - kubernaut
  - python3.5 $(which kubernaut) set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
