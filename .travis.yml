@@ -13,25 +13,23 @@ env:
     - KUBECONFIG=${HOME}/.kube/kubernaut
     - SCOUT_DISABLE=1
 
-before_install:
- - pyenv global system 2.7 3.5
-
 install:
  - scripts/setup.sh
- - kubernaut set-token $KUBERNAUT_TOKEN
+ - python3.5 --version
+ - python3.5 kubernaut set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
 
 before_script:
- - kubernaut claim
+ - python3.5 kubernaut claim
  - scripts/istio.sh
 
 script:
  - scripts/test.sh
 
 after_script:
- - kubernaut discard
+ - python3.5 kubernaut discard
 
 before_deploy:
  - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
