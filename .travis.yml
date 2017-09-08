@@ -17,6 +17,10 @@ before_install:
  - pyenv global system 2.7 3.6
 
 install:
+ - python --version
+ - env python --version
+ - python3 --version
+ - env python3 --version
  - scripts/setup.sh
  - kubernaut set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
