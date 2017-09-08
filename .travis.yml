@@ -19,20 +19,22 @@ before_install:
 install:
  - scripts/setup.sh
  - python3.5 --version
- - python3.5 kubernaut set-token $KUBERNAUT_TOKEN
+ - python3.5 $(which kubernaut)
+ - kubernaut
+ - python3.5 $(which kubernaut) set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
 
 before_script:
- - python3.5 kubernaut claim
+ - python3.5 $(which kubernaut) claim
  - scripts/istio.sh
 
 script:
  - scripts/test.sh
 
 after_script:
- - python3.5 kubernaut discard
+ - python3.5 $(which kubernaut) discard
 
 before_deploy:
  - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
