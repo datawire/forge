@@ -22,3 +22,6 @@ curl -L https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${ISTI
 tar --no-overwrite-dir -C /tmp -xzf /tmp/istio.tar.gz
 mv /tmp/${ISTIO}/bin/istioctl ${HOME}/bin
 chmod +x ${BIN_DIR}/istioctl
+
+curl -L https://s3.amazonaws.com/datawire-static-files/kubernaut/$(curl -s https://s3.amazonaws.com/datawire-static-files/kubernaut/stable.txt)/kubernaut -o ${BIN_DIR}/kubernaut
+chmod +x ${BIN_DIR}/kubernaut
