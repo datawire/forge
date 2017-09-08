@@ -20,6 +20,7 @@ install:
  - python3 -c "import pathlib; print(pathlib.Path.home())"
  - scripts/setup.sh
  - kubernaut
+ - asdf
  - kubernaut set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
