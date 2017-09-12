@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.3 (Sep 12th, 2017)
+
+* Restructured CLI and improved documentation: [#27](https://github.com/datawire/forge/issues/27)
+* Added 'build metadata' command to show all variables and metadata that can be interpolated: [#30](https://github.com/datawire/forge/issues/30)
+
 #### 0.2.16 (Agust 23, 2017)
 
 * Added a schema for service.yaml: [#22](https://github.com/datawire/forge/issues/22)
