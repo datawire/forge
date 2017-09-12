@@ -10,7 +10,7 @@ services:
 
 env:
   global:
-    - KUBECONFIG=${HOME}/.kube/kubernaut
+    - KUBECONFIG="${HOME}/.kube/kubernaut"
     - SCOUT_DISABLE=1
 
 before_install:
