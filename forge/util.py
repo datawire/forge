@@ -1,34 +1,5 @@
 import collections, errno, hashlib, logging, os, socket, yaml
 
-def find(root, exclude=(".git",)):
-    files = []
-
-    for path, dirnames, filenames in os.walk(root):
-        for ex in exclude:
-            if ex in dirnames:
-                dirnames.remove(ex)
-        for name in filenames:
-            full = os.path.join(path, name)
-            relative = os.path.relpath(full, start=root)
-            files.append(relative)
-
-    files.sort()
-    return files
-
-def shadir(root):
-    result = hashlib.sha1()
-    files = find(root)
-    result.update("files %s\0" % len(files))
-    for name in files:
-        result.update("file %s\0" % name)
-        try:
-            with open(os.path.join(root, name)) as fd:
-                result.update(fd.read())
-        except IOError, e:
-            if e.errno != errno.ENOENT:
-                raise
-    return result.hexdigest()
-
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.iteritems())
 
@@ -54,3 +25,14 @@ def setup_logging():
 def setup():
     setup_yaml()
     setup_logging()
+
+def search_parents(name, start=None):
+    prev = None
+    path = start or os.getcwd()
+    while path != prev:
+        prev = path
+        candidate = os.path.join(path, name)
+        if os.path.exists(candidate):
+            return candidate
+        path = os.path.dirname(path)
+    return None
