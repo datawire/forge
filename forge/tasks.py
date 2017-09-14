@@ -360,6 +360,11 @@ class execution(object):
             self.index = len([c for c in self.parent.children if c.task == task])
 
         self.id = ".".join("%s[%s]" % (e.task.name, e.index) for e in self.stack)
+
+        # XXX: we need to initialize this first because _format_args
+        # calls str which can invoke __str__ and that can can end up
+        # causing us to be rendered when the event handler fires
+        self.args_summary = ()
         self.args_formatted = self._format_args()
         self.args_summary = [_truncate(a, 60) for a in self.args_formatted]
 
