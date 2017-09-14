@@ -107,6 +107,44 @@ class Discovery(object):
         descend(directory, None, base_ignores)
         return found
 
+    def resolve(self, svc, dep):
+        gh = Github(None)
+        target = os.path.join(svc.root, ".forge", dep)
+        if not os.path.exists(target):
+            url = gh.remote(svc.root)
+            if url is None: return False
+            parts = url.split("/")
+            prefix = "/".join(parts[:-1])
+            remote = prefix + "/" + dep + ".git"
+            if gh.exists(remote):
+                gh.clone(remote, target)
+        found = self.search(target)
+        return dep in [svc.name for svc in found]
+
+    @task()
+    def dependencies(self, targets):
+        todo = [self.services[t] for t in targets]
+        visited = set()
+        added = []
+        missing = []
+        while todo:
+            svc = todo.pop()
+            if svc in visited:
+                continue
+            visited.add(svc)
+            for r in svc.requires:
+                if r not in self.services:
+                    if not self.resolve(svc, r): missing.append(r)
+                if r not in targets and r not in added:
+                    added.append(r)
+                if r in self.services:
+                    todo.append(self.services[r])
+
+        if missing:
+            raise TaskError("required service(s) missing: %s" % ", ".join(missing))
+        else:
+            return added
+
 def shafiles(root, files):
     result = hashlib.sha1()
     result.update("files %s\0" % len(files))

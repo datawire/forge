@@ -76,7 +76,6 @@ class CLIError(Exception): pass
 
 SETUP_TEMPLATE = """# Global forge configuration
 # DO NOT CHECK INTO GITHUB, THIS FILE CONTAINS SECRETS
-workdir: work
 docker-repo: {{docker}}
 user: {{user}}
 password: >
@@ -195,46 +194,6 @@ class Forge(object):
             self.services[f.name] = f
         return [f.name for f in found]
 
-    def resolve(self, svc, dep):
-        gh = Github(None)
-        target = os.path.join(self.workdir, dep)
-        if not os.path.exists(target):
-            url = gh.remote(svc.root)
-            if url is None: return False
-            parts = url.split("/")
-            prefix = "/".join(parts[:-1])
-            remote = prefix + "/" + dep + ".git"
-            if gh.exists(remote):
-                gh.clone(remote, target)
-        found = self.scan(target)
-        return dep in found
-
-    @task()
-    def dependencies(self, targets):
-        status(", ".join(targets))
-        todo = [self.services[t] for t in targets]
-        visited = set()
-        added = []
-        missing = []
-        while todo:
-            svc = todo.pop()
-            if svc in visited:
-                continue
-            visited.add(svc)
-            for r in svc.requires:
-                if r not in self.services:
-                    if not self.resolve(svc, r): missing.append(r)
-                if r not in targets and r not in added:
-                    added.append(r)
-                if r in self.services:
-                    todo.append(self.services[r])
-
-        if missing:
-            raise TaskError("required service(s) missing: %s" % ", ".join(missing))
-        else:
-            summarize("%s -> %s" % (", ".join(targets), ", ".join(added)))
-            return added
-
     @task()
     def bake(self, service):
         status("checking if images exist")
@@ -270,7 +229,7 @@ class Forge(object):
         return pushed
 
     def template(self, svc):
-        k8s_dir = os.path.join(self.workdir, "k8s", svc.name)
+        k8s_dir = os.path.join(svc.root, ".forge", "k8s", svc.name)
         svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
         return k8s_dir, self.kube.resources(k8s_dir)
 
@@ -317,7 +276,6 @@ class Forge(object):
             conf = yaml.load(fd)
 
         self.base = os.path.dirname(os.path.abspath(self.config))
-        self.workdir = get_workdir(conf, self.base)
         self.docker = get_docker(conf)
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
@@ -332,7 +290,7 @@ class Forge(object):
         if not os.path.samefile(path, self.base):
             self.scan(self.base)
         if services:
-            services.extend(self.dependencies(services))
+            services.extend(self.discovery.dependencies(services))
         return services
 
     @task()
@@ -364,13 +322,6 @@ class Forge(object):
             INCLUDED.update(["GET", "CMD"])
 
         root.run(task_include=lambda x: x.task.name in INCLUDED)
-
-
-def get_workdir(conf, base):
-    workdir = conf.get("workdir") or base
-    if not workdir.startswith("/"):
-        workdir = os.path.join(base, workdir)
-    return workdir
 
 def get_password(conf):
     pw = conf.get("password")
