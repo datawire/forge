@@ -34,6 +34,11 @@
           "additionalProperties": false
         }
       ]
+    },
+    "Config": {
+      "id": "Config",
+      "description": "Arbitrary application defined configuration parameters for a service.",
+      "type": "object"
     }
   },
 
@@ -59,7 +64,8 @@
       "type": "array",
       "description": "A list of containers that form this service. If this is not supplied then any Dockerfile is assumed.",
       "items": {"$ref": "#/definitions/Container"}
-    }
+    },
+    "config": {"$ref": "#definitions/Config"}
   },
   "required": ["name"]
 }
