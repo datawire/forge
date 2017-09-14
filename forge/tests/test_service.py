@@ -14,7 +14,7 @@
 
 import os, pytest
 from forge.service import load_service_yamls, Discovery
-from forge.tasks import TaskError
+from forge.tasks import sh, TaskError
 from .common import mktree
 
 def ERROR(message, content):
@@ -105,9 +105,6 @@ def test_service_yaml(error, content):
             assert error in str(err)
 
 GIT_ROOT = r"""
-@@.git/config
-@@
-
 @@.gitignore
 *.pyc
 @@
@@ -176,8 +173,15 @@ workdir
 @@
 """
 
+def mkgittree(treespec, **substitutions):
+    directory = mktree(treespec, **substitutions)
+    sh("git", "init", ".", cwd=directory)
+    sh("git", "add", ".", cwd=directory)
+    sh("git", "commit", "-m", "initial commit", cwd=directory)
+    return directory
+
 def test_discovery_root():
-    directory = mktree(GIT_ROOT + ROOT_SVC)
+    directory = mkgittree(GIT_ROOT + ROOT_SVC)
     disco = Discovery()
     found = disco.search(directory)
     assert [f.name for f in found] == ["root"]
@@ -193,7 +197,7 @@ def test_discovery_root():
                                   "subdir/app.py"])
 
 def test_discovery_nested():
-    directory = mktree(GIT_ROOT + NESTED_SVC)
+    directory = mkgittree(GIT_ROOT + NESTED_SVC)
     disco = Discovery()
     found = disco.search(directory)
     assert [f.name for f in found] == ["nested"]
@@ -209,7 +213,7 @@ def test_discovery_nested():
                                   "blah.rootignore"])
 
 def test_discovery_combined():
-    directory = mktree(GIT_ROOT + ROOT_SVC + NESTED_SVC)
+    directory = mkgittree(GIT_ROOT + ROOT_SVC + NESTED_SVC)
     disco = Discovery()
     found = disco.search(directory)
     assert [f.name for f in found] == ["root", "nested"]
@@ -233,15 +237,25 @@ def test_discovery_combined():
                                      "nested.py",
                                      "service.yaml"])
 
-    assert root.version != nested.version
+    assert root.version == nested.version
 
 def test_versioning():
-    directory = mktree(GIT_ROOT + ROOT_SVC)
+    directory = mkgittree(GIT_ROOT + ROOT_SVC)
+
     v1 = Discovery().search(directory)[0].version
+    assert v1.endswith(".git")
+
     with open(os.path.join(directory, "root.py"), "write") as fd:
         fd.write("blah")
     v2 = Discovery().search(directory)[0].version
-    assert v1 != v2
+    assert v2.endswith(".sha")
+
+    with open(os.path.join(directory, "root.py"), "write") as fd:
+        fd.write("blahblah")
+    v3 = Discovery().search(directory)[0].version
+
+    assert v3.endswith(".sha")
+    assert v2 != v3
 
 def test_nonexistent():
     try:

@@ -16,7 +16,7 @@ import hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
-from .tasks import task, TaskError
+from .tasks import sh, task, TaskError
 
 with open(os.path.join(os.path.dirname(__file__), "service.json")) as f:
     SCHEMA = yaml.load(f)
@@ -120,6 +120,24 @@ def shafiles(root, files):
                 raise
     return result.hexdigest()
 
+def is_git(path):
+    if os.path.exists(os.path.join(path, ".git")):
+        return True
+    elif path not in ('', '/'):
+        return is_git(os.path.dirname(path))
+    else:
+        return False
+
+def get_version(path, dirty):
+    if is_git(path):
+        result = sh("git", "diff", "--quiet", "HEAD", ".", cwd=path, expected=(0, 1))
+        if result.code == 0:
+            line = sh("git", "log", "-n1", "--format=oneline", "--", ".", cwd=path).output.strip()
+            if line:
+                version = line.split()[0]
+                return "%s.git" % version
+    return dirty
+
 class Service(object):
 
     def __init__(self, descriptor):
@@ -145,7 +163,7 @@ class Service(object):
     def version(self):
         if self._version is None:
             self._version = "%s.sha" % shafiles(self.root, self.files)
-        return self._version
+        return get_version(self.root, self._version)
 
     def image(self, container):
         pfx = os.path.dirname(container)
