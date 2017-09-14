@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import jsonschema, os, yaml
+import hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
-from .tasks import task, TaskError
+from .tasks import sh, task, TaskError
 
 with open(os.path.join(os.path.dirname(__file__), "service.json")) as f:
     SCHEMA = yaml.load(f)
@@ -35,13 +35,117 @@ def load_service_yamls(name, content):
         best = jsonschema.exceptions.best_match(e.context)
         raise TaskError((best or e).message)
 
+def get_ignores(directory):
+    ignorefiles = [os.path.join(directory, ".gitignore"),
+                   os.path.join(directory, ".forgeignore")]
+    ignores = []
+    for path in ignorefiles:
+        if os.path.exists(path):
+            with open(path) as fd:
+                ignores.extend(fd.readlines())
+    return ignores
+
+def get_ancestors(path, stop="/"):
+    path = os.path.abspath(path)
+    stop = os.path.abspath(stop)
+    if os.path.samefile(path, stop):
+        return
+    else:
+        parent = os.path.dirname(path)
+        for d in get_ancestors(parent, stop):
+            yield d
+        yield parent
+
+class Discovery(object):
+
+    def __init__(self):
+        self.services = OrderedDict()
+
+    @task()
+    def search(self, directory):
+        directory = os.path.abspath(directory)
+        if not os.path.exists(directory):
+            raise TaskError("no such directory: %s" % directory)
+        if not os.path.isdir(directory):
+            raise TaskError("not a directory: %s" % directory)
+
+        base_ignores = [".git", ".forge"]
+        gitdir = util.search_parents(".git", directory)
+        if gitdir is None:
+            gitroot = directory
+        else:
+            gitroot = os.path.dirname(gitdir)
+
+        for d in get_ancestors(directory, gitroot):
+            base_ignores.extend(get_ignores(d))
+
+        found = []
+        def descend(path, parent, ignores):
+            if not os.path.exists(path): return
+
+            ignores += get_ignores(path)
+            spec = pathspec.PathSpec.from_lines('gitwildmatch', ignores)
+            names = [n for n in os.listdir(path) if not spec.match_file(os.path.join(path, n))]
+
+            if "service.yaml" in names:
+                svc = Service(os.path.join(path, "service.yaml"))
+                if svc.name not in self.services:
+                    self.services[svc.name] = svc
+                found.append(svc)
+                parent = svc
+
+            if "Dockerfile" in names and parent:
+                parent.dockerfiles.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
+
+            for n in names:
+                child = os.path.join(path, n)
+                if os.path.isdir(child):
+                    descend(child, parent, ignores)
+                elif parent:
+                    parent.files.append(os.path.relpath(child, parent.root))
+
+        descend(directory, None, base_ignores)
+        return found
+
+def shafiles(root, files):
+    result = hashlib.sha1()
+    result.update("files %s\0" % len(files))
+    for name in files:
+        result.update("file %s\0" % name)
+        try:
+            with open(os.path.join(root, name)) as fd:
+                result.update(fd.read())
+        except IOError, e:
+            if e.errno != errno.ENOENT:
+                raise
+    return result.hexdigest()
+
+def is_git(path):
+    if os.path.exists(os.path.join(path, ".git")):
+        return True
+    elif path not in ('', '/'):
+        return is_git(os.path.dirname(path))
+    else:
+        return False
+
+def get_version(path, dirty):
+    if is_git(path):
+        result = sh("git", "diff", "--quiet", "HEAD", ".", cwd=path, expected=(0, 1))
+        if result.code == 0:
+            line = sh("git", "log", "-n1", "--format=oneline", "--", ".", cwd=path).output.strip()
+            if line:
+                version = line.split()[0]
+                return "%s.git" % version
+    return dirty
+
 class Service(object):
 
-    def __init__(self, version, descriptor):
-        self.version = version
+    def __init__(self, descriptor):
         self.descriptor = descriptor
         self.dockerfiles = []
+        self.files = []
         self._info = None
+        self._version = None
 
     @property
     def root(self):
@@ -54,6 +158,12 @@ class Service(object):
             return info["name"]
         else:
             return os.path.basename(self.root)
+
+    @property
+    def version(self):
+        if self._version is None:
+            self._version = "%s.sha" % shafiles(self.root, self.files)
+        return get_version(self.root, self._version)
 
     def image(self, container):
         pfx = os.path.dirname(container)

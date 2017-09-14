@@ -60,7 +60,7 @@ from collections import OrderedDict
 
 import util
 from . import __version__
-from .service import Service
+from .service import Discovery, Service
 from .docker import Docker
 from .github import Github
 from .kubernetes import Kubernetes
@@ -95,10 +95,11 @@ class Forge(object):
 
     def __init__(self, verbose=0, config=None):
         self.verbose = verbose
-        self.config = config or search_parents("forge.yaml")
+        self.config = config or util.search_parents("forge.yaml")
         self.namespace = None
         self.dry_run = False
         self.terminal = Terminal()
+        self.discovery = Discovery()
         self.services = OrderedDict()
 
     def prompt(self, msg, default=None, loader=None, echo=True):
@@ -187,55 +188,12 @@ class Forge(object):
 
         print self.terminal.bold("== Done ==")
 
-    EXCLUDED = set([".git"])
-
-    def is_git(self, path):
-        if os.path.exists(os.path.join(path, ".git")):
-            return True
-        elif path not in ('', '/'):
-            return self.is_git(os.path.dirname(path))
-        else:
-            return False
-
-    def version(self, root):
-        if self.is_git(root):
-            result = sh("git", "diff", "--quiet", ".", cwd=root, expected=(0, 1))
-            if result.code == 0:
-                line = sh("git", "log", "-n1", "--format=oneline", "--", ".", cwd=root).output.strip()
-                if line:
-                    version = line.split()[0]
-                    return "%s.git" % version
-        return "%s.ephemeral" % util.shadir(root)
-
     @task()
-    def scan(self, root):
-        workexists = os.path.exists(self.workdir)
-        found = []
-        def descend(path, parent):
-            if not os.path.exists(path): return
-            status("searching %s" % path)
-            names = os.listdir(path)
-
-            if "service.yaml" in names:
-                version = self.version(path)
-                svc = Service(version, os.path.join(path, "service.yaml"))
-                if svc.name not in self.services:
-                    self.services[svc.name] = svc
-                    found.append(svc.name)
-                    status("searching %s, found %s" % (path, svc.name))
-                parent = svc
-            if "Dockerfile" in names and parent:
-                parent.dockerfiles.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
-
-            for n in names:
-                child = os.path.join(path, n)
-                if n not in self.EXCLUDED and os.path.isdir(child) and (not workexists or
-                                                                        not os.path.samefile(child, self.workdir)):
-                    descend(child, parent)
-
-        descend(root, None)
-        summarize("%s -> %s" % (root, ", ".join(found) or "(no services)"))
-        return found
+    def scan(self, directory):
+        found = self.discovery.search(directory)
+        for f in found:
+            self.services[f.name] = f
+        return [f.name for f in found]
 
     def resolve(self, svc, dep):
         gh = Github(None)
@@ -365,7 +323,7 @@ class Forge(object):
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
 
     def load_services(self, deps=False):
-        start = search_parents("service.yaml")
+        start = util.search_parents("service.yaml")
         if start:
             path = os.path.dirname(start)
         else:
@@ -407,17 +365,6 @@ class Forge(object):
 
         root.run(task_include=lambda x: x.task.name in INCLUDED)
 
-
-def search_parents(name, start=None):
-    prev = None
-    path = start or os.getcwd()
-    while path != prev:
-        prev = path
-        candidate = os.path.join(path, name)
-        if os.path.exists(candidate):
-            return candidate
-        path = os.path.dirname(path)
-    return None
 
 def get_workdir(conf, base):
     workdir = conf.get("workdir") or base

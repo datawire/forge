@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-from forge.service import load_service_yamls
-from forge.tasks import TaskError
+import os, pytest
+from forge.service import load_service_yamls, Discovery
+from forge.tasks import sh, TaskError
+from .common import mktree
 
 def ERROR(message, content):
     return (message, content)
@@ -102,3 +103,168 @@ def test_service_yaml(error, content):
             raise
         else:
             assert error in str(err)
+
+GIT_ROOT = r"""
+@@.gitignore
+*.pyc
+@@
+"""
+
+ROOT_SVC = r"""
+@@.forgeignore
+*.rootignore
+@@
+
+@@service.yaml
+name: root
+@@
+
+@@Dockerfile
+@@
+
+@@root.py
+@@
+
+@@root.pyc
+@@
+
+@@blah.rootignore
+@@
+
+@@subdir/Dockerfile
+@@
+
+@@subdir/app.py
+@@
+
+@@subdir/app.pyc
+@@
+"""
+
+NESTED_SVC = r"""
+@@nested/service.yaml
+name: nested
+@@
+
+@@nested/Dockerfile
+@@
+
+@@nested/nested.py
+@@
+
+@@nested/nested.pyc
+@@
+
+@@nested/.gitignore
+workdir
+@@
+
+@@nested/.forgeignore
+*.nestedignore
+@@
+
+@@nested/workdir/stuff
+@@
+
+@@nested/blah.rootignore
+@@
+
+@@nested/blah.nestedignore
+@@
+"""
+
+def mkgittree(treespec, **substitutions):
+    directory = mktree(treespec, **substitutions)
+    sh("git", "init", ".", cwd=directory)
+    sh("git", "add", ".", cwd=directory)
+    sh("git", "commit", "-m", "initial commit", cwd=directory)
+    return directory
+
+def test_discovery_root():
+    directory = mkgittree(GIT_ROOT + ROOT_SVC)
+    disco = Discovery()
+    found = disco.search(directory)
+    assert [f.name for f in found] == ["root"]
+
+    svc = disco.services["root"]
+    assert set(svc.dockerfiles) == set(["Dockerfile", "subdir/Dockerfile"])
+    assert set(svc.files) == set([".gitignore",
+                                  ".forgeignore",
+                                  "service.yaml",
+                                  "Dockerfile",
+                                  "root.py",
+                                  "subdir/Dockerfile",
+                                  "subdir/app.py"])
+
+def test_discovery_nested():
+    directory = mkgittree(GIT_ROOT + NESTED_SVC)
+    disco = Discovery()
+    found = disco.search(directory)
+    assert [f.name for f in found] == ["nested"]
+
+    svc = disco.services["nested"]
+    assert set(svc.dockerfiles) == set(["Dockerfile"])
+    assert set(svc.files) == set([".gitignore",
+                                  ".forgeignore",
+                                  "service.yaml",
+                                  "Dockerfile",
+                                  "nested.py",
+                                  "service.yaml",
+                                  "blah.rootignore"])
+
+def test_discovery_combined():
+    directory = mkgittree(GIT_ROOT + ROOT_SVC + NESTED_SVC)
+    disco = Discovery()
+    found = disco.search(directory)
+    assert [f.name for f in found] == ["root", "nested"]
+
+    root = disco.services["root"]
+    assert set(root.dockerfiles) == set(["Dockerfile", "subdir/Dockerfile"])
+    assert set(root.files) == set([".gitignore",
+                                   ".forgeignore",
+                                   "service.yaml",
+                                   "Dockerfile",
+                                   "root.py",
+                                   "subdir/Dockerfile",
+                                   "subdir/app.py"])
+
+    nested = disco.services["nested"]
+    assert set(nested.dockerfiles) == set(["Dockerfile"])
+    assert set(nested.files) == set([".gitignore",
+                                     ".forgeignore",
+                                     "service.yaml",
+                                     "Dockerfile",
+                                     "nested.py",
+                                     "service.yaml"])
+
+    assert root.version == nested.version
+
+def test_versioning():
+    directory = mkgittree(GIT_ROOT + ROOT_SVC)
+
+    v1 = Discovery().search(directory)[0].version
+    assert v1.endswith(".git")
+
+    with open(os.path.join(directory, "root.py"), "write") as fd:
+        fd.write("blah")
+    v2 = Discovery().search(directory)[0].version
+    assert v2.endswith(".sha")
+
+    with open(os.path.join(directory, "root.py"), "write") as fd:
+        fd.write("blahblah")
+    v3 = Discovery().search(directory)[0].version
+
+    assert v3.endswith(".sha")
+    assert v2 != v3
+
+def test_nonexistent():
+    try:
+        Discovery().search("thisfileshouldreallynotexist")
+    except TaskError, e:
+        assert "no such directory" in str(e)
+
+def test_nondirectory():
+    try:
+        Discovery().search(__file__)
+    except TaskError, e:
+        assert "not a directory" in str(e)
