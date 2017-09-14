@@ -5,12 +5,12 @@
 virtualenv
 *.pyc
 *.egg-info
+.cache
 
 # --- Miscellaneous ---
 =======
 build
 dist
-work
 
 # --- Docs ---
 =======
