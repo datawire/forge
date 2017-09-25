@@ -114,6 +114,7 @@ class Docker(object):
         img = image(self.registry, self.namespace, name, version)
 
         sh("docker", "build", directory, "-f", dockerfile, "-t", img, *buildargs)
+        return img
 
     @task()
     def validate(self):
