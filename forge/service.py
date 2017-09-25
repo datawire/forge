@@ -200,8 +200,8 @@ class Service(object):
     @property
     def version(self):
         if self._version is None:
-            self._version = "%s.sha" % shafiles(self.root, self.files)
-        return get_version(self.root, self._version)
+            self._version = get_version(self.root, "%s.sha" % shafiles(self.root, self.files))
+        return self._version
 
     def image(self, container):
         pfx = os.path.dirname(container)
