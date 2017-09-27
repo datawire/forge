@@ -87,5 +87,5 @@ def test_build_error():
         dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
     except TaskError, e:
         msg = str(e)
-        assert "command failed" in msg
+        assert "command 'docker' failed" in msg
         assert "XXXFROM" in msg

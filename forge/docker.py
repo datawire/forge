@@ -102,7 +102,7 @@ class Docker(object):
         sh("docker", "push", img)
         return img
 
-    @task("docker-build")
+    @task()
     def build(self, directory, dockerfile, name, version, args=None):
         args = args or {}
 

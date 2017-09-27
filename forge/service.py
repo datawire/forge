@@ -246,11 +246,12 @@ class Service(object):
     def containers(self):
         info = self.info()
         containers = info.get("containers", self.dockerfiles)
-        for c in containers:
+        for idx, c in enumerate(containers):
             if isinstance(c, basestring):
-                yield Container(self, c)
+                yield Container(self, c, index=idx)
             else:
-                yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None))
+                yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None),
+                                index=idx)
 
     def json(self):
         return {'name': self.name,
@@ -264,11 +265,12 @@ class Service(object):
 
 class Container(object):
 
-    def __init__(self, service, dockerfile, context=None, args=None):
+    def __init__(self, service, dockerfile, context=None, args=None, index=None):
         self.service = service
         self.dockerfile = dockerfile
         self.context = context or os.path.dirname(self.dockerfile)
         self.args = args or {}
+        self.index = index
 
     @property
     def version(self):

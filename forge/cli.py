@@ -40,8 +40,6 @@ from .tasks import (
     project,
     setup,
     sh,
-    status,
-    summarize,
     sync,
     task,
     ERROR,
@@ -159,7 +157,7 @@ class Forge(object):
                 password = self.prompt("Docker password", echo=False)
 
             print
-            e = validate.run(task_include=lambda x: x.task.name in ('pull', 'push', 'tag'))
+            e = validate.run()
             if e.result is ERROR:
                 print
                 print self.terminal.red("-- please try again --")
@@ -196,36 +194,29 @@ class Forge(object):
 
     @task()
     def bake(self, service):
-        status("checking if images exist")
         raw = list(cull(lambda c: not self.docker.exists(c.image, c.version), service.containers))
         baked = []
         if not raw:
-            summarize("skipped, images exist")
             return baked
 
         for container in raw:
-            status("building %s for %s " % (container.dockerfile, container.service.name))
-            self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
+            with task.context("%s" % (container.index + 1)):
+                self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
             baked.append(container.dockerfile)
 
-        summarize("built %s" % (", ".join(c.dockerfile for c in raw)))
         return baked
 
     @task()
     def push(self, service):
-        status("checking if %s containers exist" % service)
         unpushed = list(cull(lambda c: self.docker.needs_push(c.image, c.version), service.containers))
 
         pushed = []
         if not unpushed:
-            summarize("skipped, images exist")
             return []
 
         for container in unpushed:
-            status("pushing container %s" % container.dockerfile)
             pushed.append(self.docker.push(container.image, container.version))
 
-        summarize("pushed %s" % ", ".join(c.dockerfile for c in unpushed))
         return pushed
 
     def template(self, svc):
@@ -235,15 +226,10 @@ class Forge(object):
 
     @task()
     def manifest(self, service):
-        status("generating manifests for %s" % service.name)
         k8s_dir, resources = self.template(service)
         istioify = service.info().get("istio", False)
         if istioify:
-            status("istioifying kube manifests")
             istio(k8s_dir)
-        summarize("generated %s\nwrote %smanifests to %s" % (", ".join(str(r) for r in resources),
-                                                             "istioified " if istioify else "",
-                                                             k8s_dir))
         return k8s_dir
 
     @task()
@@ -259,14 +245,12 @@ class Forge(object):
             lines.append("%s %s" % (self.terminal.green("pushed"), (", ".join(pushed))))
         lines.append("%s %s" % (self.terminal.green("manifests"), result))
 
-        summarize("\n".join(lines))
         return result
 
     @task()
     def deploy(self, k8s_dir):
         result = self.kube.apply(k8s_dir)
         code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
-        summarize("%s -> %s\n%s" % (" ".join(result.command), code, result.output))
 
     def load_config(self):
         if not self.config:
@@ -306,22 +290,21 @@ class Forge(object):
     def execute(self, goal):
         self.load_config()
 
-        @task()
+        @task(context="{0}")
         def service(name):
             svc = self.services[name]
             goal(svc)
-            summarize(self.terminal.white(name))
 
-        @task("forge")
+        @task(context="forge")
         def root():
+            if self.verbose:
+                print "CONFIG:", self.config
             for name in self.load_services(deps=True):
-               service.go(name)
+                service.go(name)
 
-        INCLUDED = set(["scan", "dependencies", "service", "build", "deploy"])
-        if self.verbose:
-            INCLUDED.update(["GET", "CMD"])
-
-        root.run(task_include=lambda x: x.task.name in INCLUDED)
+        exe = root.run()
+        if exe.result is ERROR:
+            raise SystemExit(1)
 
 def get_password(conf):
     pw = conf.get("password")
