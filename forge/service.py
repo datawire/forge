@@ -33,7 +33,7 @@ def load_service_yamls(name, content):
         return info
     except jsonschema.ValidationError, e:
         best = jsonschema.exceptions.best_match(e.context)
-        raise TaskError((best or e).message)
+        raise TaskError("error loading %s: %s" % (name, (best or e).message))
 
 def get_ignores(directory):
     ignorefiles = [os.path.join(directory, ".gitignore"),
