@@ -255,3 +255,10 @@ def test_bake_containers():
     forge = launch(directory, "forge -v build containers")
     forge.expect(pexpect.EOF)
     assert forge.wait() == 0
+
+def test_no_k8s():
+    directory = mktree(FORGE_YAML + "@@svc/service.yaml\nname: no_k8s\n@@")
+    forge = launch(directory, "forge build manifests")
+    forge.expect("k8s: template not found")
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 1
