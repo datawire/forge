@@ -180,10 +180,23 @@ def test_sh_error():
     try:
         sh("ls", "nonexistentfile")
     except TaskError, e:
-        assert "command 'ls' failed" in str(e)
+        assert "command 'ls nonexistentfile' failed" in str(e)
 
 def test_sh_expected_error():
     sh("ls", "nonexistentfile", expected=(2,))
+
+def test_sh_cwd():
+    result = sh("echo", "hello", cwd="/tmp")
+    assert result.command.startswith("[/tmp] ")
+
+def test_sh_env():
+    result = sh("echo", "hello", env={"FOO": "bar"})
+    assert result.command.startswith("FOO=bar ")
+
+def test_sh_cwd_env():
+    result = sh("echo", "hello", cwd="/tmp", env={"FOO": "bar"})
+    assert result.command.startswith("[/tmp] ")
+    assert result.command[7:].startswith("FOO=bar ")
 
 def test_get():
     response = get("https://httpbin.org/get")

@@ -342,9 +342,25 @@ class SHResult(object):
 
 @task("CMD")
 def sh(*args, **kwargs):
+    import os
     expected = kwargs.pop("expected", (0,))
     cmd = tuple(str(a) for a in args)
-    print " ".join(cmd)
+
+    kwcopy = kwargs.copy()
+    parts = []
+    cwd = kwcopy.pop("cwd", None)
+    if cwd is not None and not os.path.samefile(cwd, os.getcwd()):
+        parts.append("[%s]" % cwd)
+    env = kwcopy.pop("env", None)
+    if env is not None:
+        for k, v in env.items():
+            if v != os.environ.get(k, None):
+                parts.append("%s=%s" % (k, v))
+
+    parts.extend(cmd)
+    command = " ".join(parts)
+
+    print command
 
     try:
         p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
@@ -353,14 +369,13 @@ def sh(*args, **kwargs):
             output += line
             print line[:-1]
         p.wait()
-        result = SHResult(cmd, p.returncode, output)
+        result = SHResult(command, p.returncode, output)
     except OSError, e:
-        ctx = ' %s' % kwargs if kwargs else ''
-        raise TaskError("error executing command '%s'%s: %s" % (" ".join(cmd), ctx, e))
+        raise TaskError("error executing command '%s': %s" % (command, e))
     if p.returncode in expected:
         return result
     else:
-        raise TaskError("command '%s' failed[%s]: %s" % (cmd[0], result.code, result.output))
+        raise TaskError("command '%s' failed[%s]: %s" % (command, result.code, result.output))
 
 requests = eventlet.import_patched('requests.__init__') # the .__init__ is a workaround for: https://github.com/eventlet/eventlet/issues/208
 
