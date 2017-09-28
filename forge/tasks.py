@@ -137,7 +137,7 @@ class task(object):
         # now I can fetch the result of an individual subtask:
         result = normalized[0].get()
         # or sync on any outstanding sub tasks:
-        sync()
+        task.sync()
 
     You can also run a task. This will render progress indicators,
     status, and errors to the screen as the task and any subtasks
@@ -152,6 +152,8 @@ class task(object):
         self.context_template = context
         self.logger = logging.getLogger("tasks")
         self.count = 0
+
+    verbose = False
 
     @staticmethod
     @contextmanager
@@ -180,6 +182,30 @@ class task(object):
             self.name = self.function.__name__
         return decorator(self)
 
+    @staticmethod
+    def sync():
+        """
+        Wait until all child tasks have terminated.
+        """
+        return executor.current().wait()
+
+    @staticmethod
+    def echo(*args, **kwargs):
+        executor.current().echo(*args, **kwargs)
+
+    @staticmethod
+    def info(*args, **kwargs):
+        executor.current().info(*args, **kwargs)
+
+    @staticmethod
+    def warn(*args, **kwargs):
+        executor.current().warn(*args, **kwargs)
+
+    @staticmethod
+    def error(*args, **kwargs):
+        executor.current().error(*args, **kwargs)
+
+
 _UNBOUND = Sentinel("_UNBOUND")
 
 class decorator(object):
@@ -198,12 +224,12 @@ class decorator(object):
             return (self.object,) + args
 
     def __call__(self, *args, **kwargs):
-        exe = executor(self.task._context(args, kwargs))
+        exe = executor(self.task._context(args, kwargs), verbose=task.verbose)
         result = exe.run(self.task.function, *self._munge(args), **kwargs)
         return result.get()
 
     def go(self, *args, **kwargs):
-        exe = executor(self.task._context(args, kwargs), async=True)
+        exe = executor(self.task._context(args, kwargs), async=True, verbose=task.verbose)
         result = exe.run(self.task.function, *self._munge(args), **kwargs)
         return result
 
@@ -242,42 +268,6 @@ class execution(object):
 
     def info(self, *args, **kwargs):
         self.task.logger.info(*args, **kwargs)
-
-def sync():
-    """
-    Wait until all child tasks have terminated.
-    """
-    return executor.current().wait()
-
-def log(*args, **kwargs):
-    """
-    Log a message for the current task.
-    """
-    execution.current().log(*args, **kwargs)
-
-def info(*args, **kwargs):
-    """
-    Log an info message for the current task.
-    """
-    execution.current().info(*args, **kwargs)
-
-def debug(*args, **kwargs):
-    """
-    Log a debug message for the current task.
-    """
-    execution.current().debug(*args, **kwargs)
-
-def warn(*args, **kwargs):
-    """
-    Log a warn message for the current task.
-    """
-    execution.current().warn(*args, **kwargs)
-
-def error(*args, **kwargs):
-    """
-    Log an error message for the current task.
-    """
-    execution.current().error(*args, **kwargs)
 
 def gather(sequence):
     """
@@ -340,9 +330,10 @@ class SHResult(object):
         else:
             return self.output
 
+import os
+
 @task("CMD")
 def sh(*args, **kwargs):
-    import os
     expected = kwargs.pop("expected", (0,))
     cmd = tuple(str(a) for a in args)
 
@@ -350,7 +341,10 @@ def sh(*args, **kwargs):
     parts = []
     cwd = kwcopy.pop("cwd", None)
     if cwd is not None and not os.path.samefile(cwd, os.getcwd()):
-        parts.append("[%s]" % cwd)
+        relcwd = os.path.relpath(cwd)
+        abscwd = os.path.abspath(cwd)
+        mincwd = relcwd if len(relcwd) < len(abscwd) else abscwd
+        parts.append("[%s]" % mincwd)
     env = kwcopy.pop("env", None)
     if env is not None:
         for k, v in env.items():
@@ -360,14 +354,18 @@ def sh(*args, **kwargs):
     parts.extend(cmd)
     command = " ".join(parts)
 
-    print command
-
     try:
         p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
         output = ""
+        line_buffer = [command]
         for line in p.stdout:
             output += line
-            print line[:-1]
+            line_buffer.append(line[:-1])
+            if len(line_buffer) > 10:
+                while line_buffer:
+                    task.info(line_buffer.pop(0))
+        while line_buffer:
+            task.info(line_buffer.pop(0))
         p.wait()
         result = SHResult(command, p.returncode, output)
     except OSError, e:
@@ -381,7 +379,7 @@ requests = eventlet.import_patched('requests.__init__') # the .__init__ is a wor
 
 @task("GET")
 def get(url, **kwargs):
-    print "GET %s" % url
+    task.info("GET %s" % url)
     try:
         response = requests.get(str(url), **kwargs)
         return response

@@ -40,7 +40,6 @@ from .tasks import (
     project,
     setup,
     sh,
-    sync,
     task,
     ERROR,
     Elidable,
@@ -115,12 +114,13 @@ class Forge(object):
             else:
                 return value
 
+    @task(context="setup")
     def setup(self):
         scout = Scout("forge", __version__)
         scout_res = scout.report()
 
-        print self.terminal.bold("== Checking Kubernetes Setup ==")
-        print
+        task.echo(self.terminal.bold("== Checking Kubernetes Setup =="))
+        task.echo()
 
         checks = (("kubectl", "version", "--short"),
                   ("kubectl", "get", "service", "kubernetes", "--namespace", "default"))
@@ -128,7 +128,7 @@ class Forge(object):
         for cmd in checks:
             e = sh.run(*cmd)
             if e.result is ERROR:
-                print
+                task.echo()
                 raise CLIError(self.terminal.red("== Kubernetes Check Failed ==") +
                                "\n\nPlease make sure kubectl is installed/configured correctly.")
 
@@ -143,11 +143,11 @@ class Forge(object):
             dr = Docker(registry, repo, user, password)
             dr.validate()
 
-        print
-        print self.terminal.bold("== Setting up Docker ==")
+        task.echo()
+        task.echo(self.terminal.bold("== Setting up Docker =="))
 
         while True:
-            print
+            task.echo()
             registry = self.prompt("Docker registry", registry)
             user = self.prompt("Docker user", user)
             repo = self.prompt("Docker organization", user)
@@ -156,16 +156,16 @@ class Forge(object):
             else:
                 password = self.prompt("Docker password", echo=False)
 
-            print
+            task.echo()
             e = validate.run()
             if e.result is ERROR:
-                print
-                print self.terminal.red("-- please try again --")
+                task.echo()
+                task.echo(self.terminal.red("-- please try again --"))
                 continue
             else:
                 break
 
-        print
+        task.echo()
 
         config = renders("SETUP_TEMPLATE", SETUP_TEMPLATE,
                          docker="%s/%s" % (registry, repo),
@@ -174,16 +174,16 @@ class Forge(object):
 
         config_file = "forge.yaml"
 
-        print self.terminal.bold("== Writing config to %s ==" % config_file)
+        task.echo(self.terminal.bold("== Writing config to %s ==" % config_file))
 
         with open(config_file, "write") as fd:
             fd.write(config)
 
-        print
-        print config.strip()
-        print
+        task.echo()
+        task.echo(config.strip())
+        task.echo()
 
-        print self.terminal.bold("== Done ==")
+        task.echo(self.terminal.bold("== Done =="))
 
     @task()
     def scan(self, directory):
@@ -200,7 +200,7 @@ class Forge(object):
             return baked
 
         for container in raw:
-            with task.context("%s" % (container.index + 1)):
+            with task.context("%s[%s]" % (service.name, (container.index + 1))):
                 self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
             baked.append(container.dockerfile)
 
@@ -297,11 +297,13 @@ class Forge(object):
 
         @task(context="forge")
         def root():
-            if self.verbose:
-                print "CONFIG:", self.config
+            task.info("CONFIG: %s" % self.config)
             for name in self.load_services(deps=True):
                 service.go(name)
 
+        # XXX: right now we don't really have a non verbose mode
+        #if self.verbose:
+        task.verbose = True
         exe = root.run()
         if exe.result is ERROR:
             raise SystemExit(1)

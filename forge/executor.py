@@ -176,7 +176,9 @@ class Result(object):
         else:
             color = lambda x: x
 
-        return color("\n".join(["%s tasks run, %s errors" % (total, len(errors))] + errors))
+        result = "\n".join(["%s tasks run, %s errors" % (total, len(errors))] + errors)
+
+        return "\n".join([color(line) for line in result.splitlines()])
 
     def __repr__(self):
         if self.exception is None:
@@ -191,12 +193,18 @@ class _Muxer(object):
         self.previous = None
         self.stream = stream
         self.terminal = output.Terminal()
+        self.default_color = lambda x: x
 
     def write(self, bytes):
         exe = executor.current()
-        context = None if exe is None else exe.context
+        if exe is None:
+            context = None
+            color = self.default_color
+        else:
+            context = exe.context
+            color = exe.color
         if self.previous != context:
-            self.stream.write(self.terminal.bold(">>%s<<\n" % (context or "(none)")))
+            self.stream.write(color(u"\u2554\u2550") + color(context or "(none)") + "\n")
         self.stream.write(bytes)
         self.previous = context
 
@@ -275,6 +283,29 @@ class executor(object):
 
     CURRENT = local()
     MUXER = _Muxer(sys.stdout)
+    COLORS = [getattr(MUXER.terminal, n) for n in ("white",
+                                                   "cyan",
+                                                   "magenta",
+                                                   "blue",
+                                                   "bold_cyan",
+                                                   "bold_magenta",
+                                                   "bold_blue",
+                                                   "bold_white",
+                                                   "black_on_white",
+                                                   "bold_white_on_blue",
+                                                   "white_on_blue",
+                                                   "white_on_magenta",
+                                                   "bold_white_on_magenta")]
+    ALLOCATED = {}
+
+    @classmethod
+    def allocate_color(cls, name):
+        if name in cls.ALLOCATED:
+            return cls.ALLOCATED[name]
+        else:
+            color = cls.COLORS[len(cls.ALLOCATED) % len(cls.COLORS)]
+            cls.ALLOCATED[name] = color
+            return color
 
     @classmethod
     def current(cls):
@@ -295,20 +326,26 @@ class executor(object):
 
         sys.stdout = cls.MUXER
 
-    def __init__(self, name = None, async=False):
+    def __init__(self, name = None, async=False, verbose = False):
         self.name = name
         self.results = []
         self.async = async
+        self.verbose = verbose
+        self.messages = []
 
         self.parent = self.current()
 
-        if self.parent:
-            if self.name is not None and self.async:
-                self.context = "%s.%s" % (self.parent.context, self.name)
-            else:
+        if self.name is None:
+            if self.parent:
                 self.context = self.parent.context
+            else:
+                self.context = "(none)"
         else:
             self.context = self.name
+
+        if not self.parent:
+            self.context_colors = {}
+        self.color = self.allocate_color(self.context)
 
     @contextmanager
     def _make_current(self, result):
@@ -320,9 +357,25 @@ class executor(object):
         self.CURRENT.executor = saved_executor
         self.CURRENT.result = saved_result
 
-    def echo(self, text):
+    def echo(self, text="", prefix=u"\u2551 "):
         with self._make_current(None):
-            print text
+            print self.color(prefix) + text.replace("\n", "\n" + self.color(prefix))
+
+    def info(self, text):
+        if self.verbose:
+            self.echo(text)
+
+    def warn(self, text):
+        if self.verbose:
+            self.echo(text)
+        else:
+            self.messages.append(text)
+
+    def error(self, text):
+        if self.verbose:
+            self.echo(text)
+        else:
+            self.messages.append(text)
 
     def do_run(self, result, fun, args, kwargs):
         with self._make_current(result):

@@ -19,7 +19,6 @@ from forge.tasks import (
     get,
     project,
     sh,
-    sync,
     task,
     ERROR,
     OMIT,
@@ -87,7 +86,7 @@ def test_background_failure():
 @task("Scatter")
 def scatter(n):
     results = [noop.go(i) for i in range(n)]
-    sync()
+    task.sync()
     return [r.result for r in results]
 
 def test_sync():
