@@ -132,8 +132,11 @@ class Forge(object):
             e = sh.run(*cmd)
             if e.result is ERROR:
                 task.echo()
-                raise CLIError(self.terminal.red("== Kubernetes Check Failed ==") +
-                               "\n\nPlease make sure kubectl is installed/configured correctly.")
+                task.echo(self.terminal.bold_red("== Kubernetes Check Failed =="))
+                task.echo()
+                task.echo()
+                task.echo(self.terminal.bold("Please make sure kubectl is installed/configured correctly."))
+                raise CLIError("")
 
         registry = "registry.hub.docker.com"
         repo = None
