@@ -103,6 +103,8 @@ class Forge(object):
         prompter = raw_input if echo else getpass.getpass
 
         while True:
+            task.echo(newline=False)
+            sys.stdout.flush()
             value = prompter(prompt) or default
             if value is None: continue
             if loader is not None:
@@ -116,6 +118,7 @@ class Forge(object):
 
     @task(context="setup")
     def setup(self):
+        task.verbose = True
         scout = Scout("forge", __version__)
         scout_res = scout.report()
 

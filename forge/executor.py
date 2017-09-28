@@ -357,9 +357,13 @@ class executor(object):
         self.CURRENT.executor = saved_executor
         self.CURRENT.result = saved_result
 
-    def echo(self, text="", prefix=u"\u2551 "):
+    def echo(self, text="", prefix=u"\u2551 ", newline=True):
         with self._make_current(None):
-            print self.color(prefix) + text.replace("\n", "\n" + self.color(prefix))
+            msg = self.color(prefix) + text.replace("\n", "\n" + self.color(prefix))
+            if newline:
+                print msg
+            else:
+                sys.stdout.write(msg)
 
     def info(self, text):
         if self.verbose:
