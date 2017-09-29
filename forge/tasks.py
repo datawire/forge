@@ -361,7 +361,7 @@ def sh(*args, **kwargs):
             if v != os.environ.get(k, None):
                 parts.append("%s=%s" % (k, v))
 
-    parts.extend(cmd)
+    parts.extend(str(elide(a)) for a in args)
     command = " ".join(parts)
 
     try:
