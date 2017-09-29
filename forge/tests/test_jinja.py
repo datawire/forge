@@ -72,3 +72,10 @@ def test_renders_err():
         assert False, "should error"
     except TaskError, e:
         assert "foo: 'foo' is undefined" in str(e)
+
+def test_undefined_var():
+#    try:
+        renders("foo", "hello {{nonexistent}}")
+#        assert False, "this should fail"
+#    except TaskError, e:
+#        assert "'nonexistent' is undefined" in str(e)

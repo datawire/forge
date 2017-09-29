@@ -15,8 +15,54 @@
 from __future__ import absolute_import
 
 from .tasks import task, TaskError
-from jinja2 import Environment, FileSystemLoader, Template, TemplateError, TemplateNotFound
+from jinja2 import Environment, FileSystemLoader, Template, TemplateError, TemplateNotFound, Undefined, UndefinedError
 import os, shutil
+
+
+class WarnUndefined(Undefined):
+
+    def warn(self):
+        try:
+            self._fail_with_undefined_error()
+        except UndefinedError, e:
+            msg = str(e)
+        task.echo(task.terminal().bold_red("warning: %s (this will become an error soon)" % msg))
+
+    def __iter__(self):
+        self.warn()
+        return Undefined.__iter__(self)
+
+    def __str__(self):
+        self.warn()
+        return Undefined.__str__(self)
+
+    def __unicode__(self):
+        self.warn()
+        return Undefined.__unicode__(self)
+
+    def __len__(self):
+        self.warn()
+        return Undefined.__len__(self)
+
+    def __nonzero__(self):
+        self.warn()
+        return Undefined.__nonzero__(self)
+
+    def __eq__(self):
+        self.warn()
+        return Undefined.__eq__(self)
+
+    def __ne__(self):
+        self.warn()
+        return Undefined.__ne__(self)
+
+    def __bool__(self):
+        self.warn()
+        return Undefined.__bool__(self)
+
+    def __hash__(self):
+        self.warn()
+        return Undefined.__hash__(self)
 
 def _do_render(env, root, name, variables):
     try:
@@ -43,7 +89,8 @@ def render(source, target, **variables):
     recreated prior to rendering the template.
     """
     root = source if os.path.isdir(source) else os.path.dirname(source)
-    env = Environment(loader=FileSystemLoader(root))
+    env = Environment(loader=FileSystemLoader(root),
+                      undefined=WarnUndefined)
     if os.path.isdir(source):
         if os.path.exists(target):
             shutil.rmtree(target)
@@ -71,6 +118,6 @@ def renders(name, source, **variables):
     filename would normally appear in error messages.
     """
     try:
-        return Template(source).render(**variables)
+        return Template(source, undefined=WarnUndefined).render(**variables)
     except TemplateError, e:
         raise TaskError("%s: %s" % (name, e))

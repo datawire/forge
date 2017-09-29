@@ -68,7 +68,7 @@ is set up to route to all deployments regardless of track.
 
 #}
 
-{% set track = service.track or 'stable' %}
+{% set track = service.track|default('stable') %}
 {% set canary = track != 'stable' %}
 {% set name = '%s-%s' % (service.name, service.track) if canary else service.name %}
 
@@ -84,9 +84,9 @@ spec:
     track: {{track}}
 {% endif %}
   ports:
-    - protocol: {{service.protocol or 'TCP'}}
-      port: {{service.port or '80'}}
-      targetPort: {{service.targetPort or '8080'}}
+    - protocol: {{service.protocol|default('TCP')}}
+      port: {{service.port|default('80')}}
+      targetPort: {{service.targetPort|default('8080')}}
   type: LoadBalancer
 
 ---

@@ -200,6 +200,10 @@ class task(object):
             r.get()
 
     @staticmethod
+    def terminal():
+        return executor.MUXER.terminal
+
+    @staticmethod
     def echo(*args, **kwargs):
         executor.current().echo(*args, **kwargs)
 
