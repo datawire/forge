@@ -27,8 +27,17 @@ def load_service_yaml(path):
 
 @task()
 def load_service_yamls(name, content):
+    rendered = renders(name, content, env=os.environ)
     try:
-        info = yaml.load(renders(name, content, env=os.environ))
+        info = yaml.load(rendered)
+    except yaml.parser.ParserError, e:
+        task.echo("==unparseable service yaml==")
+        for idx, line in enumerate(rendered.splitlines()):
+            task.echo("%s: %s" % (idx + 1, line))
+        task.echo("============================")
+        raise TaskError("error parsing service yaml: %s" % e)
+
+    try:
         jsonschema.validate(info, SCHEMA)
         return info
     except jsonschema.ValidationError, e:

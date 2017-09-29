@@ -23,6 +23,8 @@ def VALID(content):
     return (None, content)
 
 YAML = (
+# unparseable
+    ERROR("error parsing service yaml:", "{"),
 # root
     ERROR("None is not of type 'object'", ""),
     ERROR("'name' is a required property", "{}"),
