@@ -364,6 +364,7 @@ class executor(object):
     def echo(self, text="", prefix=u"\u2551 ", newline=True):
         with self._make_current(None):
             msg = self.color(prefix) + text.replace("\n", "\n" + self.color(prefix))
+            msg = msg.encode("UTF-8")
             if newline:
                 print msg
             else:
