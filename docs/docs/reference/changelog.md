@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.3.2 (Sep 29th, 2017)
+
+* Warn on undefined jinja variables as a prelude to enabling strict mode: [#64](https://github.com/datawire/forge/issues/44)
+* Display output of rendered service yaml when it fails to parse
+
 #### 0.3.1 (Sep 29th, 2017)
 
 * Improved CLI output: [#32](https://github.com/datawire/forge/issues/32)
