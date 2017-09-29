@@ -224,8 +224,12 @@ class Service(object):
             build["images"][container] = img
         return metadata
 
+    @property
+    def manifest_dir(self):
+        return os.path.join(self.root, "k8s")
+
     def deployment(self, registry, repo, target):
-        k8s_dir = os.path.join(self.root, "k8s")
+        k8s_dir = self.manifest_dir
         metadata = self.metadata(registry, repo)
         render(k8s_dir, target, **metadata)
 

@@ -153,7 +153,14 @@ class task(object):
         self.logger = logging.getLogger("tasks")
         self.count = 0
 
-    verbose = False
+    @staticmethod
+    @contextmanager
+    def verbose(value):
+        exe = executor.current()
+        saved = exe.verbose
+        exe.verbose = value
+        yield
+        exe.verbose = value
 
     @staticmethod
     @contextmanager
@@ -224,12 +231,12 @@ class decorator(object):
             return (self.object,) + args
 
     def __call__(self, *args, **kwargs):
-        exe = executor(self.task._context(args, kwargs), verbose=task.verbose)
+        exe = executor(self.task._context(args, kwargs))
         result = exe.run(self.task.function, *self._munge(args), **kwargs)
         return result.get()
 
     def go(self, *args, **kwargs):
-        exe = executor(self.task._context(args, kwargs), async=True, verbose=task.verbose)
+        exe = executor(self.task._context(args, kwargs), async=True)
         result = exe.run(self.task.function, *self._munge(args), **kwargs)
         return result
 

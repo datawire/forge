@@ -326,14 +326,18 @@ class executor(object):
 
         sys.stdout = cls.MUXER
 
-    def __init__(self, name = None, async=False, verbose = False):
+    def __init__(self, name = None, async=False):
         self.name = name
         self.results = []
         self.async = async
-        self.verbose = verbose
         self.messages = []
 
         self.parent = self.current()
+
+        if self.parent is None:
+            self.verbose = False
+        else:
+            self.verbose = self.parent.verbose
 
         if self.name is None:
             if self.parent:
