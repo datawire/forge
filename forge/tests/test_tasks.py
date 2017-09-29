@@ -94,6 +94,19 @@ def test_sync():
     for i, x in enumerate(gathered):
         assert i == x
 
+@task()
+def sync_error():
+    oops.go(3)
+    task.sync()
+    assert False, "sync should raise an error"
+
+def test_sync_error():
+    try:
+        sync_error()
+        assert False, "this should fail"
+    except ChildError, e:
+        assert "1 child task(s) errored" == str(e)
+
 class Filter(object):
 
     def __init__(self, visitor, *events):

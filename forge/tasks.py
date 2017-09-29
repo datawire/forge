@@ -194,7 +194,10 @@ class task(object):
         """
         Wait until all child tasks have terminated.
         """
-        return executor.current().wait()
+        r = executor.current_result()
+        r.wait()
+        if r.value is ERROR:
+            r.get()
 
     @staticmethod
     def echo(*args, **kwargs):
