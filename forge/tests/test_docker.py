@@ -88,4 +88,4 @@ def test_build_error():
     except TaskError, e:
         msg = str(e)
         assert "command 'docker build" in msg
-        assert "Unknown instruction: XXXFROM" in msg
+        assert "nknown instruction: XXXFROM" in msg
