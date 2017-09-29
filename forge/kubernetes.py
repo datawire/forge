@@ -1,5 +1,5 @@
 import os, glob
-from tasks import task, TaskError, get, sh, Result
+from tasks import task, TaskError, get, sh, SHResult
 
 def is_yaml_empty(dir):
     for name in glob.glob("%s/*.yaml" % dir):
@@ -27,7 +27,7 @@ class Kubernetes(object):
     @task()
     def apply(self, yaml_dir):
         if is_yaml_empty(yaml_dir):
-            return Result((), 0, "")
+            return SHResult("", 0, "")
         cmd = "kubectl", "apply", "-f", yaml_dir
         if self.namespace:
             cmd += "--namespace", self.namespace

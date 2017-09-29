@@ -102,7 +102,7 @@ class Docker(object):
         sh("docker", "push", img)
         return img
 
-    @task("docker-build")
+    @task()
     def build(self, directory, dockerfile, name, version, args=None):
         args = args or {}
 
@@ -114,6 +114,7 @@ class Docker(object):
         img = image(self.registry, self.namespace, name, version)
 
         sh("docker", "build", directory, "-f", dockerfile, "-t", img, *buildargs)
+        return img
 
     @task()
     def validate(self):

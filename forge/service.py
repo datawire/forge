@@ -33,7 +33,7 @@ def load_service_yamls(name, content):
         return info
     except jsonschema.ValidationError, e:
         best = jsonschema.exceptions.best_match(e.context)
-        raise TaskError((best or e).message)
+        raise TaskError("error loading %s: %s" % (name, (best or e).message))
 
 def get_ignores(directory):
     ignorefiles = [os.path.join(directory, ".gitignore"),
@@ -200,8 +200,8 @@ class Service(object):
     @property
     def version(self):
         if self._version is None:
-            self._version = "%s.sha" % shafiles(self.root, self.files)
-        return get_version(self.root, self._version)
+            self._version = get_version(self.root, "%s.sha" % shafiles(self.root, self.files))
+        return self._version
 
     def image(self, container):
         pfx = os.path.dirname(container)
@@ -224,8 +224,12 @@ class Service(object):
             build["images"][container] = img
         return metadata
 
+    @property
+    def manifest_dir(self):
+        return os.path.join(self.root, "k8s")
+
     def deployment(self, registry, repo, target):
-        k8s_dir = os.path.join(self.root, "k8s")
+        k8s_dir = self.manifest_dir
         metadata = self.metadata(registry, repo)
         render(k8s_dir, target, **metadata)
 
@@ -246,11 +250,12 @@ class Service(object):
     def containers(self):
         info = self.info()
         containers = info.get("containers", self.dockerfiles)
-        for c in containers:
+        for idx, c in enumerate(containers):
             if isinstance(c, basestring):
-                yield Container(self, c)
+                yield Container(self, c, index=idx)
             else:
-                yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None))
+                yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None),
+                                index=idx)
 
     def json(self):
         return {'name': self.name,
@@ -264,11 +269,12 @@ class Service(object):
 
 class Container(object):
 
-    def __init__(self, service, dockerfile, context=None, args=None):
+    def __init__(self, service, dockerfile, context=None, args=None, index=None):
         self.service = service
         self.dockerfile = dockerfile
         self.context = context or os.path.dirname(self.dockerfile)
         self.args = args or {}
+        self.index = index
 
     @property
     def version(self):

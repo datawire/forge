@@ -15,12 +15,14 @@
 from __future__ import absolute_import
 
 from .tasks import task, TaskError
-from jinja2 import Environment, FileSystemLoader, Template, TemplateError
+from jinja2 import Environment, FileSystemLoader, Template, TemplateError, TemplateNotFound
 import os, shutil
 
 def _do_render(env, root, name, variables):
     try:
         return env.get_template(name).render(**variables)
+    except TemplateNotFound, e:
+        raise TaskError("%s/%s: %s" % (root, name, "template not found"))
     except TemplateError, e:
         raise TaskError("%s/%s: %s" % (root, name, e))
 

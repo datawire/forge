@@ -40,9 +40,6 @@ from .tasks import (
     project,
     setup,
     sh,
-    status,
-    summarize,
-    sync,
     task,
     ERROR,
     Elidable,
@@ -101,11 +98,18 @@ class Forge(object):
         self.discovery = Discovery()
         self.services = OrderedDict()
 
+        self.baked = []
+        self.pushed = []
+        self.rendered = []
+        self.deployed = []
+
     def prompt(self, msg, default=None, loader=None, echo=True):
         prompt = "%s: " % msg if default is None else "%s[%s]: " % (msg, default)
         prompter = raw_input if echo else getpass.getpass
 
         while True:
+            task.echo(newline=False)
+            sys.stdout.flush()
             value = prompter(prompt) or default
             if value is None: continue
             if loader is not None:
@@ -117,75 +121,80 @@ class Forge(object):
             else:
                 return value
 
+    @task(context="setup")
     def setup(self):
-        scout = Scout("forge", __version__)
-        scout_res = scout.report()
+        with task.verbose(True):
+            scout = Scout("forge", __version__)
+            scout_res = scout.report()
 
-        print self.terminal.bold("== Checking Kubernetes Setup ==")
-        print
+            task.echo(self.terminal.bold("== Checking Kubernetes Setup =="))
+            task.echo()
 
-        checks = (("kubectl", "version", "--short"),
-                  ("kubectl", "get", "service", "kubernetes", "--namespace", "default"))
+            checks = (("kubectl", "version", "--short"),
+                      ("kubectl", "get", "service", "kubernetes", "--namespace", "default"))
 
-        for cmd in checks:
-            e = sh.run(*cmd)
-            if e.result is ERROR:
-                print
-                raise CLIError(self.terminal.red("== Kubernetes Check Failed ==") +
-                               "\n\nPlease make sure kubectl is installed/configured correctly.")
+            for cmd in checks:
+                e = sh.run(*cmd)
+                if e.result is ERROR:
+                    task.echo()
+                    task.echo(self.terminal.bold_red("== Kubernetes Check Failed =="))
+                    task.echo()
+                    task.echo()
+                    task.echo(self.terminal.bold("Please make sure kubectl is installed/configured correctly."))
+                    raise CLIError("")
 
-        registry = "registry.hub.docker.com"
-        repo = None
-        user = os.environ.get("USER", "")
-        password = None
-        json_key = None
+            registry = "registry.hub.docker.com"
+            repo = None
+            user = os.environ.get("USER", "")
+            password = None
+            json_key = None
 
-        @task()
-        def validate():
-            dr = Docker(registry, repo, user, password)
-            dr.validate()
+            @task()
+            def validate():
+                dr = Docker(registry, repo, user, password)
+                dr.validate()
 
-        print
-        print self.terminal.bold("== Setting up Docker ==")
+            task.echo()
+            task.echo(self.terminal.bold("== Setting up Docker =="))
 
-        while True:
-            print
-            registry = self.prompt("Docker registry", registry)
-            user = self.prompt("Docker user", user)
-            repo = self.prompt("Docker organization", user)
-            if user == "_json_key":
-                json_key, password = self.prompt("Path to json key", json_key, loader=file_contents)
-            else:
-                password = self.prompt("Docker password", echo=False)
+            while True:
+                task.echo()
+                registry = self.prompt("Docker registry", registry)
+                user = self.prompt("Docker user", user)
+                repo = self.prompt("Docker organization", user)
+                if user == "_json_key":
+                    json_key, password = self.prompt("Path to json key", json_key, loader=file_contents)
+                else:
+                    password = self.prompt("Docker password", echo=False)
 
-            print
-            e = validate.run(task_include=lambda x: x.task.name in ('pull', 'push', 'tag'))
-            if e.result is ERROR:
-                print
-                print self.terminal.red("-- please try again --")
-                continue
-            else:
-                break
+                task.echo()
+                e = validate.run()
+                if e.result is ERROR:
+                    task.echo()
+                    task.echo(self.terminal.red("-- please try again --"))
+                    continue
+                else:
+                    break
 
-        print
+            task.echo()
 
-        config = renders("SETUP_TEMPLATE", SETUP_TEMPLATE,
-                         docker="%s/%s" % (registry, repo),
-                         user=user,
-                         password=base64.encodestring(password).replace("\n", "\n  "))
+            config = renders("SETUP_TEMPLATE", SETUP_TEMPLATE,
+                             docker="%s/%s" % (registry, repo),
+                             user=user,
+                             password=base64.encodestring(password).replace("\n", "\n  "))
 
-        config_file = "forge.yaml"
+            config_file = "forge.yaml"
 
-        print self.terminal.bold("== Writing config to %s ==" % config_file)
+            task.echo(self.terminal.bold("== Writing config to %s ==" % config_file))
 
-        with open(config_file, "write") as fd:
-            fd.write(config)
+            with open(config_file, "write") as fd:
+                fd.write(config)
 
-        print
-        print config.strip()
-        print
+            task.echo()
+            task.echo(config.strip())
+            task.echo()
 
-        print self.terminal.bold("== Done ==")
+            task.echo(self.terminal.bold("== Done =="))
 
     @task()
     def scan(self, directory):
@@ -196,37 +205,29 @@ class Forge(object):
 
     @task()
     def bake(self, service):
-        status("checking if images exist")
         raw = list(cull(lambda c: not self.docker.exists(c.image, c.version), service.containers))
         baked = []
-        if not raw:
-            summarize("skipped, images exist")
-            return baked
 
         for container in raw:
-            status("building %s for %s " % (container.dockerfile, container.service.name))
-            self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
-            baked.append(container.dockerfile)
+            ctx = service.name if len(raw) == 1 else "%s[%s]" % (service.name, (container.index + 1))
+            with task.context(ctx), task.verbose(True):
+                self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
+            baked.append(container)
 
-        summarize("built %s" % (", ".join(c.dockerfile for c in raw)))
-        return baked
+        task.sync()
+        self.baked.extend(baked)
 
     @task()
     def push(self, service):
-        status("checking if %s containers exist" % service)
         unpushed = list(cull(lambda c: self.docker.needs_push(c.image, c.version), service.containers))
 
         pushed = []
-        if not unpushed:
-            summarize("skipped, images exist")
-            return []
-
         for container in unpushed:
-            status("pushing container %s" % container.dockerfile)
-            pushed.append(self.docker.push(container.image, container.version))
+            with task.verbose(True):
+                pushed.append((container, self.docker.push(container.image, container.version)))
 
-        summarize("pushed %s" % ", ".join(c.dockerfile for c in unpushed))
-        return pushed
+        task.sync()
+        self.pushed.extend(pushed)
 
     def template(self, svc):
         k8s_dir = os.path.join(svc.root, ".forge", "k8s", svc.name)
@@ -235,38 +236,25 @@ class Forge(object):
 
     @task()
     def manifest(self, service):
-        status("generating manifests for %s" % service.name)
         k8s_dir, resources = self.template(service)
         istioify = service.info().get("istio", False)
         if istioify:
-            status("istioifying kube manifests")
             istio(k8s_dir)
-        summarize("generated %s\nwrote %smanifests to %s" % (", ".join(str(r) for r in resources),
-                                                             "istioified " if istioify else "",
-                                                             k8s_dir))
+        task.sync()
+        self.rendered.append((service, k8s_dir, resources))
         return k8s_dir
 
     @task()
     def build(self, service):
-        baked = self.bake(service)
-        pushed = self.push(service)
-        result = self.manifest(service)
-
-        lines = []
-        if baked:
-            lines.append("%s" % ", ".join(baked))
-        if pushed:
-            lines.append("%s %s" % (self.terminal.green("pushed"), (", ".join(pushed))))
-        lines.append("%s %s" % (self.terminal.green("manifests"), result))
-
-        summarize("\n".join(lines))
-        return result
+        self.bake(service)
+        self.push(service)
+        return service, self.manifest(service)
 
     @task()
-    def deploy(self, k8s_dir):
-        result = self.kube.apply(k8s_dir)
-        code = self.terminal.green("OK") if result.code == 0 else self.terminal.red("ERR[%s]" % result.code)
-        summarize("%s -> %s\n%s" % (" ".join(result.command), code, result.output))
+    def deploy(self, service, k8s_dir):
+        self.kube.apply(k8s_dir)
+        task.sync()
+        self.deployed.append((service, k8s_dir))
 
     def load_config(self):
         if not self.config:
@@ -306,22 +294,39 @@ class Forge(object):
     def execute(self, goal):
         self.load_config()
 
-        @task()
+        @task(context="{0}")
         def service(name):
             svc = self.services[name]
             goal(svc)
-            summarize(self.terminal.white(name))
 
-        @task("forge")
+        @task(context="forge")
         def root():
-            for name in self.load_services(deps=True):
-               service.go(name)
+            with task.verbose(self.verbose):
+                task.info("CONFIG: %s" % self.config)
+                for name in self.load_services(deps=True):
+                    service.go(name)
 
-        INCLUDED = set(["scan", "dependencies", "service", "build", "deploy"])
-        if self.verbose:
-            INCLUDED.update(["GET", "CMD"])
+        exe = root.run()
+        if exe.result is ERROR:
+            raise SystemExit(1)
+        else:
+            self.summary()
 
-        root.run(task_include=lambda x: x.task.name in INCLUDED)
+    @task(context="forge")
+    def summary(self):
+        task.echo()
+        color = self.terminal.bold
+        if self.baked:
+            task.echo(color("   built: ") + ", ".join(os.path.relpath(c.abs_dockerfile) for c in self.baked))
+        if self.pushed:
+            task.echo(color("  pushed: ") + ", ".join("%s:%s" % (c.image, c.version) for (c, i) in self.pushed))
+        if self.rendered:
+            resources = []
+            for s, k, r in self.rendered:
+                resources.extend(r)
+            task.echo(color("rendered: ") + (", ".join(resources) or "(none)"))
+        if self.deployed:
+            task.echo(color("deployed: ") + ", ".join(s.name for s, k in self.deployed))
 
 def get_password(conf):
     pw = conf.get("password")
@@ -458,7 +463,7 @@ def deploy(forge, namespace, dry_run):
     """
     forge.namespace = namespace
     forge.dry_run = dry_run
-    forge.execute(lambda svc: forge.deploy(forge.build(svc)))
+    forge.execute(lambda svc: forge.deploy(*forge.build(svc)))
 
 def call_main():
     util.setup_yaml()

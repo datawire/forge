@@ -192,21 +192,33 @@ def test_deploy():
     directory = mktree(FORGE_YAML + APP, MANGLE=MANGLE)
     os.environ["FORGE_PROFILE"] = "dev"
     forge = launch(directory, "forge deploy")
-    forge.expect('service "forgetest-.*" created')
-    forge.expect('deployment "forgetest-.*" created')
+    forge.expect('built')
+    forge.expect('forgetest/Dockerfile')
+    forge.expect('pushed')
+    forge.expect('forgetest-[0-9-]+:')
+    forge.expect('rendered')
+    forge.expect('service/forgetest-[0-9-]+')
+    forge.expect('deployment/forgetest-[0-9-]+')
+    forge.expect('deployed')
+    forge.expect('forgetest-[0-9-]+')
+    forge.expect(pexpect.EOF)
     assert forge.wait() == 0
 
     for sub in ("forgetest", "forgetest/subdir"):
         forge = launch(os.path.join(directory, "forgetest/subdir"), "forge deploy")
-        forge.expect('service "forgetest-.*" configured')
-        forge.expect('deployment "forgetest-.*" configured')
+        forge.expect('rendered')
+        forge.expect('service/forgetest-[0-9-]+')
+        forge.expect('deployment/forgetest-[0-9-]+')
+        forge.expect('deployed')
+        forge.expect('forgetest-[0-9-]+')
+        forge.expect(pexpect.EOF)
         assert forge.wait() == 0
 
 DOCKERFILES = """
 @@svc/service.yaml
 name: baketest
 containers:
- - Dockerfile
+ - Dockerfile  # XXX: I think this and the following may end up colliding with the same image name.
  - dockerfile: Snowflakefile
  - dockerfile: a/Dockerfile
    context: .
@@ -255,3 +267,10 @@ def test_bake_containers():
     forge = launch(directory, "forge -v build containers")
     forge.expect(pexpect.EOF)
     assert forge.wait() == 0
+
+def test_no_k8s():
+    directory = mktree(FORGE_YAML + "@@svc/service.yaml\nname: no_k8s\n@@")
+    forge = launch(directory, "forge build manifests")
+    forge.expect("k8s: template not found")
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 1
