@@ -1,5 +1,12 @@
 # Changelog
 
+#### 0.3.1 (Sep 29th, 2017)
+
+* Improved CLI output: [#32](https://github.com/datawire/forge/issues/32)
+* Respect .gitignore when computing versions: [#44](https://github.com/datawire/forge/issues/44)
+* Added config object to service.yaml schema: [#22](https://github.com/datawire/forge/issues/22)
+* Moved workdir to .forge: [#40](https://github.com/datawire/forge/issues/40)
+
 #### 0.3 (Sep 12th, 2017)
 
 * Restructured CLI and improved documentation: [#27](https://github.com/datawire/forge/issues/27)
