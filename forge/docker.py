@@ -28,6 +28,10 @@ class Docker(object):
         self.image_cache = {}
         self.logged_in = False
 
+    @task()
+    def image(self, name, version):
+        return image(self.registry, self.namespace, name, version)
+
     def _login(self):
         if not self.logged_in:
             sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
@@ -57,7 +61,7 @@ class Docker(object):
 
     @task()
     def remote_exists(self, name, version):
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
         if img in self.image_cache:
             return self.image_cache[img]
 
@@ -74,7 +78,7 @@ class Docker(object):
 
     @task()
     def local_exists(self, name, version):
-        return bool(sh("docker", "images", "-q", image(self.registry, self.namespace, name, version)).output)
+        return bool(sh("docker", "images", "-q", self.image(name, version)).output)
 
     @task()
     def exists(self, name, version):
@@ -91,13 +95,13 @@ class Docker(object):
 
     @task()
     def tag(self, source, name, version):
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
         sh("docker", "tag", source, img)
 
     @task()
     def push(self, name, version):
         self._login()
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
         self.image_cache.pop(img, None)
         sh("docker", "push", img)
         return img
@@ -111,7 +115,7 @@ class Docker(object):
             buildargs.append("--build-arg")
             buildargs.append("%s=%s" % (k, v))
 
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
 
         sh("docker", "build", directory, "-f", dockerfile, "-t", img, *buildargs)
         return img
