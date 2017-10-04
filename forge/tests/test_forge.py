@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pexpect, sys, time
+import os, pexpect, sys, time, yaml
 from .common import mktree
+from forge.tasks import sh
 
 START_TIME = time.time()
 MANGLE = str(START_TIME).replace('.', '-')
@@ -158,7 +159,7 @@ password = 'forgetest'
 org = 'forgeorg'
 
 def launch(directory, cmd):
-    return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout, timeout=60)
+    return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout, timeout=120)
 
 def test_setup():
     directory = mktree(APP, MANGLE=MANGLE)
@@ -274,3 +275,63 @@ def test_no_k8s():
     forge.expect("k8s: template not found")
     forge.expect(pexpect.EOF)
     assert forge.wait() == 1
+
+REBUILDER = """
+@@rebuilder/service.yaml
+name: rebuilder-MANGLE
+containers:
+  - dockerfile: Dockerfile
+    rebuild:
+      root: /code
+      command: echo "Built on $(date)" >> buildlog.txt
+      sources:
+        - requirements.txt
+        - src
+@@
+
+@@rebuilder/Dockerfile
+FROM python:3-alpine
+WORKDIR /code
+COPY . ./
+RUN pip install -r requirements.txt
+ENTRYPOINT ["python3", "src/hello.py"]
+@@
+
+@@rebuilder/requirements.txt
+click
+@@
+
+@@rebuilder/src/hello.py
+print("hello")
+@@
+"""
+
+def load_metadata(directory):
+    result = sh("forge", "build", "metadata", cwd=directory)
+    return yaml.load(result.output)
+
+def run_image(directory):
+    md = load_metadata(directory)
+    image = md["build"]["images"]["Dockerfile"]
+    result = sh("docker", "run", "--rm", "-it", image)
+    return result.output
+
+def test_rebuilder():
+    directory = mktree(FORGE_YAML + REBUILDER, MANGLE=MANGLE)
+    forge = launch(directory, "forge build containers")
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 0
+    assert run_image(directory).strip() == "hello"
+
+    with open(os.path.join(directory, "rebuilder/src/hello.py"), "write") as f:
+        f.write('print("goodbye")\n')
+
+    forge = launch(directory, "forge build containers")
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 0
+    assert run_image(directory).strip() == "goodbye"
+
+    forge = launch(directory, "forge clean")
+    forge.expect("docker kill ")
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 0

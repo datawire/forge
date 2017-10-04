@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, urllib2
+import os, urllib2, hashlib
 from tasks import task, TaskError, get, sh, Secret
 
 def image(registry, namespace, name, version):
@@ -27,6 +27,10 @@ class Docker(object):
         self.password = password
         self.image_cache = {}
         self.logged_in = False
+
+    @task()
+    def image(self, name, version):
+        return image(self.registry, self.namespace, name, version)
 
     def _login(self):
         if not self.logged_in:
@@ -57,7 +61,7 @@ class Docker(object):
 
     @task()
     def remote_exists(self, name, version):
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
         if img in self.image_cache:
             return self.image_cache[img]
 
@@ -74,7 +78,7 @@ class Docker(object):
 
     @task()
     def local_exists(self, name, version):
-        return bool(sh("docker", "images", "-q", image(self.registry, self.namespace, name, version)).output)
+        return bool(sh("docker", "images", "-q", self.image(name, version)).output)
 
     @task()
     def exists(self, name, version):
@@ -91,19 +95,19 @@ class Docker(object):
 
     @task()
     def tag(self, source, name, version):
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
         sh("docker", "tag", source, img)
 
     @task()
     def push(self, name, version):
         self._login()
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
         self.image_cache.pop(img, None)
         sh("docker", "push", img)
         return img
 
     @task()
-    def build(self, directory, dockerfile, name, version, args=None):
+    def build(self, directory, dockerfile, name, version, args):
         args = args or {}
 
         buildargs = []
@@ -111,10 +115,70 @@ class Docker(object):
             buildargs.append("--build-arg")
             buildargs.append("%s=%s" % (k, v))
 
-        img = image(self.registry, self.namespace, name, version)
+        img = self.image(name, version)
 
         sh("docker", "build", directory, "-f", dockerfile, "-t", img, *buildargs)
         return img
+
+    def get_changes(self, dockerfile):
+        entrypoint = None
+        cmd = None
+        with open(dockerfile) as f:
+            for line in f:
+                parts = line.split()
+                if parts and parts[0].lower() == "cmd":
+                    cmd = line
+                elif parts and parts[0].lower() == "entrypoint":
+                    entrypoint = line
+        return (entrypoint or 'ENTRYPOINT []', cmd or 'CMD []')
+
+    def builder_hash(self, dockerfile, args):
+        result = hashlib.sha1()
+        with open(dockerfile) as fd:
+            result.update(fd.read())
+        result.update("--")
+        for a in sorted(args.keys()):
+            result.update(a)
+            result.update("--")
+            result.update(args[a])
+            result.update("--")
+        return result.hexdigest()
+
+    def builder_prefix(self, name):
+        return "forge_%s" % name
+
+    def find_builders(self, name):
+        builder_prefix = self.builder_prefix(name)
+        containers = sh("docker", "ps", "-qaf", "name=%s" % builder_prefix, "--format", "{{.ID}} {{.Names}}")
+        for line in containers.output.splitlines():
+            id, builder_name = line.split()
+            yield id, builder_name
+
+    @task()
+    def builder(self, directory, dockerfile, name, version, args):
+        # We hash the buildargs and Dockerfile so that we reconstruct
+        # the builder container if anything changes. This might want
+        # to be extended to cover other files the Dockerfile
+        # references somehow at some point. (Maybe we could use the
+        # spec stuff we use in .forgeignore?)
+        builder_name = "%s_%s" % (self.builder_prefix(name), self.builder_hash(dockerfile, args))
+
+        cid = None
+        for id, bname in self.find_builders(name):
+            if bname == builder_name:
+                cid = id
+            else:
+                Builder(self, id).kill()
+        if not cid:
+            image = self.build(directory, dockerfile, name, version, args)
+            cid = sh("docker", "run", "--rm", "--name", builder_name, "-dit", "--entrypoint", "/bin/sh",
+                     image).output.strip()
+        return Builder(self, cid, self.get_changes(dockerfile))
+
+    @task()
+    def clean(self, name):
+        for id, bname in self.find_builders(name):
+            Builder(self, id).kill()
 
     @task()
     def validate(self):
@@ -124,3 +188,32 @@ class Docker(object):
         self.tag(test_image, name, version)
         self.push(name, version)
         assert self.remote_exists(name, version)
+
+    @task()
+    def run(self, name, version, cmd, *args):
+        return sh("docker", "run", "--rm", "-it", "--entrypoint", cmd, self.image(name, version), *args)
+
+
+class Builder(object):
+
+    def __init__(self, docker, cid, changes=()):
+        self.docker = docker
+        self.cid = cid
+        self.changes = changes
+
+    def run(self, *args):
+        return sh("docker", "exec", "-it", self.cid, *args)
+
+    def cp(self, source, target):
+        return sh("docker", "cp", source, "{0}:{1}".format(self.cid, target))
+
+    def commit(self, name, version):
+        args = []
+        for change in self.changes:
+            args.append("-c")
+            args.append(change)
+        args.extend((self.cid, self.docker.image(name, version)))
+        return sh("docker", "commit", *args)
+
+    def kill(self):
+        sh("docker", "kill", self.cid, expected=(0, 1))

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os, time
-from forge.tasks import TaskError
+from forge.tasks import sh, TaskError
 from forge.docker import Docker
 from .common import mktree
 
@@ -61,7 +61,7 @@ def test_build_push():
     directory = mktree(DOCKER_SOURCE_TREE, START_TIME=time.ctime(START_TIME))
     name = "dockertest"
     version = "t%s" % START_TIME
-    dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
+    dr.build(directory, os.path.join(directory, "Dockerfile"), name, version, {})
     dr.push(name, version)
     assert dr.remote_exists(name, version)
 
@@ -84,8 +84,73 @@ def test_build_error():
     name = "dockertestbad"
     version = "t%s" % START_TIME
     try:
-        dr.build(directory, os.path.join(directory, "Dockerfile"), name, version)
+        dr.build(directory, os.path.join(directory, "Dockerfile"), name, version, {})
     except TaskError, e:
         msg = str(e)
         assert "command 'docker build" in msg
         assert "nknown instruction: XXXFROM" in msg
+
+BUILDER_SOURCE_TREE = """
+@@Dockerfile
+FROM alpine:3.5
+COPY timestamp.txt .
+RUN echo original_content > content.txt
+ENTRYPOINT ["cat"]
+CMD ["content.txt"]
+@@
+
+@@timestamp.txt
+START_TIME
+@@
+"""
+
+def test_builder():
+    dr = Docker(registry, namespace, user, password)
+    directory = mktree(BUILDER_SOURCE_TREE, START_TIME=str(START_TIME))
+    name = "buildertest_%s" % START_TIME
+    version = "t%s" % START_TIME
+    builder = dr.builder(directory, os.path.join(directory, "Dockerfile"), name, version, {})
+    try:
+        # create a builder container based on the Dockerfile
+        result = builder.run("cat", "timestamp.txt")
+        assert result.output == str(START_TIME)
+
+        # create an image from the builder with no incremental mods
+        builder.commit(name, version)
+        # check the image has the correct timestamp and
+        result = dr.run(name, version, "cat", "timestamp.txt")
+        assert result.output == str(START_TIME)
+        # check that the original CMD and ENTRYPOINT are preserved
+        result = sh("docker", "run", "--rm", "-it", dr.image(name, version))
+        assert result.output.strip() == "original_content"
+
+
+        # update the timestamp in the builder image
+        builder.run("/bin/sh", "-c", "echo updated > timestamp.txt")
+        result = builder.run("cat", "timestamp.txt")
+        assert result.output.strip() == "updated"
+        # create a new image from the updated builder
+        builder.commit(name, version + "_updated")
+        result = dr.run(name, version + "_updated", "cat", "timestamp.txt")
+        assert result.output.strip() == "updated"
+        # check that the original CMD and ENTRYPOINT are preserved in
+        # the image created from the updated container
+        result = sh("docker", "run", "--rm", "-it", dr.image(name, version + "_updated"))
+        assert result.output.strip() == "original_content"
+
+        # now let's update the Dockerfile and make sure we launch a new builder
+        with open(os.path.join(directory, "Dockerfile"), "write") as fd:
+            fd.write("""FROM alpine:3.5
+COPY timestamp.txt .
+RUN echo updated_content > content.txt
+ENTRYPOINT ["cat"]
+CMD ["content.txt"]
+""")
+
+        builder = dr.builder(directory, os.path.join(directory, "Dockerfile"), name, version, {})
+        builder.commit(name, version)
+        # check that the updated CMD and ENTRYPOINT are present
+        result = sh("docker", "run", "--rm", "-it", dr.image(name, version))
+        assert result.output.strip() == "updated_content"
+    finally:
+        builder.kill()

@@ -211,7 +211,7 @@ class Forge(object):
         for container in raw:
             ctx = service.name if len(raw) == 1 else "%s[%s]" % (service.name, (container.index + 1))
             with task.context(ctx), task.verbose(True):
-                self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
+                container.build.go(self)
             baked.append(container)
 
         task.sync()
@@ -268,7 +268,7 @@ class Forge(object):
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
 
-    def load_services(self, deps=False):
+    def load_services(self):
         start = util.search_parents("service.yaml")
         if start:
             path = os.path.dirname(start)
@@ -284,12 +284,18 @@ class Forge(object):
     @task()
     def metadata(self):
         self.load_config()
-        services = self.load_services(deps=False)
+        services = self.load_services()
         if not services:
             raise TaskError("no service found")
         else:
             svc = self.services[services[0]]
             print yaml.dump(svc.metadata(self.docker.registry, self.docker.namespace))
+
+    @task()
+    def clean(self, service):
+        with task.verbose(True):
+            for container in service.containers:
+                self.docker.clean(container.image)
 
     def execute(self, goal):
         self.load_config()
@@ -303,7 +309,7 @@ class Forge(object):
         def root():
             with task.verbose(self.verbose):
                 task.info("CONFIG: %s" % self.config)
-                for name in self.load_services(deps=True):
+                for name in self.load_services():
                     service.go(name)
 
         exe = root.run()
@@ -464,6 +470,14 @@ def deploy(forge, namespace, dry_run):
     forge.namespace = namespace
     forge.dry_run = dry_run
     forge.execute(lambda svc: forge.deploy(*forge.build(svc)))
+
+@forge.command()
+@click.pass_obj
+def clean(forge):
+    """
+    Clean up intermediate containers used for building.
+    """
+    forge.execute(forge.clean)
 
 def call_main():
     util.setup_yaml()

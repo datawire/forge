@@ -204,7 +204,8 @@ class _Muxer(object):
             context = exe.context
             color = exe.color
         if self.previous != context:
-            self.stream.write(color(u"\u2554\u2550") + color(context or "(none)") + "\n")
+            if context is not None:
+                self.stream.write(color(u"\u2554\u2550") + color(context) + "\n")
         self.stream.write(bytes)
         self.previous = context
 
@@ -343,7 +344,7 @@ class executor(object):
             if self.parent:
                 self.context = self.parent.context
             else:
-                self.context = "(none)"
+                self.context = None
         else:
             self.context = self.name
 

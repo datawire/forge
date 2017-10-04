@@ -1,4 +1,4 @@
-import collections, errno, hashlib, logging, os, socket, yaml
+import collections, errno, logging, os, socket, yaml
 
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.iteritems())
