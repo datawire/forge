@@ -144,30 +144,28 @@ class Docker(object):
             result.update("--")
         return result.hexdigest()
 
+    def builder_prefix(self, name):
+        return "forge_%s" % name
+
+    def find_builders(self, name):
+        builder_prefix = self.builder_prefix(name)
+        containers = sh("docker", "ps", "-qaf", "name=%s" % builder_prefix, "--format", "{{.ID}} {{.Names}}")
+        for line in containers.output.splitlines():
+            id, builder_name = line.split()
+            yield id, builder_name
+
     @task()
     def builder(self, directory, dockerfile, name, version, args):
-        builder_prefix = "forge_%s" % name
         # We hash the buildargs and Dockerfile so that we reconstruct
         # the builder container if anything changes. This might want
         # to be extended to cover other files the Dockerfile
         # references somehow at some point. (Maybe we could use the
         # spec stuff we use in .forgeignore?)
-        builder_name = "%s_%s" % (builder_prefix, self.builder_hash(dockerfile, args))
+        builder_name = "%s_%s" % (self.builder_prefix(name), self.builder_hash(dockerfile, args))
 
-        find_builders = "docker", "ps", "-qaf", "name=%s" % builder_prefix, "--format", "{{.ID}} {{.Names}}"
-        find_old_builders = find_builders + ("-f", "status=exited", "-f", "status=dead")
-
-        old = sh(*find_old_builders).output.splitlines()
-
-        for line in old:
-            id, name = line.split()
-            sh("docker", "rm", id, expected=(0, 1))
-
-        containers = sh(*find_builders)
         cid = None
-        for line in containers.output.splitlines():
-            id, name = line.split()
-            if name == builder_name:
+        for id, bname in self.find_builders(name):
+            if bname == builder_name:
                 cid = id
             else:
                 Builder(self, id).kill()
@@ -176,6 +174,11 @@ class Docker(object):
             cid = sh("docker", "run", "--rm", "--name", builder_name, "-dit", "--entrypoint", "/bin/sh",
                      image).output.strip()
         return Builder(self, cid, self.get_changes(dockerfile))
+
+    @task()
+    def clean(self, name):
+        for id, bname in self.find_builders(name):
+            Builder(self, id).kill()
 
     @task()
     def validate(self):
@@ -214,4 +217,3 @@ class Builder(object):
 
     def kill(self):
         sh("docker", "kill", self.cid, expected=(0, 1))
-        sh("docker", "rm", self.cid, expected=(0, 1))

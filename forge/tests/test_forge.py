@@ -330,3 +330,8 @@ def test_rebuilder():
     forge.expect(pexpect.EOF)
     assert forge.wait() == 0
     assert run_image(directory).strip() == "goodbye"
+
+    forge = launch(directory, "forge clean")
+    forge.expect("docker kill ")
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 0
