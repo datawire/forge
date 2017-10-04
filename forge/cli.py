@@ -211,7 +211,7 @@ class Forge(object):
         for container in raw:
             ctx = service.name if len(raw) == 1 else "%s[%s]" % (service.name, (container.index + 1))
             with task.context(ctx), task.verbose(True):
-                self.docker.build.go(container.abs_context, container.abs_dockerfile, container.image, container.version)
+                container.build.go(self)
             baked.append(container)
 
         task.sync()

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, urllib2
+import os, urllib2, hashlib
 from tasks import task, TaskError, get, sh, Secret
 
 def image(registry, namespace, name, version):
@@ -107,7 +107,7 @@ class Docker(object):
         return img
 
     @task()
-    def build(self, directory, dockerfile, name, version, args=None):
+    def build(self, directory, dockerfile, name, version, args):
         args = args or {}
 
         buildargs = []
@@ -120,6 +120,63 @@ class Docker(object):
         sh("docker", "build", directory, "-f", dockerfile, "-t", img, *buildargs)
         return img
 
+    def get_changes(self, dockerfile):
+        entrypoint = None
+        cmd = None
+        with open(dockerfile) as f:
+            for line in f:
+                parts = line.split()
+                if parts and parts[0].lower() == "cmd":
+                    cmd = line
+                elif parts and parts[0].lower() == "entrypoint":
+                    entrypoint = line
+        return (entrypoint or 'ENTRYPOINT []', cmd or 'CMD []')
+
+    def builder_hash(self, dockerfile, args):
+        result = hashlib.sha1()
+        with open(dockerfile) as fd:
+            result.update(fd.read())
+        result.update("--")
+        for a in sorted(args.keys()):
+            result.update(a)
+            result.update("--")
+            result.update(args[a])
+            result.update("--")
+        return result.hexdigest()
+
+    @task()
+    def builder(self, directory, dockerfile, name, version, args):
+        builder_prefix = "forge_%s" % name
+        # We hash the buildargs and Dockerfile so that we reconstruct
+        # the builder container if anything changes. This might want
+        # to be extended to cover other files the Dockerfile
+        # references somehow at some point. (Maybe we could use the
+        # spec stuff we use in .forgeignore?)
+        builder_name = "%s_%s" % (builder_prefix, self.builder_hash(dockerfile, args))
+
+        find_builders = "docker", "ps", "-qaf", "name=%s" % builder_prefix, "--format", "{{.ID}} {{.Names}}"
+        find_old_builders = find_builders + ("-f", "status=exited", "-f", "status=dead")
+
+        old = sh(*find_old_builders).output.splitlines()
+
+        for line in old:
+            id, name = line.split()
+            sh("docker", "rm", id, expected=(0, 1))
+
+        containers = sh(*find_builders)
+        cid = None
+        for line in containers.output.splitlines():
+            id, name = line.split()
+            if name == builder_name:
+                cid = id
+            else:
+                Builder(self, id).kill()
+        if not cid:
+            image = self.build(directory, dockerfile, name, version, args)
+            cid = sh("docker", "run", "--rm", "--name", builder_name, "-dit", "--entrypoint", "/bin/sh",
+                     image).output.strip()
+        return Builder(self, cid, self.get_changes(dockerfile))
+
     @task()
     def validate(self):
         test_image = os.environ.get("FORGE_SETUP_IMAGE", "registry.hub.docker.com/datawire/forge-setup-test:1")
@@ -128,3 +185,33 @@ class Docker(object):
         self.tag(test_image, name, version)
         self.push(name, version)
         assert self.remote_exists(name, version)
+
+    @task()
+    def run(self, name, version, cmd, *args):
+        return sh("docker", "run", "--rm", "-it", "--entrypoint", cmd, self.image(name, version), *args)
+
+
+class Builder(object):
+
+    def __init__(self, docker, cid, changes=()):
+        self.docker = docker
+        self.cid = cid
+        self.changes = changes
+
+    def run(self, *args):
+        return sh("docker", "exec", "-it", self.cid, *args)
+
+    def cp(self, source, target):
+        return sh("docker", "cp", source, "{0}:{1}".format(self.cid, target))
+
+    def commit(self, name, version):
+        args = []
+        for change in self.changes:
+            args.append("-c")
+            args.append(change)
+        args.extend((self.cid, self.docker.image(name, version)))
+        return sh("docker", "commit", *args)
+
+    def kill(self):
+        sh("docker", "kill", self.cid, expected=(0, 1))
+        sh("docker", "rm", self.cid, expected=(0, 1))
