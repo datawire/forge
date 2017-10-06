@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.3.3 (Sep 29th, 2017)
+
+* Incremental rebuild of containers. See [here](customize-container-builds.md) for documentation.
+* Additional documentation on customizing container builds. (See above link.)
+
 #### 0.3.2 (Sep 29th, 2017)
 
 * Warn on undefined jinja variables as a prelude to enabling strict mode: [#64](https://github.com/datawire/forge/issues/44)
