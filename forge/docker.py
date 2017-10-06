@@ -40,7 +40,8 @@ class Docker(object):
     @task()
     def registry_get(self, api):
         url = "https://%s/v2/%s" % (self.registry, api)
-        response = get(url, auth=(self.user, self.password))
+        response = get(url, auth=(self.user, self.password),
+                       headers={"Accept": 'application/vnd.docker.distribution.manifest.v2+json'})
         if response.status_code == 401:
             challenge = response.headers['Www-Authenticate']
             if challenge.startswith("Bearer "):
@@ -67,7 +68,8 @@ class Docker(object):
 
         response = self.repo_get(name, "manifests/%s" % version)
         result = response.json()
-        if 'signatures' in result and 'fsLayers' in result:
+        # v1 and v2 manifest schemas look a bit different
+        if 'fsLayers' in result or 'layers' in result:
             self.image_cache[img] = True
             return True
         elif 'errors' in result and result['errors']:
