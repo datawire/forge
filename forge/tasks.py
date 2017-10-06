@@ -391,11 +391,22 @@ def sh(*args, **kwargs):
 
 requests = eventlet.import_patched('requests.__init__') # the .__init__ is a workaround for: https://github.com/eventlet/eventlet/issues/208
 
+def json_patch(response, parser):
+    def patched():
+        try:
+            return parser()
+        except ValueError, e:
+            task.echo("== response could not be parsed as JSON ==")
+            task.echo(response.content)
+            raise
+    return patched
+
 @task("GET")
 def get(url, **kwargs):
     task.info("GET %s" % url)
     try:
         response = requests.get(str(url), **kwargs)
+        response.json = json_patch(response, response.json)
         return response
     except requests.RequestException, e:
         raise TaskError(e)
