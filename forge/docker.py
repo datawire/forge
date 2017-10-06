@@ -204,7 +204,9 @@ class Builder(object):
         self.changes = changes
 
     def run(self, *args):
-        return sh("docker", "exec", "-it", self.cid, *args)
+        # XXX: for some reason when we put a -t here it messes up the
+        # terminal output
+        return sh("docker", "exec", "-i", self.cid, *args)
 
     def cp(self, source, target):
         return sh("docker", "cp", source, "{0}:{1}".format(self.cid, target))
