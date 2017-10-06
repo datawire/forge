@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.5 (Oct 6th, 2017)
+
+* Avoid terminal being messed up from docker commands.
+
 #### 0.3.4 (Oct 6th, 2017)
 
 * Fixed gcr integration: [#67](https://github.com/datawire/forge/issues/67)
