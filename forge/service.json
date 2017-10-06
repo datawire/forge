@@ -41,18 +41,20 @@
     "Rebuild": {
       "type": "object",
       "description": "Rebuild metadata for containers. When you specify the appropriate rebuild properties, forge will use these to perform fast incremental container builds.",
-      "root": {
-        "type": "string",
-        "description": "The root path where sources live inside the container. All files and directories listed in the sources array are copied to this location prior to executing a build."
-      },
-      "command": {
-        "type": "string",
-        "description": "The command that is executed inside the container in order to perform a build."
-      },
-      "sources": {
-        "type": "array",
-        "items": { "type": "string" },
-        "description": "An array of files or directories that will be copied into the container prior to performing a build."
+      "properties": {
+        "root": {
+          "type": "string",
+          "description": "The root path where sources live inside the container. All files and directories listed in the sources array are copied to this location prior to executing a build."
+        },
+        "command": {
+          "type": "string",
+          "description": "The command that is executed inside the container in order to perform a build."
+        },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "An array of files or directories that will be copied into the container prior to performing a build."
+        }
       }
     },
     "Config": {
