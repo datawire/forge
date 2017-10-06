@@ -1,9 +1,8 @@
 {
   "$schema": "http://json-schema.org/schema#",
-
+  "id": "https://raw.githubusercontent.com/datawire/forge/master/forge/service.json",
   "definitions": {
     "Container": {
-      "id": "Container",
       "description": "Build instructions for a container.",
       "anyOf": [
         {"type": "string"},
@@ -30,7 +29,7 @@
               }
             },
             "rebuild": {
-#              "$ref": "#/Rebuild",
+              "$ref": "#/definitions/Rebuild",
               "description": "Rebuild metadata for the container."
             }
           },
@@ -40,7 +39,6 @@
       ]
     },
     "Rebuild": {
-      "id": "Rebuild",
       "type": "object",
       "description": "Rebuild metadata for containers. When you specify the appropriate rebuild properties, forge will use these to perform fast incremental container builds.",
       "root": {
@@ -58,7 +56,6 @@
       }
     },
     "Config": {
-      "id": "Config",
       "type": "object",
       "description": "Arbitrary application defined configuration parameters for a service."
     }
