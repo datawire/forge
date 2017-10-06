@@ -21,6 +21,7 @@
 ## Reference
 
 * [Service Descriptor](docs/reference/service-descriptor.md)
+* [Customizing Container Builds](docs/reference/customize-container-builds.md)
 * [Environment Customization](docs/reference/environments.md)
 * [Service Dependencies](docs/reference/dependencies.md)
 * [Canary deploys with Kubernetes](docs/reference/canary.md)
