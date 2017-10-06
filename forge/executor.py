@@ -54,6 +54,7 @@ class Result(object):
         self.exc_info = None
         self.thread = None
         self.stack = None
+        self._recovered = False
 
     @property
     def exception(self):
@@ -80,8 +81,10 @@ class Result(object):
         for ch in self.children:
             ch.wait()
         if self.child_errors > 0 and self.value is not ERROR:
-            self.value = ERROR
-            self.exception = (ChildError, ChildError(self, self.leaf_errors), None)
+            errors = [e for e in self.leaf_errors if not e._recovered]
+            if errors:
+                self.value = ERROR
+                self.exception = (ChildError, ChildError(self, self.leaf_errors), None)
 
     def get(self):
         self.wait()
@@ -89,6 +92,10 @@ class Result(object):
             raise self.exception[0], self.exception[1], self.exception[2]
         else:
             return self.value
+
+    def recover(self):
+        for r in self.traversal:
+            r._recovered = True
 
     @property
     def traversal(self):

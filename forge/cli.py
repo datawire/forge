@@ -172,6 +172,7 @@ class Forge(object):
                 if e.result is ERROR:
                     task.echo()
                     task.echo(self.terminal.red("-- please try again --"))
+                    e.recover()
                     continue
                 else:
                     break
