@@ -1,6 +1,10 @@
 # Changelog
 
-#### 0.3.3 (Sep 29th, 2017)
+#### 0.3.4 (Oct 6th, 2017)
+
+* Fixed gcr integration: [#67](https://github.com/datawire/forge/issues/67)
+
+#### 0.3.3 (Oct 6th, 2017)
 
 * Incremental rebuild of containers. See [here](customize-container-builds.md) for documentation.
 * Additional documentation on customizing container builds. (See above link.)
