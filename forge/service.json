@@ -17,7 +17,7 @@
             },
             "context": {
               "type": "string",
-              "description": "The build context for the container. This defaults to the directory containing the dockerfile."
+              "description": "The build context for the container. This is a path specified relative to the directory containing the service.yaml file. This defaults to the directory containing the dockerfile."
             },
             "args": {
               "type": "object",
@@ -30,21 +30,8 @@
               }
             },
             "rebuild": {
-              "type": "object",
-              "description": "When you specify the appropriate rebuild properties, forge will use these to perform fast incremental container builds.",
-              "root": {
-                "type": "string",
-                "description": "The root path where sources live inside the container. All files and directories listed in the sources array are copied to this location prior to executing a build."
-              },
-              "command": {
-                "type": "string",
-                "description": "The command that is executed inside the container in order to perform a build."
-              },
-              "sources": {
-                "type": "array",
-                "items": { "type": "string" },
-                "description": "An array of files or directories that will be copied into the container prior to performing a build."
-              }
+#              "$ref": "#/Rebuild",
+              "description": "Rebuild metadata for the container."
             }
           },
           "required": ["dockerfile"],
@@ -52,10 +39,28 @@
         }
       ]
     },
+    "Rebuild": {
+      "id": "Rebuild",
+      "type": "object",
+      "description": "Rebuild metadata for containers. When you specify the appropriate rebuild properties, forge will use these to perform fast incremental container builds.",
+      "root": {
+        "type": "string",
+        "description": "The root path where sources live inside the container. All files and directories listed in the sources array are copied to this location prior to executing a build."
+      },
+      "command": {
+        "type": "string",
+        "description": "The command that is executed inside the container in order to perform a build."
+      },
+      "sources": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "An array of files or directories that will be copied into the container prior to performing a build."
+      }
+    },
     "Config": {
       "id": "Config",
-      "description": "Arbitrary application defined configuration parameters for a service.",
-      "type": "object"
+      "type": "object",
+      "description": "Arbitrary application defined configuration parameters for a service."
     }
   },
 
