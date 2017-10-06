@@ -1,0 +1,32 @@
+apply plugin: 'java'
+
+version = '1.0'
+
+ext {
+    gsonVersion    = '2.7'
+    sparkVersion   = '2.5'
+    logbackVersion = '1.1.7'
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile group: 'com.sparkjava', name: 'spark-core', version: sparkVersion
+    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+}
+
+task "package"(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title'   : 'Hello Spark',
+                   'Implementation-Version' : version,
+                   'Main-Class'             : 'sparkexample.Hello'
+    }
+
+    version = null
+    baseName = project.name
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}

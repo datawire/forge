@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{service.name}}
+spec:
+  selector:
+    app: {{service.name}}
+  ports:
+    - protocol: {{service.protocol|default('TCP')}}
+      port: {{service.port|default('80')}}
+      targetPort: {{service.targetPort|default('8080')}}
+  type: LoadBalancer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata: {name: {{service.name}}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{service.name}}
+  strategy:
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    type: RollingUpdate
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        app: {{service.name}}
+      name: {{service.name}}
+    spec:
+      containers:
+      - image: {{build.images["Dockerfile"]}}
+        imagePullPolicy: IfNotPresent
+        name: {{service.name}}
+        resources:
+          requests:
+            memory: {{service.min_memory|default(0.1)}}
+            cpu: {{service.min_cpu|default(0.1)}}
+          limits:
+            memory: {{service.max_memory}}
+            cpu: {{service.max_cpu}}
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30

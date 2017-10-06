@@ -1,0 +1,17 @@
+name: hello-spark
+
+max_memory: 0.5G
+max_cpu: 0.5
+
+containers:
+ - dockerfile: Dockerfile
+   rebuild:
+     # Where our code lives inside the container.
+     root: /code
+     # The command used to rebuild our code inside the container.
+     command: ./gradlew package
+     # A list of input sources that get synced into the container prior to builds.
+     sources:
+       - build.gradle
+       - settings.gradle
+       - src
