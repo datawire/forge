@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.6 (Oct 6th, 2017)
+
+* Fixed bug in copy logic when subdirectories are used in the sources list.
+
 #### 0.3.5 (Oct 6th, 2017)
 
 * Avoid terminal being messed up from docker commands.

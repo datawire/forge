@@ -306,6 +306,36 @@ print("hello")
 @@
 """
 
+REBUILDER_SUBDIR = """
+@@rebuilder/service.yaml
+name: rebuilder-MANGLE
+containers:
+  - dockerfile: Dockerfile
+    rebuild:
+      root: /code
+      command: echo "Built on $(date)" >> buildlog.txt
+      sources:
+        - subdir/requirements.txt
+        - subdir/src
+@@
+
+@@rebuilder/Dockerfile
+FROM python:3-alpine
+WORKDIR /code
+COPY . ./
+RUN pip install -r subdir/requirements.txt
+ENTRYPOINT ["python3", "subdir/src/hello.py"]
+@@
+
+@@rebuilder/subdir/requirements.txt
+click
+@@
+
+@@rebuilder/subdir/src/hello.py
+print("hello")
+@@
+"""
+
 def load_metadata(directory):
     result = sh("forge", "build", "metadata", cwd=directory)
     return yaml.load(result.output)
@@ -316,14 +346,14 @@ def run_image(directory):
     result = sh("docker", "run", "--rm", "-it", image)
     return result.output
 
-def test_rebuilder():
-    directory = mktree(FORGE_YAML + REBUILDER, MANGLE=MANGLE)
+def do_test_rebuilder(tree, path):
+    directory = mktree(FORGE_YAML + tree, MANGLE=MANGLE)
     forge = launch(directory, "forge build containers")
     forge.expect(pexpect.EOF)
     assert forge.wait() == 0
     assert run_image(directory).strip() == "hello"
 
-    with open(os.path.join(directory, "rebuilder/src/hello.py"), "write") as f:
+    with open(os.path.join(directory, path), "write") as f:
         f.write('print("goodbye")\n')
 
     forge = launch(directory, "forge build containers")
@@ -335,3 +365,9 @@ def test_rebuilder():
     forge.expect("docker kill ")
     forge.expect(pexpect.EOF)
     assert forge.wait() == 0
+
+def test_rebuilder():
+    do_test_rebuilder(REBUILDER, "rebuilder/src/hello.py")
+
+def test_rebuilder_subdir():
+    do_test_rebuilder(REBUILDER_SUBDIR, "rebuilder/subdir/src/hello.py")

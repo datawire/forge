@@ -318,7 +318,7 @@ class Container(object):
                 tgt_src = os.path.join(self.rebuild_root, src)
                 if os.path.isdir(abs_src):
                     builder.run("rm", "-rf", tgt_src)
-                builder.cp(abs_src, self.rebuild_root)
+                builder.cp(abs_src, tgt_src)
             if self.rebuild_command:
                 builder.run("/bin/sh", "-c", self.rebuild_command)
             builder.commit(self.image, self.version)
