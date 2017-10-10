@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.7 (Oct 9th, 2017)
+
+* Fixed image existence check for ECR.
+
 #### 0.3.6 (Oct 6th, 2017)
 
 * Fixed bug in copy logic when subdirectories are used in the sources list.
