@@ -73,7 +73,7 @@ class Docker(object):
             self.image_cache[img] = True
             return True
         elif 'errors' in result and result['errors']:
-            if result['errors'][0]['code'] == 'MANIFEST_UNKNOWN':
+            if result['errors'][0]['code'] in ('MANIFEST_UNKNOWN', 'NAME_UNKNOWN'):
                 self.image_cache[img] = False
                 return False
         raise TaskError(response.content)
