@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.8 (Oct 13th, 2017)
+
+* Fixed regression: don't swallow errors on apply.
+
 #### 0.3.7 (Oct 9th, 2017)
 
 * Fixed image existence check for ECR.
