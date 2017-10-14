@@ -33,5 +33,5 @@ class Kubernetes(object):
             cmd += "--namespace", self.namespace
         if self.dry_run:
             cmd += "--dry-run",
-        result = sh(*cmd, expected=xrange(256))
+        result = sh(*cmd)
         return result

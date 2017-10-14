@@ -89,3 +89,22 @@ def test_apply(namespace=None):
 def test_apply_namespace():
     sh("kubectl", "create", "namespace", mangle("dev-MANGLE"))
     test_apply(namespace=mangle("dev-MANGLE"))
+
+K8S_BAD_TREE = """
+@@k8s/deployment.yaml
+---
+apiVersion: v1
+kind: xxx
+metadata:
+  name: bad
+@@
+"""
+
+def test_apply_bad():
+    directory = mktree(K8S_BAD_TREE)
+    kube = Kubernetes()
+    try:
+        kube.apply(os.path.join(directory, "k8s"))
+    except TaskError, e:
+        assert "error" in str(e)
+        assert "xxx" in str(e)
