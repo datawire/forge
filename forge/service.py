@@ -199,7 +199,8 @@ class Service(object):
         self.files = []
         self._info = None
         self._version = None
-        self.branch = sh("git", "symbolic-ref", "--short", "HEAD").output.strip() if is_git(self.root) else None
+        self.branch = (sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
+                       if is_git(self.root) else None)
         self.profile = profile
 
     @property

@@ -407,16 +407,6 @@ def do_test_profile(command, result):
     with open(os.path.join(directory, ".forge", "k8s", "profile-test", "profile.yaml")) as fd:
         assert fd.read() == result
 
-def test_profile():
-    do_test_profile("forge build manifests", """---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: dummy
-data:
-  myval: default-value
-  name: default""")
-
 def test_profile_default():
     do_test_profile("forge --profile default build manifests", """---
 apiVersion: v1
