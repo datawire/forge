@@ -86,6 +86,15 @@
       "description": "A list of containers that form this service. If this is not supplied then any Dockerfile is assumed.",
       "items": {"$ref": "#/definitions/Container"}
     },
+    "profiles": {
+      "type": "object",
+      "description": "A mapping from profile name to profile-specific values."
+    },
+    "branches": {
+      "type": "object",
+      "description": "A mapping from branch patterns to profile names.",
+      "additionalProperties": {"type": "string"}
+    },
     "config": {
       "$ref": "#/definitions/Config",
       "description": "Arbitrary application defined configuration parameters for a service."
