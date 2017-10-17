@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.9 (Oct 16th, 2017)
+
+* Added support for profiles: See the [profiles documentaiton](profiles.md) for more details.
+
 #### 0.3.8 (Oct 13th, 2017)
 
 * Fixed regression: don't swallow errors on apply.
