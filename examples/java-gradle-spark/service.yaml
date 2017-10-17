@@ -15,15 +15,21 @@ containers:
 
 profiles:
   stable:
+    endpoint: /hello
     max_memory: 0.5G
     max_cpu: 0.5
   canary:
+    endpoint: /hello
+    weight: 10.0 # percentage of traffic to route to this class of deployment
     max_memory: 0.5G
     max_cpu: 0.5G
-    weight: 10.0 # percentage of traffic to route to this class of deployment
   default:
+    endpoint: /preview/{{branch}}/hello
     max_memory: 0.25G
     max_cpu: 0.25
+  blah:
+    max_memory: 0.1G
+    max_cpu: 0.1
 
 branches:
   master: stable
