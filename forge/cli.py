@@ -89,13 +89,14 @@ def file_contents(path):
 
 class Forge(object):
 
-    def __init__(self, verbose=0, config=None):
+    def __init__(self, verbose=0, config=None, profile=None):
         self.verbose = verbose
         self.config = config or util.search_parents("forge.yaml")
+        self.profile = profile
         self.namespace = None
         self.dry_run = False
         self.terminal = Terminal()
-        self.discovery = Discovery()
+        self.discovery = Discovery(profile=profile)
         self.services = OrderedDict()
 
         self.baked = []
@@ -361,9 +362,10 @@ def get_docker(conf):
 @click.version_option(__version__, message="%(prog)s %(version)s")
 @click.option('-v', '--verbose', count=True)
 @click.option('--config', envvar='FORGE_CONFIG', type=click.Path(exists=True))
+@click.option('--profile', envvar='FORGE_PROFILE')
 @click.pass_context
-def forge(context, verbose, config):
-    context.obj = Forge(verbose=verbose, config=config)
+def forge(context, verbose, config, profile):
+    context.obj = Forge(verbose=verbose, config=config, profile=None if profile is None else str(profile))
 
 @forge.command()
 @click.pass_obj

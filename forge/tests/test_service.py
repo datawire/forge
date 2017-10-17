@@ -23,6 +23,8 @@ def VALID(content):
     return (None, content)
 
 YAML = (
+# unlexable
+    ERROR("error parsing service yaml:", "name: *"),
 # unparseable
     ERROR("error parsing service yaml:", "{"),
 # root

@@ -1,8 +1,5 @@
 name: hello-spark
 
-max_memory: 0.5G
-max_cpu: 0.5
-
 containers:
  - dockerfile: Dockerfile
    rebuild:
@@ -15,3 +12,20 @@ containers:
        - build.gradle
        - settings.gradle
        - src
+
+profiles:
+  stable:
+    max_memory: 0.5G
+    max_cpu: 0.5
+  canary:
+    max_memory: 0.5G
+    max_cpu: 0.5G
+    weight: 10.0 # percentage of traffic to route to this class of deployment
+  default:
+    max_memory: 0.25G
+    max_cpu: 0.25
+
+branches:
+  master: stable
+  canary: canary
+  dev/*: default

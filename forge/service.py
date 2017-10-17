@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import hashlib, jsonschema, os, pathspec, util, yaml
+import copy, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
@@ -25,17 +25,22 @@ def load_service_yaml(path):
     with open(path, "read") as f:
         return load_service_yamls(path, f.read())
 
+def _dump_and_raise(rendered, e):
+    task.echo("==unparseable service yaml==")
+    for idx, line in enumerate(rendered.splitlines()):
+        task.echo("%s: %s" % (idx + 1, line))
+    task.echo("============================")
+    raise TaskError("error parsing service yaml: %s" % e)
+
 @task()
 def load_service_yamls(name, content):
     rendered = renders(name, content, env=os.environ)
     try:
         info = yaml.load(rendered)
     except yaml.parser.ParserError, e:
-        task.echo("==unparseable service yaml==")
-        for idx, line in enumerate(rendered.splitlines()):
-            task.echo("%s: %s" % (idx + 1, line))
-        task.echo("============================")
-        raise TaskError("error parsing service yaml: %s" % e)
+        _dump_and_raise(rendered, e)
+    except yaml.scanner.ScannerError, e:
+        _dump_and_raise(rendered, e)
 
     try:
         jsonschema.validate(info, SCHEMA)
@@ -67,8 +72,9 @@ def get_ancestors(path, stop="/"):
 
 class Discovery(object):
 
-    def __init__(self):
+    def __init__(self, profile=None):
         self.services = OrderedDict()
+        self.profile = profile
 
     @task()
     def search(self, directory):
@@ -97,7 +103,7 @@ class Discovery(object):
             names = [n for n in os.listdir(path) if not spec.match_file(os.path.join(path, n))]
 
             if "service.yaml" in names:
-                svc = Service(os.path.join(path, "service.yaml"))
+                svc = Service(os.path.join(path, "service.yaml"), profile=self.profile)
                 if svc.name not in self.services:
                     self.services[svc.name] = svc
                 found.append(svc)
@@ -187,12 +193,15 @@ def get_version(path, dirty):
 
 class Service(object):
 
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, profile=None):
         self.descriptor = descriptor
         self.dockerfiles = []
         self.files = []
         self._info = None
         self._version = None
+        self.branch = (sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
+                       if is_git(self.root) else None)
+        self.profile = profile
 
     @property
     def root(self):
@@ -220,17 +229,42 @@ class Service(object):
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()
+
         metadata["env"] = os.environ
-        metadata["service"] = self.info()
-        if "name" not in metadata["service"]:
-            metadata["service"]["name"] = self.name
+
+        svc = self.info()
+        if "name" not in svc:
+            svc["name"] = self.name
+        metadata["service"] = svc
+
         build = OrderedDict()
         metadata["build"] = build
+
+        build["branch"] = self.branch
+
+        if self.profile is None:
+            profile = "default"
+            if self.branch:
+                for k, v in svc.get("branches", {}).items():
+                    if fnmatch.fnmatch(self.branch, k):
+                        profile = v
+                        break
+        else:
+            profile = self.profile
+
         build["version"] = self.version
+        prof = copy.deepcopy(svc.get("profiles", {}).get(profile, {}))
+        build["profile"] = prof
+        if "name" not in prof:
+            prof["name"] = profile
+
+        build["name"] = "%s-%s" % (svc["name"], prof["name"])
+
         build["images"] = OrderedDict()
         for container in self.dockerfiles:
             img = image(registry, repo, self.image(container), self.version)
             build["images"][container] = img
+
         return metadata
 
     @property

@@ -371,3 +371,68 @@ def test_rebuilder():
 
 def test_rebuilder_subdir():
     do_test_rebuilder(REBUILDER_SUBDIR, "rebuilder/subdir/src/hello.py")
+
+PROFILES = r"""
+@@service.yaml
+name: profile-test
+
+profiles:
+  stable:
+    myval: stable-value
+  canary:
+    myval: canary-value
+  default:
+    myval: default-value
+@@
+
+@@k8s/profile.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dummy
+data:
+  {%- for k, v in build.profile.items() %}
+  {{k}}: {{v}}
+  {%- endfor %}
+@@
+"""
+
+
+def do_test_profile(command, result):
+    directory = mktree(PROFILES + FORGE_YAML)
+    forge = launch(directory, command)
+    forge.expect(pexpect.EOF)
+    assert forge.wait() == 0
+    with open(os.path.join(directory, ".forge", "k8s", "profile-test", "profile.yaml")) as fd:
+        assert fd.read() == result
+
+def test_profile_default():
+    do_test_profile("forge --profile default build manifests", """---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dummy
+data:
+  myval: default-value
+  name: default""")
+
+def test_profile_stable():
+    do_test_profile("forge --profile stable build manifests", """---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dummy
+data:
+  myval: stable-value
+  name: stable""")
+
+def test_profile_canary():
+    do_test_profile("forge --profile canary build manifests", """---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dummy
+data:
+  myval: canary-value
+  name: canary""")
