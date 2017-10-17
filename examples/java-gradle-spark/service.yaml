@@ -27,9 +27,6 @@ profiles:
     endpoint: /preview/{{branch}}/hello
     max_memory: 0.25G
     max_cpu: 0.25
-  blah:
-    max_memory: 0.1G
-    max_cpu: 0.1
 
 branches:
   master: stable
