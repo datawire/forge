@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.3.10 (Oct 17th, 2017)
+
+* Added access to branch variable from service.yaml.
+* Use branch variable to provide preview endpoint in the java-gradle-spark example.
+
 #### 0.3.9 (Oct 16th, 2017)
 
 * Added support for profiles: See the [profiles documentaiton](profiles.md) for more details.
