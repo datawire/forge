@@ -21,9 +21,9 @@ from .tasks import sh, task, TaskError
 with open(os.path.join(os.path.dirname(__file__), "service.json")) as f:
     SCHEMA = yaml.load(f)
 
-def load_service_yaml(path):
+def load_service_yaml(path, **vars):
     with open(path, "read") as f:
-        return load_service_yamls(path, f.read())
+        return load_service_yamls(path, f.read(), **vars)
 
 def _dump_and_raise(rendered, e):
     task.echo("==unparseable service yaml==")
@@ -33,8 +33,10 @@ def _dump_and_raise(rendered, e):
     raise TaskError("error parsing service yaml: %s" % e)
 
 @task()
-def load_service_yamls(name, content):
-    rendered = renders(name, content, env=os.environ)
+def load_service_yamls(name, content, **vars):
+    if "env" not in vars:
+        vars["env"] = os.environ
+    rendered = renders(name, content, **vars)
     try:
         info = yaml.load(rendered)
     except yaml.parser.ParserError, e:
@@ -200,7 +202,7 @@ class Service(object):
         self._info = None
         self._version = None
         self.branch = (sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
-                       if is_git(self.root) else None)
+                       if is_git(self.root) else os.environ.get("FORGE_BRANCH"))
         self.profile = profile
 
     @property
@@ -278,7 +280,7 @@ class Service(object):
 
     def info(self):
         if self._info is None:
-            self._info = load_service_yaml(self.descriptor)
+            self._info = load_service_yaml(self.descriptor, branch=self.branch)
         return self._info
 
     @property

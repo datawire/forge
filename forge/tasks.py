@@ -372,12 +372,15 @@ def sh(*args, **kwargs):
         p = Popen(cmd, stderr=STDOUT, stdout=PIPE, **kwargs)
         output = ""
         line_buffer = [command]
+        start = time.time()
         for line in p.stdout:
             output += line
             line_buffer.append(line[:-1])
-            if len(line_buffer) > 10:
+            elapsed = time.time() - start
+            if (len(line_buffer) > 10) or (elapsed > 1.0):
                 while line_buffer:
                     task.info(line_buffer.pop(0))
+            start = time.time()
         while line_buffer:
             task.info(line_buffer.pop(0))
         p.wait()
