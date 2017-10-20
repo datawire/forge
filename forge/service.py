@@ -17,6 +17,7 @@ from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
 from .tasks import sh, task, TaskError
+from .github import Github
 
 with open(os.path.join(os.path.dirname(__file__), "service.json")) as f:
     SCHEMA = yaml.load(f)
@@ -135,6 +136,8 @@ class Discovery(object):
             remote = prefix + "/" + dep + ".git"
             if gh.exists(remote):
                 gh.clone(remote, target)
+            else:
+                raise TaskError("cannot resolve dependency: %s" % dep)
         found = self.search(target)
         return dep in [svc.name for svc in found]
 

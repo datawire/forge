@@ -69,7 +69,7 @@ class Github(object):
                     expected=xrange(256))
         if result.code == 0:
             return True
-        elif re.search(r"fatal: repository '.*' not found", result.output):
+        elif re.search(r"(fatal: repository '.*' not found|ERROR: Repository not found)", result.output):
             return False
         else:
             raise TaskError(result)
