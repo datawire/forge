@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.11 (Oct 23rd, 2017)
+
+* Fixed handling of service dependencies: [#74](https://github.com/datawire/forge/issues/74)
+
 #### 0.3.10 (Oct 17th, 2017)
 
 * Added access to branch variable from service.yaml.
