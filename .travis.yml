@@ -33,6 +33,7 @@ script:
 
 after_script:
  - python3.5 $(which kubernaut) discard
+ - scripts/scout.sh
 
 before_deploy:
  - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
