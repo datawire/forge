@@ -97,7 +97,6 @@ class Forge(object):
         self.dry_run = False
         self.terminal = Terminal()
         self.discovery = Discovery(profile=profile, branch=branch)
-        self.services = OrderedDict()
 
         self.baked = []
         self.pushed = []
@@ -201,8 +200,6 @@ class Forge(object):
     @task()
     def scan(self, directory):
         found = self.discovery.search(directory)
-        for f in found:
-            self.services[f.name] = f
         return [f.name for f in found]
 
     @task()
@@ -290,7 +287,7 @@ class Forge(object):
         if not services:
             raise TaskError("no service found")
         else:
-            svc = self.services[services[0]]
+            svc = self.discovery.services[services[0]]
             print yaml.dump(svc.metadata(self.docker.registry, self.docker.namespace))
 
     @task()
@@ -304,7 +301,7 @@ class Forge(object):
 
         @task(context="{0}")
         def service(name):
-            svc = self.services[name]
+            svc = self.discovery.services[name]
             goal(svc)
 
         @task(context="forge")

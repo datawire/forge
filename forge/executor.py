@@ -212,7 +212,9 @@ class _Muxer(object):
             color = exe.color
         if self.previous != context:
             if context is not None:
-                self.stream.write(color(u"\u2554\u2550") + color(context) + "\n")
+                self.stream.write((color(u"\u2554\u2550") + color(unicode(context)) + u"\n").encode("UTF-8"))
+        if isinstance(bytes, unicode):
+            bytes = bytes.encode("UTF-8")
         self.stream.write(bytes)
         self.previous = context
 
@@ -369,10 +371,9 @@ class executor(object):
         self.CURRENT.executor = saved_executor
         self.CURRENT.result = saved_result
 
-    def echo(self, text="", prefix=u"\u2551 ", newline=True):
+    def echo(self, text=u"", prefix=u"\u2551 ", newline=True):
         with self._make_current(None):
-            msg = self.color(prefix) + text.replace("\n", "\n" + self.color(prefix))
-            msg = msg.encode("UTF-8")
+            msg = self.color(prefix) + text.replace(u"\n", u"\n" + self.color(prefix))
             if newline:
                 print msg
             else:
@@ -419,4 +420,4 @@ class executor(object):
             r.wait()
 
     def report(self):
-        return "\n".join([r.report() for r in self.results])
+        return u"\n".join([r.report() for r in self.results])
