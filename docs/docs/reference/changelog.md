@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.12 (Oct 24th, 2017)
+
+* Added --branch command line argument.
+
 #### 0.3.11 (Oct 23rd, 2017)
 
 * Fixed handling of service dependencies: [#74](https://github.com/datawire/forge/issues/74)
