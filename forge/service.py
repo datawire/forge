@@ -75,9 +75,10 @@ def get_ancestors(path, stop="/"):
 
 class Discovery(object):
 
-    def __init__(self, profile=None):
+    def __init__(self, profile=None, branch=None):
         self.services = OrderedDict()
         self.profile = profile
+        self.branch = branch
 
     @task()
     def search(self, directory):
@@ -106,7 +107,7 @@ class Discovery(object):
             names = [n for n in os.listdir(path) if not spec.match_file(os.path.join(path, n))]
 
             if "service.yaml" in names:
-                svc = Service(os.path.join(path, "service.yaml"), profile=self.profile)
+                svc = Service(os.path.join(path, "service.yaml"), profile=self.profile, branch=self.branch)
                 if svc.name not in self.services:
                     self.services[svc.name] = svc
                 found.append(svc)
@@ -198,14 +199,18 @@ def get_version(path, dirty):
 
 class Service(object):
 
-    def __init__(self, descriptor, profile=None):
+    def __init__(self, descriptor, profile=None, branch=None):
         self.descriptor = descriptor
         self.dockerfiles = []
         self.files = []
         self._info = None
         self._version = None
-        self.branch = (sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
-                       if is_git(self.root) else os.environ.get("FORGE_BRANCH"))
+        if branch:
+            self.branch = branch
+        elif is_git(self.root):
+            self.branch = sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
+        else:
+            self.branch = None
         self.profile = profile
 
     @property

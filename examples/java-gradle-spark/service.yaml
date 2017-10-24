@@ -13,17 +13,29 @@ containers:
        - settings.gradle
        - src
 
+# The build.name is set to "<service.name>-<profile.name>". This is
+# what is used in the manifest templates for the service name and
+# deployment name. You can override name in the profile definition
+# based on the current branch. This is quite useful for deploying
+# different versions of the same code multiple times, for example the
+# following profiles and branches map will cause master to deploy to
+# hello-spark-stable, canary/* to deploy to hello-spark-canary-*, and
+# dev/* branches to deploy to hello-spark-dev-* with a unique endpoint
+# for isolated development.
+
 profiles:
   stable:
     endpoint: /hello/
     max_memory: 0.5G
     max_cpu: 0.5
   canary:
+    name: {{branch.replace('/', '-')}}
     endpoint: /hello/
     weight: 10.0 # percentage of traffic to route to this class of deployment
     max_memory: 0.5G
     max_cpu: 0.5G
   default:
+    name: {{branch.replace('/', '-')}}
     endpoint: /preview/{{branch}}/hello/
     max_memory: 0.25G
     max_cpu: 0.25
