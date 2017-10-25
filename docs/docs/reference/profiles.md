@@ -18,7 +18,7 @@ profiles work the following way:
    arguments and/or environment variables.
 
 3. The properties from the chosen profile are copied into the
-   `build.profile` object and may then be used to customize your
+   `service.profile` object and may then be used to customize your
    kubernetes yaml as appropriate for that profile.
 
 For example, the following service.yaml defines stable, canary, and
@@ -43,7 +43,7 @@ profiles:
 {% endraw %}
 
 The following kubernetes deployment references profile-specific values
-such as `build.profile.max_memory` and `build.profile.max_cpu`.
+such as `service.profile.max_memory` and `service.profile.max_cpu`.
 
 {% raw %}
 ```yaml
@@ -60,8 +60,8 @@ metadata:
       name: {{build.name}}-mapping
       prefix: /hello/
       service: {{build.name}}
-      {%- if "weight" in build.profile %}
-      weight: {{build.profile.weight}}
+      {%- if "weight" in service.profile %}
+      weight: {{service.profile.weight}}
       {%- endif %}
 spec:
   selector:
@@ -96,11 +96,11 @@ spec:
         name: {{build.name}}
         resources:
           requests:
-            memory: {{build.profile.min_memory|default(0.1)}}
-            cpu: {{build.profile.min_cpu|default(0.1)}}
+            memory: {{service.profile.min_memory|default(0.1)}}
+            cpu: {{service.profile.min_cpu|default(0.1)}}
           limits:
-            memory: {{build.profile.max_memory}}
-            cpu: {{build.profile.max_cpu}}
+            memory: {{service.profile.max_memory}}
+            cpu: {{service.profile.max_cpu}}
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
