@@ -101,6 +101,7 @@ class Discovery(object):
         found = []
         def descend(path, parent, ignores):
             if not os.path.exists(path): return
+            ignores = ignores[:]
 
             ignores += get_ignores(path)
             spec = pathspec.PathSpec.from_lines('gitwildmatch', ignores)
