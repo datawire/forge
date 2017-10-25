@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.3.13 (Oct 24th, 2017)
+
+* Fixed unfiled bug in handling of service dependencies.
+* Fixed unfiled bug in handling of .gitignore.
+
 #### 0.3.12 (Oct 24th, 2017)
 
 * Added --branch command line argument.
