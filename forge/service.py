@@ -211,7 +211,8 @@ class Service(object):
         if branch:
             self.branch = branch
         elif is_git(self.root):
-            self.branch = sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
+            output = sh("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=self.root).output.strip()
+            self.branch = None if output == "HEAD" else output
         else:
             self.branch = None
         self.profile = profile
