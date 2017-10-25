@@ -101,10 +101,12 @@ class Discovery(object):
         found = []
         def descend(path, parent, ignores):
             if not os.path.exists(path): return
+            ignores = ignores[:]
 
             ignores += get_ignores(path)
             spec = pathspec.PathSpec.from_lines('gitwildmatch', ignores)
-            names = [n for n in os.listdir(path) if not spec.match_file(os.path.join(path, n))]
+            names = [n for n in os.listdir(path) if not spec.match_file(os.path.relpath(os.path.join(path, n),
+                                                                                        directory))]
 
             if "service.yaml" in names:
                 svc = Service(os.path.join(path, "service.yaml"), profile=self.profile, branch=self.branch)
@@ -136,6 +138,7 @@ class Discovery(object):
             prefix = "/".join(parts[:-1])
             remote = prefix + "/" + dep + ".git"
             if gh.exists(remote):
+                task.echo("cloning %s->%s" % (remote, os.path.relpath(target, os.getcwd())))
                 gh.clone(remote, target)
             else:
                 raise TaskError("cannot resolve dependency: %s" % dep)
@@ -208,7 +211,8 @@ class Service(object):
         if branch:
             self.branch = branch
         elif is_git(self.root):
-            self.branch = sh("git", "symbolic-ref", "--short", "HEAD", cwd=self.root).output.strip()
+            output = sh("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=self.root).output.strip()
+            self.branch = None if output == "HEAD" else output
         else:
             self.branch = None
         self.profile = profile
