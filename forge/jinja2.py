@@ -48,13 +48,13 @@ class WarnUndefined(Undefined):
         self.warn()
         return Undefined.__nonzero__(self)
 
-    def __eq__(self):
+    def __eq__(self, other):
         self.warn()
-        return Undefined.__eq__(self)
+        return Undefined.__eq__(self, other)
 
-    def __ne__(self):
+    def __ne__(self, other):
         self.warn()
-        return Undefined.__ne__(self)
+        return Undefined.__ne__(self, other)
 
     def __bool__(self):
         self.warn()

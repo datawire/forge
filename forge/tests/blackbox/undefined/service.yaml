@@ -1,0 +1,6 @@
+name: undefined-test
+
+undefined:
+ - {{ undefined_var }}
+ - {{ undefined_var == undefined_var }}
+ - {{ undefined_var != undefined_var }}
