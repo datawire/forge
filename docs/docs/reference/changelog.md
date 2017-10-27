@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.14 (Oct 27th, 2017)
+
+* Fixed unfiled bug in handling of undefined variables in jinja2 templates.
+
 #### 0.3.13 (Oct 24th, 2017)
 
 * Fixed unfiled bug in handling of service dependencies.
