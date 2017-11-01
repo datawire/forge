@@ -61,7 +61,8 @@ def test_gcr():
 START_TIME = time.time()
 
 def test_ecr():
-    dr = ECRDocker(account='832088817954', aws_access_key_id=os.environ['FORGE_ECR_KEY_ID'],
+    dr = ECRDocker(account='832088817954', region='us-east-2',
+                   aws_access_key_id=os.environ['FORGE_ECR_KEY_ID'],
                    aws_secret_access_key=os.environ['FORGE_ECR_SECRET_KEY'])
     dr.validate()
     dr.validate(name="forge_test_{}".format(START_TIME))
