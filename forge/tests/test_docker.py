@@ -14,7 +14,7 @@
 
 import os, time
 from forge.tasks import sh, TaskError
-from forge.docker import Docker
+from forge.docker import Docker, ECRDocker
 from .common import mktree
 
 registry = "registry.hub.docker.com"
@@ -59,6 +59,19 @@ def test_gcr():
     dr.validate()
 
 START_TIME = time.time()
+
+def test_ecr():
+    dr = ECRDocker(account='832088817954', aws_access_key_id=os.environ['FORGE_ECR_KEY_ID'],
+                   aws_secret_access_key=os.environ['FORGE_ECR_SECRET_KEY'])
+    dr.validate()
+    dr.validate(name="forge_test_{}".format(START_TIME))
+
+    describe_repos = dr.ecr.get_paginator('describe_repositories')
+    for response in describe_repos.paginate():
+        for repo in response['repositories']:
+            repositoryName=repo['repositoryName']
+            if repositoryName.startswith('forge_test_'):
+                dr.ecr.delete_repository(repositoryName=repositoryName, force=True)
 
 DOCKER_SOURCE_TREE = """
 @@Dockerfile

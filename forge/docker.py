@@ -12,71 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, urllib2, hashlib
+import base64, boto3, os, urllib2, hashlib
 from tasks import task, TaskError, get, sh, Secret
 
 def image(registry, namespace, name, version):
     return "%s/%s/%s:%s" % (registry, namespace, name, version)
 
-class Docker(object):
+class DockerBase(object):
 
-    def __init__(self, registry, namespace, user, password):
-        self.registry = registry
-        self.namespace = namespace
-        self.user = user
-        self.password = password
+    def __init__(self):
         self.image_cache = {}
         self.logged_in = False
 
-    @task()
-    def image(self, name, version):
-        return image(self.registry, self.namespace, name, version)
-
     def _login(self):
         if not self.logged_in:
-            sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
+            self._do_login()
             self.logged_in = True
-
-    @task()
-    def registry_get(self, api):
-        url = "https://%s/v2/%s" % (self.registry, api)
-        response = get(url, auth=(self.user, self.password),
-                       headers={"Accept": 'application/vnd.docker.distribution.manifest.v2+json'})
-        if response.status_code == 401:
-            challenge = response.headers['Www-Authenticate']
-            if challenge.startswith("Bearer "):
-                challenge = challenge[7:]
-            opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
-            authresp = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(self.user, self.password))
-            if authresp.ok:
-                token = authresp.json()['token']
-                response = get(url, headers={'Authorization': 'Bearer %s' % token})
-            else:
-                raise TaskError("problem authenticating with docker registry: [%s] %s" % (authresp.status_code,
-                                                                                          authresp.content))
-        return response
-
-    @task()
-    def repo_get(self, name, api):
-        return self.registry_get("%s/%s/%s" % (self.namespace, name, api))
-
-    @task()
-    def remote_exists(self, name, version):
-        img = self.image(name, version)
-        if img in self.image_cache:
-            return self.image_cache[img]
-
-        response = self.repo_get(name, "manifests/%s" % version)
-        result = response.json()
-        # v1 and v2 manifest schemas look a bit different
-        if 'fsLayers' in result or 'layers' in result:
-            self.image_cache[img] = True
-            return True
-        elif 'errors' in result and result['errors']:
-            if result['errors'][0]['code'] in ('MANIFEST_UNKNOWN', 'NAME_UNKNOWN'):
-                self.image_cache[img] = False
-                return False
-        raise TaskError(response.content)
 
     @task()
     def local_exists(self, name, version):
@@ -100,9 +51,13 @@ class Docker(object):
         img = self.image(name, version)
         sh("docker", "tag", source, img)
 
+    def _create_repo(self, name):
+        pass
+
     @task()
     def push(self, name, version):
         self._login()
+        self._create_repo(name)
         img = self.image(name, version)
         self.image_cache.pop(img, None)
         sh("docker", "push", img)
@@ -183,10 +138,10 @@ class Docker(object):
             Builder(self, id).kill()
 
     @task()
-    def validate(self):
+    def validate(self, name="forge_test"):
         test_image = os.environ.get("FORGE_SETUP_IMAGE", "registry.hub.docker.com/datawire/forge-setup-test:1")
         self.pull(test_image)
-        name, version = "forge_test", "dummy"
+        version = "dummy"
         self.tag(test_image, name, version)
         self.push(name, version)
         assert self.remote_exists(name, version)
@@ -221,3 +176,111 @@ class Builder(object):
 
     def kill(self):
         sh("docker", "kill", self.cid, expected=(0, 1))
+
+
+class Docker(DockerBase):
+
+    def __init__(self, registry, namespace, user, password):
+        DockerBase.__init__(self)
+        self.registry = registry
+        self.namespace = namespace
+        self.user = user
+        self.password = password
+
+    @task()
+    def image(self, name, version):
+        return image(self.registry, self.namespace, name, version)
+
+    def _do_login(self):
+        sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
+
+    @task()
+    def registry_get(self, api):
+        url = "https://%s/v2/%s" % (self.registry, api)
+        response = get(url, auth=(self.user, self.password),
+                       headers={"Accept": 'application/vnd.docker.distribution.manifest.v2+json'})
+        if response.status_code == 401:
+            challenge = response.headers['Www-Authenticate']
+            if challenge.startswith("Bearer "):
+                challenge = challenge[7:]
+            opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
+            authresp = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(self.user, self.password))
+            if authresp.ok:
+                token = authresp.json()['token']
+                response = get(url, headers={'Authorization': 'Bearer %s' % token})
+            else:
+                raise TaskError("problem authenticating with docker registry: [%s] %s" % (authresp.status_code,
+                                                                                          authresp.content))
+        return response
+
+    @task()
+    def repo_get(self, name, api):
+        return self.registry_get("%s/%s/%s" % (self.namespace, name, api))
+
+    @task()
+    def remote_exists(self, name, version):
+        img = self.image(name, version)
+        if img in self.image_cache:
+            return self.image_cache[img]
+
+        response = self.repo_get(name, "manifests/%s" % version)
+        result = response.json()
+        # v1 and v2 manifest schemas look a bit different
+        if 'fsLayers' in result or 'layers' in result:
+            self.image_cache[img] = True
+            return True
+        elif 'errors' in result and result['errors']:
+            if result['errors'][0]['code'] in ('MANIFEST_UNKNOWN', 'NAME_UNKNOWN'):
+                self.image_cache[img] = False
+                return False
+        raise TaskError(response.content)
+
+def _get_account():
+    sts = boto3.client('sts')
+    return sts.get_caller_identity()["Account"]
+
+def _get_region():
+    return boto3.Session().region_name
+
+class ECRDocker(DockerBase):
+
+    def __init__(self, account=None, region=None, aws_access_key_id=None, aws_secret_access_key=None):
+        DockerBase.__init__(self)
+        self.account = account or _get_account()
+        self.region = region or _get_region()
+        kwargs = {}
+        if aws_access_key_id: kwargs['aws_access_key_id'] = aws_access_key_id
+        if aws_secret_access_key: kwargs['aws_secret_access_key'] = aws_secret_access_key
+        self.ecr = boto3.client('ecr', self.region, **kwargs)
+        self.url = "{}.dkr.ecr.{}.amazonaws.com".format(self.account, self.region)
+
+    def _do_login(self):
+        response = self.ecr.get_authorization_token(registryIds=[self.account])
+        data = response['authorizationData'][0]
+        token = data['authorizationToken']
+        user, password = base64.decodestring(token).split(":")
+        proxy = data['proxyEndpoint']
+        sh("docker", "login", "-u", user, "-p", Secret(password), proxy)
+
+    @task()
+    def image(self, name, version):
+        return "{}/{}:{}".format(self.url, name, version)
+        #return image(self.registry, self.namespace, name, version)
+
+    def _create_repo(self, name):
+        try:
+            self.ecr.create_repository(repositoryName=name)
+            task.info('repository {} created'.format(name))
+        except self.ecr.exceptions.RepositoryAlreadyExistsException, e:
+            task.info('repository {} already exists'.format(name))
+
+    @task()
+    def remote_exists(self, name, version):
+        try:
+            response =  self.ecr.describe_images(registryId=self.account,
+                                                 repositoryName=name,
+                                                 imageIds=[{'imageTag': version}])
+            tags = set([t for id in response['imageDetails'] for t in id['imageTags']])
+            return version in tags
+        except self.ecr.exceptions.ImageNotFoundException, e:
+            return False
