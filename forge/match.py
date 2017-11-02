@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect, collections
+import inspect, collections, textwrap
 
 class MatchError(Exception):
     pass
@@ -143,7 +143,7 @@ class State:
         else:
             return "State(S%s)" % self.id
 
-    def apply(self, *args, **kwargs):
+    def match(self, *args, **kwargs):
         states = {self: ()}
         remaining = list(args)
         for value in flatten(args):
@@ -179,7 +179,11 @@ class State:
         assert len(nearest) == 1, nearest
         state = nearest.popitem()[1]
         assert state.action, (state, remaining)
-        return state.action(*args, **kwargs)
+        return state.action
+
+    def apply(self, *args, **kwargs):
+        return self.match(*args, **kwargs)(*args, **kwargs)
+
 
 def deduplicate(items):
     deduped = []
@@ -337,7 +341,11 @@ def when(pattern, action):
     state = State()
     state.action = action
     frag.extend(state)
-    return Fragment(frag.start, lambda next: state.edge(next), "When: %s\n\n%s" % (frag.doc, action.__doc__))
+    if action.__doc__ is not None:
+        wrapped = textwrap.fill(action.__doc__, initial_indent="  ", subsequent_indent="  ")
+    else:
+        wrapped = None
+    return Fragment(frag.start, lambda next: state.edge(next), "%s:\n%s" % (frag.doc, wrapped))
 
 def choice(*patterns):
     start = State()
@@ -423,7 +431,8 @@ class _BoundDispatcher(object):
                 if isinstance(disp, _Dispatcher):
                     yield c, disp
 
-    def __call__(self, *args, **kwargs):
+    @property
+    def _compiled(self):
         compiled = self.dispatcher.cache.get(self.clazz)
         if compiled is None:
             fragments = []
@@ -432,6 +441,10 @@ class _BoundDispatcher(object):
             compiled = compile(choice(*fragments))
             compiled.match_value = False
             self.dispatcher.cache[self.clazz] = compiled
+        return compiled
+
+    def __call__(self, *args, **kwargs):
+        compiled = self._compiled
         try:
             if self.object is None:
                 return compiled.apply(*args, **kwargs)
@@ -439,6 +452,15 @@ class _BoundDispatcher(object):
                 return compiled.apply(self.object, *args, **kwargs)
         except MatchError, e:
             raise TypeError("%s.%s() %s" % (self.clazz.__name__, self.dispatcher.name, e))
+
+    def match(self, *args, **kwargs):
+        compiled = self._compiled
+        if self.object is None:
+            fun = compiled.match(*args, **kwargs)
+            return lambda: fun(*args, **kwargs)
+        else:
+            fun = compiled.match(self.object, *args, **kwargs)
+            return lambda: fun(self.object, *args, **kwargs)
 
 
 class _Dispatcher(object):
@@ -463,15 +485,25 @@ class _Dispatcher(object):
     def __get__(self, object, clazz):
         return _BoundDispatcher(clazz, object, self)
 
-    def __call__(self, *args, **kwargs):
+    @property
+    def _compiled(self):
         compiled = self.compiled
         if compiled is None:
             compiled = compile(self.fragment)
             self.compiled = compiled
+        return compiled
+
+    def __call__(self, *args, **kwargs):
+        compiled = self._compiled
         try:
             return compiled.apply(*args, **kwargs)
         except MatchError, e:
             raise TypeError("%s() %s" % (self.name, e))
+
+    def match(self, *args, **kwargs):
+        compiled = self._compiled
+        fun = compiled.match(*args, **kwargs)
+        return lambda: fun(*args, **kwargs)
 
 def _decorate(namespace, function, pattern):
     name = function.__name__
