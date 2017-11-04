@@ -16,7 +16,8 @@ import base64, boto3, os, urllib2, hashlib
 from tasks import task, TaskError, get, sh, Secret
 
 def image(registry, namespace, name, version):
-    return "%s/%s/%s:%s" % (registry, namespace, name, version)
+    parts = (registry, namespace, "%s:%s" % (name, version))
+    return "/".join(p for p in parts if p)
 
 class DockerBase(object):
 
@@ -254,6 +255,14 @@ class ECRDocker(DockerBase):
         self.ecr = boto3.client('ecr', self.region, **kwargs)
         self.url = "{}.dkr.ecr.{}.amazonaws.com".format(self.account, self.region)
 
+    @property
+    def registry(self):
+        return self.url
+
+    @property
+    def namespace(self):
+        return None
+
     def _do_login(self):
         response = self.ecr.get_authorization_token(registryIds=[self.account])
         data = response['authorizationData'][0]
@@ -283,4 +292,6 @@ class ECRDocker(DockerBase):
             tags = set([t for id in response['imageDetails'] for t in id['imageTags']])
             return version in tags
         except self.ecr.exceptions.ImageNotFoundException, e:
+            return False
+        except self.ecr.exceptions.RepositoryNotFoundException, e:
             return False

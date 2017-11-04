@@ -55,10 +55,10 @@ import click, base64, fnmatch, requests, os, sys, yaml
 from dotenv import find_dotenv, load_dotenv
 from collections import OrderedDict
 
-import util
+import config, util
 from . import __version__
 from .service import Discovery, Service
-from .docker import Docker
+from .docker import Docker, ECRDocker
 from .github import Github
 from .kubernetes import Kubernetes
 from .jinja2 import renders
@@ -259,11 +259,13 @@ class Forge(object):
         if not self.config:
             raise CLIError("unable to find forge.yaml, try running `forge setup`")
 
-        with open(self.config, "read") as fd:
-            conf = yaml.load(fd)
+        try:
+            conf = config.load(self.config)
+        except config.SchemaError, e:
+            raise CLIError(str(e))
 
         self.base = os.path.dirname(os.path.abspath(self.config))
-        self.docker = get_docker(conf)
+        self.docker = get_docker(conf.registry)
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
 
@@ -333,27 +335,28 @@ class Forge(object):
         if self.deployed:
             task.echo(color("deployed: ") + ", ".join(s.name for s, k in self.deployed))
 
-def get_password(conf):
-    pw = conf.get("password")
-    if not pw:
-        raise CLIError("docker password must be configured")
-    return base64.decodestring(pw)
-
-def get_docker(conf):
-    url = conf.get("docker-repo")
-
-    if url is None:
-        raise CLIError("docker-repo must be configured")
-    if "/" not in url:
-        raise CLIError("docker-repo must be in the form <registry-url>/<namespace>")
-    registry, namespace = url.split("/", 1)
-
-    try:
-        user = conf["user"]
-    except KeyError, e:
-        raise CLIError("missing config property: %s" % e)
-
-    return Docker(registry, namespace, user, get_password(conf))
+def get_docker(registry):
+    if registry.type == "ecr":
+        return ECRDocker(
+            account=registry.account,
+            region=registry.region,
+            aws_access_key_id=registry.aws_access_key_id,
+            aws_secret_access_key=registry.aws_secret_access_key
+        )
+    elif registry.type == "gcr":
+        return Docker(
+            registry=registry.url,
+            namespace=registry.project,
+            user="_json_key",
+            password=registry.key
+        )
+    else:
+        return Docker(
+            registry=registry.url,
+            namespace=registry.namespace,
+            user=registry.user,
+            password=registry.password
+        )
 
 @click.group()
 @click.version_option(__version__, message="%(prog)s %(version)s")

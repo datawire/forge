@@ -65,7 +65,9 @@ def test_ecr():
                    aws_access_key_id=os.environ['FORGE_ECR_KEY_ID'],
                    aws_secret_access_key=os.environ['FORGE_ECR_SECRET_KEY'])
     dr.validate()
-    dr.validate(name="forge_test_{}".format(START_TIME))
+    name = "forge_test_{}".format(START_TIME)
+    assert not dr.remote_exists(name, "dummy")
+    dr.validate(name=name)
 
     describe_repos = dr.ecr.get_paginator('describe_repositories')
     for response in describe_repos.paginate():
