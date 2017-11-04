@@ -101,8 +101,8 @@ CONFIG = Class(
     Config,
     Field("registry", REGISTRY),
     Field("docker-repo", String(), "docker_repo", docs="Deprecated, use registry instead."),
-    Field("user", String(), docs="Deprecated, usee registry instead."),
-    Field("password", Base64(), docs="Deprecated, usee registry instead."),
+    Field("user", String(), docs="Deprecated, use registry instead."),
+    Field("password", Base64(), docs="Deprecated, use registry instead."),
     Field("workdir", String(), docs="deprecated")
 )
 
