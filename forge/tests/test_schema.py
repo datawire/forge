@@ -14,7 +14,7 @@
 
 import yaml
 from collections import OrderedDict
-from forge.schema import Schema, Class, Field, String, Integer, Float, Sequence, Map, SchemaError
+from forge.schema import Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, SchemaError
 from forge import util
 
 class Klass(object):
@@ -27,6 +27,7 @@ class Klass(object):
 
 def test_scalars():
     s = Class(
+        "scalars",
         Klass,
         Field("string", String()),
         Field("integer", Integer()),
@@ -40,6 +41,7 @@ def test_scalars():
 
 def test_unknown_field():
     s = Class(
+        "foo",
         Klass,
         Field("foo", String())
     )
@@ -52,7 +54,7 @@ def test_unknown_field():
         assert "no such field: bar" in str(e)
 
 def test_alias():
-    s = Class(Klass, Field("foo-bar", String(), "foo_bar"))
+    s = Class("foobar", Klass, Field("foo-bar", String(), "foo_bar"))
     k = s.load("test", "{foo-bar: foobar}")
     assert k.fields == {"foo_bar": "foobar"}
 
@@ -63,3 +65,19 @@ def test_sequence():
 def test_map():
     s = Map(String())
     assert s.load("test", "{a: b, c: d}") == {"a": "b", "c": "d"}
+
+def test_union():
+    s = Union(String(),
+              Sequence(String()),
+              Class("type-a", lambda **kw: Klass(a=True, **kw), Field("type", Constant("a"))),
+              Class("type-b", lambda **kw: Klass(b=True, **kw), Field("type", Constant("b"))),
+              Class("foo", Klass, Field("foo", String())),
+              Class("foobar", Klass, Field("foobar", String())),
+              Map(String()))
+    assert s.load("test", "asdf") == "asdf"
+    assert s.load("test", "[a, b, c]") == ["a", "b", "c"]
+    assert s.load("test", "type: a") == Klass(type="a", a=True)
+    assert s.load("test", "type: b") == Klass(type="b", b=True)
+    assert s.load("test", "foo: bar") == Klass(foo="bar")
+    assert s.load("test", "foobar: bar") == Klass(foobar="bar")
+    assert s.load("test", "bar: foo") == {"bar": "foo"}

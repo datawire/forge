@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64, os, StringIO
+import base64, os, StringIO, textwrap
 from collections import OrderedDict
 from yaml import ScalarNode, SequenceNode, MappingNode, CollectionNode, Node, compose_all
 from forge.match import match, many, opt
@@ -21,6 +21,10 @@ class SchemaError(Exception):
     pass
 
 class Schema(object):
+
+    @match(Node)
+    def load(self, node):
+        raise SchemaError("expecting %s, got %s\n%s" % (self.name, node.tag, node.start_mark))
 
     @match(basestring)
     def load(self, name):
@@ -42,27 +46,89 @@ class Scalar(Schema):
 
 class String(Scalar):
 
+    name = "string"
+
     @match(ScalarNode)
     def load(self, node):
         return node.value
 
+    @property
+    def traversal(self):
+        yield self
+
+    def render(self):
+        return "an unconstrained string"
+
 class Base64(Scalar):
+
+    name = "base64"
 
     @match(ScalarNode)
     def load(self, node):
         return base64.decodestring(node.value)
 
+    @property
+    def traversal(self):
+        yield self
+
+    def render(self):
+        return "a base64 encoded string"
+
 class Integer(Scalar):
+
+    name = "integer"
 
     @match(ScalarNode)
     def load(self, node):
         return int(node.value)
 
+    @property
+    def traversal(self):
+        yield self
+
+    def render(self):
+        return "an unconstrained integer"
+
 class Float(Scalar):
+
+    name = "float"
 
     @match(ScalarNode)
     def load(self, node):
         return float(node.value)
+
+    @property
+    def traversal(self):
+        yield self
+
+    def render(self):
+        return "an unconstrained float"
+
+class Constant(Scalar):
+
+    def __init__(self, value, type=None):
+        self.value = value
+        self.type = type or String()
+
+    @property
+    def name(self):
+        return repr(self.value)
+
+    @match(ScalarNode)
+    def load(self, node):
+        value = self.type.load(node)
+        if self.value != value:
+            raise SchemaError("expected %s, got %s\n%s" % (self.value, value, node.start_mark))
+        return value
+
+    @property
+    def traversal(self):
+        yield self
+        for t in self.type.traversal:
+            yield t
+
+    def render(self):
+        return "A %s constant of %s." % (self.type.name, self.name)
 
 class Collection(Schema):
     pass
@@ -72,6 +138,10 @@ class Map(Collection):
     @match(Schema)
     def __init__(self, type):
         self.type = type
+
+    @property
+    def name(self):
+        return "map[%s]" % self.type.name
 
     @match(MappingNode)
     def load(self, node):
@@ -86,6 +156,10 @@ class Sequence(Collection):
     def __init__(self, type):
         self.type = type
 
+    @property
+    def name(self):
+        return "sequence[%s]" % self.type.name
+
     @match(SequenceNode)
     def load(self, node):
         return [self.type.load(n) for n in node.value]
@@ -97,20 +171,22 @@ class Field(object):
         self.name = name
         self.type = type
         self.alias = alias
+        self.docs = docs
 
 class Class(Schema):
 
-    @match(basestring, object, many(Field))
-    def __init__(self, docs, constructor, *fields):
+    @match(basestring, basestring, object, many(Field))
+    def __init__(self, name, docs, constructor, *fields):
+        self.name = name
         self.docs = docs
         self.constructor = constructor
         self.fields = OrderedDict()
         for f in fields:
             self.fields[f.name] = f
 
-    @match(object, many(Field))
-    def __init__(self, constructor, *fields):
-        self.__init__("", constructor, *fields)
+    @match(basestring, object, many(Field))
+    def __init__(self, name, constructor, *fields):
+        self.__init__(name, "", constructor, *fields)
 
     @match(MappingNode)
     def load(self, node):
@@ -126,34 +202,60 @@ class Class(Schema):
         except SchemaError, e:
             raise SchemaError("%s\n\n%s" % (e, node.start_mark))
 
-class Descriminator(object):
+    @property
+    def traversal(self):
+        yield self
+        for f in self.fields.values():
+            for t in f.type.traversal:
+                yield t
 
-    def __init__(self, field=None):
-        self.field = field
+    def render_all(self):
+        types = OrderedDict()
+        for t in self.traversal:
+            if isinstance(t, Class):
+                types[t.name] = t.render()
+        for k, v in types.items():
+            print "## %s" % k
+            print
+            print v
+            print
 
-    @match(MappingNode)
-    def choose(self, node):
-        types = [v for k, v in node.value if k.value == self.field]
-        if types:
-            return types[0].value
-        else:
-            return "map"
-
-    @match(SequenceNode)
-    def choose(self, node):
-        return "sequence"
-
-    @match(ScalarNode)
-    def choose(self, node):
-        return "scalar"
+    def render(self):
+        result = []
+        result.extend(textwrap.wrap(self.docs.strip()))
+        result.append("")
+        for f in self.fields.values():
+            result.append(" - %s: %s" % (f.name, f.type.name))
+            if f.docs:
+                result.append("")
+                result.extend(textwrap.wrap(f.docs.strip(), initial_indent="    ", subsequent_indent="    "))
+            result.append("")
+        if result[-1] == "":
+            result = result[:-1]
+        return "\n".join(result)
 
 class Union(Schema):
 
-    @match(Descriminator)
-    def __init__(self, descriminator, **schemas):
-        self.descriminator = descriminator
+    @match(many(Schema, min=1))
+    def __init__(self, *schemas):
         self.schemas = schemas
+
+    @property
+    def name(self):
+        return "(%s)" % "|".join(s.name for s in self.schemas)
 
     @match(Node)
     def load(self, node):
-        return self.schemas[self.descriminator.choose(node)].load(node)
+        for s in self.schemas:
+            try:
+                return s.load(node)
+            except SchemaError, e:
+                pass
+        raise SchemaError("expecting one of (%s), got %s\n%s" % ("|".join((s.name for s in self.schemas)),
+                                                                 node.tag, node.start_mark))
+
+    @property
+    def traversal(self):
+        for s in self.schemas:
+            for t in s.traversal:
+                yield t

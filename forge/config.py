@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .schema import Class, Field, Union, Descriminator, String, Base64, SchemaError
+from .schema import Class, Field, Union, Constant, String, Base64, SchemaError
 
 class Registry(object):
 
@@ -24,9 +24,10 @@ class Registry(object):
         self.namespace = namespace
 
 DOCKER = Class(
+    "registry:docker",
     """A generic docker registry.""",
     Registry,
-    Field("type", String(), docs="This must be 'docker' for docker registries"),
+    Field("type", Constant('docker'), docs="This must be 'docker' for docker registries"),
     Field("url", String(), docs="The url of the docker registry."),
     Field("user", String(), docs="The docker user."),
     Field("password", Base64(), docs="The docker password, base64 encoded."),
@@ -42,9 +43,10 @@ class GCRRegistry(object):
         self.key = key
 
 GCR = Class(
+    "registry:gcr",
     """A google cloud registry.""",
     GCRRegistry,
-    Field("type", String(), docs="The type of the registry, this will be 'gcr' for google registries"),
+    Field("type", Constant('gcr'), docs="The type of the registry, this will be 'gcr' for google registries"),
     Field("url", String(), docs="The url of the registry, e.g. `gcr.io`."),
     Field("project", String(), docs="The google project name."),
     Field("key", Base64(), docs="The base64 encoded json key used for authentication.")
@@ -60,16 +62,15 @@ class ECRRegistry(object):
         self.aws_secret_access_key = aws_secret_access_key
 
 ECR = Class(
+    "registry:ecr",
     """An amazon ECR registry.""",
     ECRRegistry,
-    Field("type", String(), docs="The type of the registry, this will be 'ecr' for amazon registires"),
+    Field("type", Constant('ecr'), docs="The type of the registry, this will be 'ecr' for amazon registires"),
     Field("account", String(), docs="The amazon account id to use."),
     Field("region", String(), docs="The amazon region to use."),
     Field("aws_access_key_id", String(), docs="The id of the aws access key to use."),
     Field("aws_secret_access_key", String(), docs="The aws secrete access key.")
 )
-
-REGISTRY = Union(Descriminator(field="type"), docker=DOCKER, gcr=GCR, ecr=ECR)
 
 class Config(object):
 
@@ -94,12 +95,13 @@ class Config(object):
         self.registry = registry
 
 CONFIG = Class(
+    "forge.yaml",
     """
     Global forge configuration. Currently this consits of docker
     registry configuration and credentials.
     """,
     Config,
-    Field("registry", REGISTRY),
+    Field("registry", Union(DOCKER, GCR, ECR)),
     Field("docker-repo", String(), "docker_repo", docs="Deprecated, use registry instead."),
     Field("user", String(), docs="Deprecated, use registry instead."),
     Field("password", Base64(), docs="Deprecated, use registry instead."),
