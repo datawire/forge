@@ -208,9 +208,10 @@ class Service(object):
         self.files = []
         self._info = None
         self._version = None
+        self.is_git = is_git(self.root)
         if branch:
             self.branch = branch
-        elif is_git(self.root):
+        elif self.is_git:
             output = sh("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=self.root).output.strip()
             self.branch = None if output == "HEAD" else output
         else:
@@ -240,6 +241,12 @@ class Service(object):
         name = os.path.join(self.name, pfx) if pfx else self.name
         name = name.replace("/", "-")
         return name
+
+
+    @task()
+    def pull(self):
+        if self.is_git:
+            sh("git", "pull", cwd=self.root)
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()

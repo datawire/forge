@@ -14,24 +14,6 @@
 
 """
 Forge CLI.
-
-Usage:
-  forge setup
-  forge bake [-v] [--config=<config>]
-  forge push [-v] [--config=<config>]
-  forge manifest [-v] [--config=<config>]
-  forge build [-v] [--config=<config>]
-  forge deploy [-v] [--config=<config>] [--dry-run] [--namespace=<name>]
-  forge -h | --help
-  forge --version
-
-Options:
-  --config=<config>      Forge config file location.
-  --filter=<pattern>     Only operate on services matching <pattern>. [default: *]
-  -h --help              Show this screen.
-  --version              Show version.
-  -v,--verbose           Display more information.
-  -n,--namespace=<name>  Deploy to specified namespace.
 """
 
 from .tasks import (
@@ -59,7 +41,6 @@ import config, util
 from . import __version__
 from .service import Discovery, Service
 from .docker import Docker, ECRDocker
-from .github import Github
 from .kubernetes import Kubernetes
 from .jinja2 import renders
 from .istio import istio
@@ -285,6 +266,11 @@ class Forge(object):
         task.sync()
         self.deployed.append((service, k8s_dir))
 
+    @task()
+    def pull(self, service):
+        with task.verbose(True):
+            service.pull()
+
     def load_config(self):
         if not self.config:
             raise CLIError("unable to find forge.yaml, try running `forge setup`")
@@ -506,6 +492,14 @@ def deploy(forge, namespace, dry_run):
     forge.namespace = namespace
     forge.dry_run = dry_run
     forge.execute(lambda svc: forge.deploy(*forge.build(svc)))
+
+@forge.command()
+@click.pass_obj
+def pull(forge):
+    """
+    Do a git pull on all services.
+    """
+    forge.execute(forge.pull)
 
 @forge.command()
 @click.pass_obj

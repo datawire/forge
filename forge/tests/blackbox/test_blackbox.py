@@ -17,24 +17,43 @@ def test(directory):
     else:
         ops = "RUN forge deploy"
 
-    child = None
+    runner = Runner(os.path.join(DIR, directory), ops)
+    runner.run()
 
-    for line in ops.splitlines():
-        for stmt in line.split(";"):
-            op, arg = stmt.split(None, 1)
-            if op == "RUN":
-                child = pexpect.spawn(arg, cwd=os.path.join(DIR, directory))
-                child.logfile = sys.stdout
-            elif op == "OUT":
-                child.expect_exact(arg.strip())
-            elif op == "TYPE":
-                if arg.strip().lower() == "<enter>":
-                    child.sendline()
+class Runner(object):
+
+    def __init__(self, cwd, spec):
+        self.cwd = cwd
+        self.spec = spec
+        self.child = None
+
+    def run(self):
+        for line in self.spec.splitlines():
+            for stmt in line.split(";"):
+                op, arg = stmt.split(None, 1)
+                attr = getattr(self, "do_%s" % op, None)
+                if attr is None:
+                    assert False, "unrecognized op: %s" % op
                 else:
-                    child.sendline(arg)
-            else:
-                assert False, "unrecognized op: %s" % op
+                    attr(arg)
+        self.wait()
 
-    if child is not None:
-        child.expect(pexpect.EOF)
-        assert child.wait() == 0
+    def wait(self):
+        if self.child is not None:
+            self.child.expect(pexpect.EOF)
+            assert self.child.wait() == 0
+
+    def do_RUN(self, arg):
+        self.wait()
+        print "RUN", arg
+        self.child = pexpect.spawn(arg, cwd=self.cwd)
+        self.child.logfile = sys.stdout
+
+    def do_OUT(self, arg):
+        self.child.expect_exact(arg.strip())
+
+    def do_TYPE(self, arg):
+        if arg.strip().lower() == "<enter>":
+            self.child.sendline()
+        else:
+            self.child.sendline(arg)
