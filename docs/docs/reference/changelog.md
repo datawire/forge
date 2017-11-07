@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.15 (Nov 6th, 2017)
+
+* Fixed unfiled bug in version computation. (Missing errno import.)
+
 #### 0.3.14 (Oct 27th, 2017)
 
 * Fixed unfiled bug in handling of undefined variables in jinja2 templates.
