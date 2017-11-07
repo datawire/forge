@@ -42,14 +42,20 @@ class Schema(object):
         return self.load(tree)
 
 class Scalar(Schema):
-    pass
+
+    @match(ScalarNode)
+    def load(self, node):
+        if node.tag.endswith(":null"):
+            return None
+        else:
+            return self.decode(node)
 
 class String(Scalar):
 
     name = "string"
 
     @match(ScalarNode)
-    def load(self, node):
+    def decode(self, node):
         return node.value
 
     @property
@@ -64,7 +70,7 @@ class Base64(Scalar):
     name = "base64"
 
     @match(ScalarNode)
-    def load(self, node):
+    def decode(self, node):
         return base64.decodestring(node.value)
 
     @property
@@ -79,7 +85,7 @@ class Integer(Scalar):
     name = "integer"
 
     @match(ScalarNode)
-    def load(self, node):
+    def decode(self, node):
         return int(node.value)
 
     @property
@@ -94,7 +100,7 @@ class Float(Scalar):
     name = "float"
 
     @match(ScalarNode)
-    def load(self, node):
+    def decode(self, node):
         return float(node.value)
 
     @property
@@ -115,7 +121,7 @@ class Constant(Scalar):
         return repr(self.value)
 
     @match(ScalarNode)
-    def load(self, node):
+    def decode(self, node):
         value = self.type.load(node)
         if self.value != value:
             raise SchemaError("expected %s, got %s\n%s" % (self.value, value, node.start_mark))
@@ -164,14 +170,21 @@ class Sequence(Collection):
     def load(self, node):
         return [self.type.load(n) for n in node.value]
 
+REQUIRED = object()
+
 class Field(object):
 
-    @match(basestring, Schema, opt(basestring), opt(basestring))
-    def __init__(self, name, type, alias=None, docs=None):
+    @match(basestring, Schema, opt(basestring), opt(basestring), opt(object))
+    def __init__(self, name, type, alias=None, docs=None, default=REQUIRED):
         self.name = name
         self.type = type
         self.alias = alias
         self.docs = docs
+        self.default = default
+
+    @property
+    def required(self):
+        return self.default is REQUIRED
 
 class Class(Schema):
 
@@ -197,6 +210,13 @@ class Class(Schema):
                 raise SchemaError("no such field: %s\n%s" % (key, k.start_mark))
             f = self.fields[key]
             loaded[f.alias or f.name] = f.type.load(v)
+        for f in self.fields.values():
+            key = (f.alias or f.name)
+            if key not in loaded:
+                if f.default is REQUIRED:
+                    raise SchemaError("required field '%s' is missing\n%s" % (f.name, node.start_mark))
+                else:
+                    loaded[key] = f.default
         try:
             return self.constructor(**loaded)
         except SchemaError, e:

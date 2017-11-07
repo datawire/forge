@@ -39,6 +39,10 @@ def test_scalars():
     k2 = Klass(**obj)
     assert k1 == k2
 
+def test_null():
+    for s in (String(), Integer(), Float(), Constant("asdf")):
+        assert s.load("test", "null") == None
+
 def test_unknown_field():
     s = Class(
         "foo",
@@ -52,6 +56,31 @@ def test_unknown_field():
         assert False, "should have errored"
     except SchemaError, e:
         assert "no such field: bar" in str(e)
+
+def test_missing_field():
+    s = Class(
+        "foo",
+        Klass,
+        Field("foo", String()),
+        Field("bar", String())
+    )
+
+    obj = {"bar": "asdf"}
+    try:
+        s.load("test", yaml.dump(obj))
+    except SchemaError, e:
+        assert "required field 'foo' is missing" in str(e)
+
+def test_default_field():
+    s = Class(
+        "foo",
+        Klass,
+        Field("foo", String(), default=None),
+        Field("bar", String(), default="asdf")
+    )
+
+    k = s.load("test", "{}")
+    assert k == Klass(foo=None, bar="asdf")
 
 def test_alias():
     s = Class("foobar", Klass, Field("foo-bar", String(), "foo_bar"))

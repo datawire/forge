@@ -31,7 +31,7 @@ DOCKER = Class(
     Field("url", String(), docs="The url of the docker registry."),
     Field("user", String(), docs="The docker user."),
     Field("password", Base64(), docs="The docker password, base64 encoded."),
-    Field("namespace", String())
+    Field("namespace", String(), default=None)
 )
 
 class GCRRegistry(object):
@@ -66,10 +66,10 @@ ECR = Class(
     """An amazon ECR registry.""",
     ECRRegistry,
     Field("type", Constant('ecr'), docs="The type of the registry, this will be 'ecr' for amazon registires"),
-    Field("account", String(), docs="The amazon account id to use."),
-    Field("region", String(), docs="The amazon region to use."),
-    Field("aws_access_key_id", String(), docs="The id of the aws access key to use."),
-    Field("aws_secret_access_key", String(), docs="The aws secrete access key.")
+    Field("account", String(), default=None, docs="The amazon account id to use."),
+    Field("region", String(), default=None, docs="The amazon region to use."),
+    Field("aws_access_key_id", String(), default=None, docs="The id of the aws access key to use."),
+    Field("aws_secret_access_key", String(), default=None, docs="The aws secrete access key.")
 )
 
 class Config(object):
@@ -101,11 +101,11 @@ CONFIG = Class(
     registry configuration and credentials.
     """,
     Config,
-    Field("registry", Union(DOCKER, GCR, ECR)),
-    Field("docker-repo", String(), "docker_repo", docs="Deprecated, use registry instead."),
-    Field("user", String(), docs="Deprecated, use registry instead."),
-    Field("password", Base64(), docs="Deprecated, use registry instead."),
-    Field("workdir", String(), docs="deprecated")
+    Field("registry", Union(DOCKER, GCR, ECR), default=None),
+    Field("docker-repo", String(), "docker_repo", default=None, docs="Deprecated, use registry instead."),
+    Field("user", String(), default=None, docs="Deprecated, use registry instead."),
+    Field("password", Base64(), default=None, docs="Deprecated, use registry instead."),
+    Field("workdir", String(), default=None, docs="deprecated")
 )
 
 def load(*args, **kwargs):
