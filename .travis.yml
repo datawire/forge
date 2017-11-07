@@ -12,6 +12,8 @@ env:
   global:
     - KUBECONFIG="${HOME}/.kube/kubernaut"
     - SCOUT_DISABLE=1
+    - AWS_ACCESS_KEY_ID="${FORGE_ECR_KEY_ID}"
+    - AWS_SECRET_ACCESS_KEY="${FORGE_ECR_SECRET_KEY}"
 
 before_install:
  - pyenv global system 2.7 3.5

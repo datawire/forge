@@ -161,22 +161,6 @@ org = 'forgeorg'
 def launch(directory, cmd):
     return pexpect.spawn(cmd, cwd=directory, logfile=sys.stdout, timeout=120)
 
-def test_setup():
-    directory = mktree(APP, MANGLE=MANGLE)
-    forge = launch(directory, "forge setup")
-    forge.expect_exact('Docker registry[registry.hub.docker.com]: ')
-    forge.sendline('')
-    forge.expect_exact('Docker user[%s]: ' % os.environ["USER"])
-    forge.sendline(user)
-    forge.expect_exact('Docker organization[%s]: ' % user)
-    forge.sendline(org)
-    forge.expect_exact('Docker password: ')
-    forge.sendline('forgetest')
-    forge.expect_exact("== Writing config to forge.yaml ==")
-    forge.expect_exact("== Done ==")
-    forge.expect(pexpect.EOF)
-    assert forge.wait() == 0
-
 FORGE_YAML = """
 @@forge.yaml
 # Global forge configuration

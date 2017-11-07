@@ -1,0 +1,8 @@
+# Global forge configuration
+# Normally you would not want to check this into git, but this is here
+# for testing purposes.
+
+registry:
+  type: ecr
+  account: 914373874199
+  region: us-east-1

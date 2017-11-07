@@ -55,10 +55,10 @@ import click, base64, fnmatch, requests, os, sys, yaml
 from dotenv import find_dotenv, load_dotenv
 from collections import OrderedDict
 
-import util
+import config, util
 from . import __version__
 from .service import Discovery, Service
-from .docker import Docker
+from .docker import Docker, ECRDocker
 from .github import Github
 from .kubernetes import Kubernetes
 from .jinja2 import renders
@@ -73,10 +73,7 @@ class CLIError(Exception): pass
 
 SETUP_TEMPLATE = """# Global forge configuration
 # DO NOT CHECK INTO GITHUB, THIS FILE CONTAINS SECRETS
-docker-repo: {{docker}}
-user: {{user}}
-password: >
-  {{password}}
+{{yaml}}
 """
 
 def file_contents(path):
@@ -103,15 +100,19 @@ class Forge(object):
         self.rendered = []
         self.deployed = []
 
-    def prompt(self, msg, default=None, loader=None, echo=True):
+    def prompt(self, msg, default=None, loader=None, echo=True, optional=False):
+        if optional:
+            msg += ' (use "-" to leave unspecified)'
         prompt = "%s: " % msg if default is None else "%s[%s]: " % (msg, default)
-        prompter = raw_input if echo else getpass.getpass
+        prompter = raw_input if echo else lambda: getpass.getpass("")
 
         while True:
-            task.echo(newline=False)
+            task.echo(prompt, newline=False)
             sys.stdout.flush()
-            value = prompter(prompt) or default
+            value = prompter() or default
             if value is None: continue
+            if value == "-" and optional:
+                value = None
             if loader is not None:
                 loaded = loader(value)
                 if loaded is None:
@@ -143,15 +144,21 @@ class Forge(object):
                     task.echo(self.terminal.bold("Please make sure kubectl is installed/configured correctly."))
                     raise CLIError("")
 
-            registry = "registry.hub.docker.com"
-            repo = None
-            user = os.environ.get("USER", "")
-            password = None
-            json_key = None
+            regtype = "generic"
+            prompts = {
+                ("generic", "url"): ("Docker registry url", "registry.hub.docker.com"),
+                ("generic", "user"): ("Docker user", None),
+                ("generic", "namespace"): ("Docker namespace/organization", None),
+                ("generic", "password"): ("Docker password", None),
+                ("gcr", "key"): ["Path to json key", None]
+            }
 
             @task()
             def validate():
-                dr = Docker(registry, repo, user, password)
+                c = yaml.dump({"registry": regvalues})
+                task.echo(c)
+                conf = config.load("setup", c)
+                dr = get_docker(conf.registry)
                 dr.validate()
 
             task.echo()
@@ -159,13 +166,37 @@ class Forge(object):
 
             while True:
                 task.echo()
-                registry = self.prompt("Docker registry", registry)
-                user = self.prompt("Docker user", user)
-                repo = self.prompt("Docker organization", user)
-                if user == "_json_key":
-                    json_key, password = self.prompt("Path to json key", json_key, loader=file_contents)
-                else:
-                    password = self.prompt("Docker password", echo=False)
+                types = OrderedDict((("ecr", config.ECR),
+                                     ("gcr", config.GCR),
+                                     ("generic", config.DOCKER)))
+                regtype = self.prompt("Registry type (one of %s)" % ", ".join(types.keys()), regtype)
+                if regtype not in types:
+                    task.echo()
+                    task.echo(
+                        self.terminal.red("%s is not a valid choice, please choose one of %s" %
+                                          (regtype, ", ".join(types.keys())))
+                    )
+                    task.echo()
+                    regtype = "generic"
+                    continue
+
+                reg = types[regtype]
+                regvalues = OrderedDict((("type", reg.fields["type"].type.value),))
+                for f in reg.fields.values():
+                    if f.name == "type": continue
+                    prompt, default = prompts.get((regtype, f.name), (f.name, None))
+                    if (regtype, f.name) == ("gcr", "key"):
+                        key, value = self.prompt(prompt, default, loader=file_contents)
+                        prompts[(regtype, f.name)][1] = key
+                    else:
+                        if f.name in ("password",):
+                            value = self.prompt(prompt, default, echo=False)
+                        else:
+                            value = self.prompt(prompt, default, optional=not f.required)
+                    if f.name in ("password", "key"):
+                        regvalues[f.name] = base64.encodestring(value)
+                    else:
+                        regvalues[f.name] = value
 
                 task.echo()
                 e = validate.run()
@@ -179,20 +210,19 @@ class Forge(object):
 
             task.echo()
 
-            config = renders("SETUP_TEMPLATE", SETUP_TEMPLATE,
-                             docker="%s/%s" % (registry, repo),
-                             user=user,
-                             password=base64.encodestring(password).replace("\n", "\n  "))
+            config_content = renders("SETUP_TEMPLATE", SETUP_TEMPLATE,
+                                     yaml=yaml.dump({"registry": regvalues}, allow_unicode=True,
+                                                    default_flow_style=False))
 
             config_file = "forge.yaml"
 
             task.echo(self.terminal.bold("== Writing config to %s ==" % config_file))
 
             with open(config_file, "write") as fd:
-                fd.write(config)
+                fd.write(config_content)
 
             task.echo()
-            task.echo(config.strip())
+            task.echo(config_content.strip())
             task.echo()
 
             task.echo(self.terminal.bold("== Done =="))
@@ -259,11 +289,13 @@ class Forge(object):
         if not self.config:
             raise CLIError("unable to find forge.yaml, try running `forge setup`")
 
-        with open(self.config, "read") as fd:
-            conf = yaml.load(fd)
+        try:
+            conf = config.load(self.config)
+        except config.SchemaError, e:
+            raise CLIError(str(e))
 
         self.base = os.path.dirname(os.path.abspath(self.config))
-        self.docker = get_docker(conf)
+        self.docker = get_docker(conf.registry)
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
 
@@ -333,27 +365,28 @@ class Forge(object):
         if self.deployed:
             task.echo(color("deployed: ") + ", ".join(s.name for s, k in self.deployed))
 
-def get_password(conf):
-    pw = conf.get("password")
-    if not pw:
-        raise CLIError("docker password must be configured")
-    return base64.decodestring(pw)
-
-def get_docker(conf):
-    url = conf.get("docker-repo")
-
-    if url is None:
-        raise CLIError("docker-repo must be configured")
-    if "/" not in url:
-        raise CLIError("docker-repo must be in the form <registry-url>/<namespace>")
-    registry, namespace = url.split("/", 1)
-
-    try:
-        user = conf["user"]
-    except KeyError, e:
-        raise CLIError("missing config property: %s" % e)
-
-    return Docker(registry, namespace, user, get_password(conf))
+def get_docker(registry):
+    if registry.type == "ecr":
+        return ECRDocker(
+            account=registry.account,
+            region=registry.region,
+            aws_access_key_id=registry.aws_access_key_id,
+            aws_secret_access_key=registry.aws_secret_access_key
+        )
+    elif registry.type == "gcr":
+        return Docker(
+            registry=registry.url,
+            namespace=registry.project,
+            user="_json_key",
+            password=registry.key
+        )
+    else:
+        return Docker(
+            registry=registry.url,
+            namespace=registry.namespace,
+            user=registry.user,
+            password=registry.password
+        )
 
 @click.group()
 @click.version_option(__version__, message="%(prog)s %(version)s")
