@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
+import copy, errno, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from .jinja2 import render, renders
 from .docker import image
