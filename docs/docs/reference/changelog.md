@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.16 (Nov 7th, 2017)
+
+* Added first class support for ECR, and GCR: [#70](https://github.com/datawire/forge/issues/70)
+
 #### 0.3.15 (Nov 6th, 2017)
 
 * Fixed unfiled bug in version computation. (Missing errno import.)
