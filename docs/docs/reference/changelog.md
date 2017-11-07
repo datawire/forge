@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.3.17 (Nov 7th, 2012)
+
+* Set default encoding to UTF-8.
+* Added `forge pull` command: [#90](https://github.com/datawire/forge/issues/90)
+
 #### 0.3.16 (Nov 7th, 2017)
 
 * Added first class support for ECR, and GCR: [#70](https://github.com/datawire/forge/issues/70)
