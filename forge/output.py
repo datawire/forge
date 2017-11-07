@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import eventlet, sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 re = eventlet.import_patched('re')
 blessed = eventlet.import_patched('blessed')
