@@ -1,150 +1,275 @@
 <!DOCTYPE html>
 <html>
-  <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Forge - Fast build system for Kubernetes services</title>
-  <meta name="description" content="Forge: Fast build system for Kubernetes services">
-  <meta name="keywords" content="Forge, Kubernetes, microservices">
-  <meta name="author" content="Datawire.io">
-  <meta name="generator" content="Doc42 0.1.0">
+    <title>Forge - Fast build system for Kubernetes services</title>
+    <meta name="description" content="Forge: Fast build system for Kubernetes services">
+    <meta name="keywords" content="Forge, Kubernetes, microservices">
+    <meta name="author" content="Datawire.io">
 
-  <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,600,700' type='text/css' media='all' />
-  <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet">
-  <link rel="stylesheet" href="/css/kissui.css">
-  <link rel="stylesheet" href="/css/custom.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,900" type="text/css" media="all" />
+    <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet">
+    <link rel="stylesheet" href="/css/home.css">
 
-  <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-PD94S6K');</script>
-<!-- End Google Tag Manager -->
-  <link rel="canonical" href="https://forge.sh/">
-  <link rel="alternate" type="application/rss+xml" title="Forge" href="https://forge.sh/feed.xml">
-</head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-PD94S6K');</script>
+    <!-- End Google Tag Manager -->
+    </head>
+    <body>
+        <!-- Google Tag Manager (noscript) -->
+        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PD94S6K"
+        height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+        <!-- End Google Tag Manager (noscript) -->
 
-
-  <body>
-      <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PD94S6K"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-<div class="row">
-    <header id="main_header">
-        <nav class="basic border menu">
-            <div class="fluid">
-                <a class="header item" href="/">
-                    Forge
-                </a>
-
-                <a class="item" href="/docs/tutorials/quickstart.html">
-                  <i class="fa fa-download"></i> Get Started
-                </a>
-                <a class="item" href="/docs/intro/overview.html">
-                  <i class="fa fa-book"></i> Documentation
-                </a>
-                <a class="item" href="https://github.com/datawire/forge/" target="_blank">
-                    <i class="fa fa-github"></i> GitHub
-                </a>
-                <a class="item" href="https://gitter.im/datawire/forge" target="_blank">
-                    <i class="fa fa-support"></i> Need help?
-                </a>
+        <header class="white-bg">
+            <ul class="main-navigation">
+                <li>
+                    <a href="/docs/tutorials/quickstart.html">Get Started</a>
+                </li>
+                <li>
+                    <a href="/docs/intro/overview.html">Docs</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/datawire/forge">GitHub</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://gitter.im/datawire/forge">Need Help?</a>
+                </li>
+            </ul>
+        </header>
+        <section id="hero" class="bg-white text-center">
+            <h1 class="text-uppercase text-xxl">Forge</h1>
+            <p class="font-light text-lg">Define and deploy multi-container apps in Kubernetes, from source</p>
+            <div class="github-buttons">
+                <a class="github-button" href="https://github.com/datawire/forge" data-icon="octicon-star" data-show-count="true" aria-label="Star datawire/forge on GitHub">Star</a>
+                <a class="github-button" href="https://github.com/datawire/forge/fork" data-icon="octicon-repo-forked" data-show-count="true" aria-label="Fork datawire/forge on GitHub">Fork</a>
             </div>
-        </nav>
-    </header>
-</div>
+            <div class="get-started-button">
+                <a href="#get-started" class="btn btn-red">Get Started</a>
+            </div>
+        </section>
+        <section id="tabs" class="bg-black">
+            <div class="container">
+                <ul class="about-tabs">
+                    <li class="tab" data-tabId="kubernetes-docker">
+                        <img src="/images/kubernetes-docker.svg">
+                        <span>Kubernetes &amp; Docker</span>
+                    </li>
+                    <li class="tab" data-tabId="templates-profiles">
+                        <img src="/images/templates-profiles.svg">
+                        <span>Templates &amp; Profiles</span>
+                    </li>
+                    <li class="tab" data-tabId="dependencies">
+                        <img src="/images/dependencies.svg">
+                        <span>Dependencies</span>
+                    </li>
+                    <li class="tab" data-tabId="canary-deploys">
+                        <img src="/images/canary-deploys.svg">
+                        <span>Canary Deploys</span>
+                    </li>
+                    <li class="tab" data-tabId="zero-infrastructure">
+                        <img src="/images/zero-infrastructure.svg">
+                        <span>Zero Infrastructure</span>
+                    </li>
+                </ul>
+                <div class="tab-content font-light text-white">
+                    <div id="kubernetes-docker">
+                        <p>Forge uses your Kubernetes manifest and Dockerfile -- so it’s easy to use and learn.</p>
+                    </div>
+                    <div id="templates-profiles">
+                        <p>
+                            Dynamically configure your Kubernetes manifests with Jinja2 templates
+                        </p>
+                    </div>
+                    <div id="dependencies">
+                        <p>
+                            Define service dependencies, so you can deploy a multi-service application with one command
+                        </p>
+                    </div>
+                    <div id="canary-deploys">
+                        <p>
+                            Native integration with <a target="_blank" href="http://getambassador.io">Ambassador</a>
+                            lets you easily do canary deployments
+                        </p>
+                    </div>
+                    <div id="zero-infrastructure">
+                        <p>
+                            Forge is a single binary that runs anywhere: in your CI system, on your laptop, or anywhere else.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="quote" class="bg-gray padding-top-130 padding-bottom-75">
+            <div class="container text-center">
+                <p class="text-lg font-light">Are you a Kubernetes application developer who wants to deploy your application from source into
+                    Kubernetes? Tired of waiting for your CD pipeline to run just so you can build and run one test?</p>
+            </div>
+        </section>
+        <section class="bg-gray padding-top-75">
+            <h1 class="text-lg text-uppercase text-center padding-bottom-130">With forge, you:</h1>
+            <div class="container">
+                <div class="bg-white border-gray box-shadow content-box">
+                    <ol class="get-started-steps">
+                        <li>
+                            <p class="text-md">Define how your application is built in a Dockerfile, and how it’s
+                                deployed in a Kubernetes manifest.</p>
+                        </li>
+                        <li>
+                            <p class="text-md">Optionally define any dependencies and runtime configuration in a
+                                <span class="inline-code">service.yaml</span> file.
+                        </li>
+                        <li>
+                            <p class="text-md">Run <span class="inline-code">forge deploy</span> which will deploy all your services into Kubernetes.</p>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+        <section id="get-started" class="bg-gray padding-top-75">
+            <h1 class="text-lg text-uppercase text-center padding-bottom-75">Get started in a few minutes:</h1>
+            <div class="container">
+                <div class="bg-white border-gray box-shadow content-box">
+                    <ol class="get-started-steps">
+                        <li>
+                            <p class="text-md">
+                                <a target="_blank" href="https://forge.sh/docs/tutorials/quickstart">Install Forge</a>
+                            </p>
+                        </li>
+                        <li>
+                            <p class="text-md">Configure Forge</p>
+                            <div class="code-box">
+                                <pre><code>forge setup</code></pre>
+                            </div>
+                        </li>
+                        <li>
+                            <p class="text-md">Add a Dockerfile, Kubernetes manifest, and service.yaml to your source repo</p>
+                            <div class="code-box">
+                                <pre><code>git clone https://github.com/datawire/hello-forge.git</code></pre>
+                            </div>
+                        </li>
+                        <li>
+                            <p class="text-md">Deploy your service</p>
+                            <div class="code-box">
+                                <pre><code>forge deploy</code></pre>
+                            </div>
+                        </li>
+                    </ol>
+                    <script type="text/javascript" src="https://asciinema.org/a/135947.js" id="asciicast-135947" async></script>
+                </div>
+            </div>
+        </section>
+        <section class="bg-gray padding-top-75 padding-bottom-75">
+            <div class="container text-center">
+                <div id="mailing-list-box" class="bg-white border-gray box-shadow content-box">
+                    <h1 class="text-lg">Stay Updated</h1>
+                    <div class="mailing-list-signup">
+                        <p class="font-light text-md">
+                            Forge is under active development. Subscribe to get updates and announcements:
+                        </p>
+                        <!--[if lte IE 8]>
+                        <script charset="utf-8" type="text/javascript" src="https://js.hsforms.net/forms/v2-legacy.js"></script>
+                        <![endif]-->
+                        <script charset="utf-8" type="text/javascript" src="https://js.hsforms.net/forms/v2.js"></script>
+                        <script>
+                            hbspt.forms.create({
+                                css: '',
+                                portalId: '485087',
+                                formId: '3aec341f-136c-4b50-a52f-e87aac571a60'
+                            });
+                        </script>
+                    </div>
+                </div>
+                <div class="sponsored-by">
+                    <a href="https://datawire.io" target="_blank">
+                        <img class="datawire-logo" alt="Datawire" src="/images/datawire-logo.svg">
+                    </a>
+                    <p class="text-md">
+                        Built by <a href="https://datawire.io" target="_blank">Datawire</a>, helping you build an
+                        amazing development workflow on Kubernetes
+                    </p>
+                </div>
+            </div>
+        </section>
+        <footer class="bg-gray">
+            <ul class="main-navigation flex-center">
+                <li>
+                    <a href="/docs/tutorials/quickstart.html">Get Started</a>
+                </li>
+                <li>
+                    <a href="/docs/intro/overview.html">Docs</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://github.com/datawire/forge">GitHub</a>
+                </li>
+                <li>
+                    <a target="_blank" href="https://gitter.im/datawire/forge">Need Help?</a>
+                </li>
+            </ul>
+        </footer>
+        <script async defer src="https://buttons.github.io/buttons.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function() {
+                changeTab($('.about-tabs li.tab:first-child').data('tabid'));
+
+                $('.about-tabs li.tab').click(function() {
+                    changeTab($(this).data('tabid'));
+                });
 
 
-      <div class="fluid">
-          <div class="wrapper">
-              <header class="hero">
-  <div class="logo">
-  <img src="/images/logo.png" style="width: 200px;">
-  <h3>Forge</h3>
-  <h4>Define and run multi-container apps in Kubernetes, from source</h4>
-  <!-- Place this tag where you want the button to render. -->
-  <a class="github-button" href="https://github.com/datawire/forge" data-icon="octicon-star" data-show-count="true" aria-label="Star datawire/forge on GitHub">Star</a>
-  <!-- Place this tag where you want the button to render. -->
-  <a class="github-button" href="https://github.com/datawire/forge/fork" data-icon="octicon-repo-forked" data-show-count="true" aria-label="Fork datawire/forge on GitHub">Fork</a>
-  </div>
-</header>
+                function changeTab(tabId) {
+                    $('.about-tabs li.tab').removeClass('active');
+                    $('.about-tabs li.tab[data-tabId="'+tabId+'"]').addClass('active');
+                    $('.tab-content div').hide();
+                    $('#' + tabId).show();
+                }
 
-<div class="container">
-  <center><a class="button primary" href="/docs/tutorials/quickstart.html"><span style="font-size: 200%;">Get started</span></a></center>
-  <br><br>
-</div>
-
-<div class="container">
-  <h5>
-  You're developing services on Kubernetes. Are you frustrated by:
-  <p>
-    <ul>
-      <li>a (frequently broken) shared dev environment because everyone is using it to test code?</li>
-      <li>Waiting for your CD pipeline to finish building and deploying so you can just run one test?</li>
-      <li>Depending on someone else to write your Kubernetes manifest (or trying to figure out how to write a bunch of YAML yourself)?</li>
-      </ul></h5>
-</div>
-
-
-
-<div class="container">
-
-<h5>Introducing Forge. With Forge, you:
-  <p>
-
-  <ul>
-    <li>Define your application in a <code>service.yaml</code> file. This file specifies all of your application dependencies, as well as any runtime configuration for your services.</li>
-    <li>Run <code>forge deploy</code> which will create and run all your services in Kubernetes.</li>
-  </ul>
-
-  (If you've used Docker Compose, think of Forge as Kubernetes-native Docker Compose.)
-
-<p>
-
-    <ul class="fa-ul">
-      <li><i class="fa-li fa fa-external-link-square"></i><strong>Develop/test in your own isolated environment</strong> Deploy your service(s) the same way, every time, into minikube or any other Kubernetes cluster.</li>
-
-      <li><i class="fa-li fa fa-bolt"></i><strong>Kubernetes-native</strong> Forge uses standard Kubernetes manifest files, so you can use any Kubernetes feature. (Or, use optional Jinja2 templating.)</li>
-
-      <li><i class="fa-li fa fa-cubes"></i><strong>Works with 1 service, or 1000 services</strong> The Forge model supports organizations with a handful of dependent services, or 1000s of services.</li>
-
-      <li><i class="fa-li fa fa-wrench"></i><strong>Build, deploy, and test your service without committing</strong> Stop waiting on your CD pipeline to test a small change. Just do this all locally.</li>
-
-      <li><i class="fa-li fa fa-cogs"></i><strong>Zero infrastructure required</strong> Forge runs locally, anywhere. It integrates with your CI system, or just runs on your laptop.</li>
-    </ul></h5>
-</div>
-
-<div class="container">
-  <h5><br><strong>How it works:</strong><br>Forge builds services based on Docker and Kubernetes. With Forge, a user specifies the deployment configuration for a service in a YAML file. Forge uses this metadata along with the source code to build a Docker image and the necessary Kubernetes deployment data to create a runnable service. For more information, see <a href="/discussion/how-it-works.html">how Forge works</a>.</h5>
-</div>
-
-<div class="container">
-  <h5><br><strong>Get started in a few minutes:</strong><br>
-    <ol>
-       <li><a href="/docs/tutorials/quickstart.html">Install Forge</a>.</li>
-      <li><tt>forge setup</tt></li>
-      <li><tt>git clone https://github.com/datawire/hello-forge.git</tt></li>
-      <li><tt>forge deploy</tt></li>
-    </ol><br>
-  </h5>
- <a name="watch"></a>
-  <center><script type="text/javascript" src="https://asciinema.org/a/135947.js" id="asciicast-135947" async></script></center>
-
-</div>
-
-
-<div class="container">
-  <p style="text-align: center;">Forge is sponsored by Project Blackbird, helping you <a href="https://www.datawire.io">deploy microservices on Kubernetes in AWS</a> <img src="/images/blackbird.png" style="width: 4em; vertical-align: middle; align: right;"></p>
-</div>
-
-<!-- Place this tag in your head or just before your close body tag. -->
-<script async defer src="https://buttons.github.io/buttons.js"></script>
-
-          </div>
-      </div>
-  </body>
+                /*
+                    Smooth scrolling. Ref: https://css-tricks.com/snippets/jquery/smooth-scrolling/
+                 */
+                $('a[href*="#"]')
+                        .not('[href="#"]')
+                        .not('[href="#0"]')
+                        .click(function(event) {
+                            // On-page links
+                            if (
+                                    location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '')
+                                    &&
+                                    location.hostname == this.hostname
+                            ) {
+                                // Figure out element to scroll to
+                                var target = $(this.hash);
+                                target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
+                                // Does a scroll target exist?
+                                if (target.length) {
+                                    // Only prevent default if animation is actually gonna happen
+                                    event.preventDefault();
+                                    $('html, body').animate({
+                                        scrollTop: target.offset().top
+                                    }, 1000, function() {
+                                        // Callback after animation
+                                        // Must change focus!
+                                        var $target = $(target);
+                                        $target.focus();
+                                        if ($target.is(":focus")) { // Checking if the target was focused
+                                            return false;
+                                        } else {
+                                            $target.attr('tabindex','-1'); // Adding tabindex for elements not focusable
+                                            $target.focus(); // Set focus again
+                                        };
+                                    });
+                                }
+                            }
+                        });
+            });
+        </script>
+    </body>
 </html>
