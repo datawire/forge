@@ -122,7 +122,7 @@
                         <li>
                            <p class="text-md">Create a service template in source control that defines how your application is built in a Dockerfile, and how it's deployed with a Kubernetes manifest. Here's a sample Python service template:</p>
                            <div class="code-box">
-                               <pre><code>git clone https://github.com/datawire/hello-world-python.git</code></pre></code></pre>
+                               <pre><code>$ git clone https://github.com/datawire/hello-world-python.git</code></pre></code></pre>
                            </div>
                           </li>
                           <li>
@@ -150,19 +150,26 @@
                           </p>
                           <div class="code-box">
                               <pre><code>
-curl https://s3.amazonaws.com/datawire-static-files/forge/$(curl https://s3.amazonaws.com/datawire-static-files/forge/latest.url)/forge -o /tmp/forge
-chmod a+x /tmp/forge
-sudo mv /tmp/forge /usr/local/bin
-forge setup</code></pre>
+$ curl https://s3.amazonaws.com/datawire-static-files/forge/$(curl https://s3.amazonaws.com/datawire-static-files/forge/latest.url)/forge -o /tmp/forge
+$ chmod a+x /tmp/forge
+$ sudo mv /tmp/forge /usr/local/bin
+$ forge setup</code></pre>
                           </div>
                         </li>
 
                         <li>
-                            <p class="text-md">Deploy the service into Kubernetes using a specific profile:</p>
+                            <p class="text-md">Deploy the service into Kubernetes:</p>
                             <div class="code-box">
                                 <pre><code>
-forge deploy
-forge --profile canary deploy
+$ forge deploy
+                                </code></pre>
+                            </div>
+                        </li>
+                        <li>
+                            <p class="text-md">Install <a href="https://www.getambassador.io">Ambassador, the Envoy-based Kubernetes API Gateway</a>, and automatically deploy a canary.</p>
+                            <div class="code-box">
+                                <pre><code>
+$ forge --profile canary deploy
                                 </code></pre>
                             </div>
                         </li>
