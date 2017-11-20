@@ -120,14 +120,33 @@
                 <div class="bg-white border-gray box-shadow content-box">
                     <ol class="get-started-steps">
                         <li>
-                           <p class="text-md">Create a service template that defines how your application is built in a Dockerfile, and how it's deployed with a Kubernetes manifest. Here's a sample Python service template:</p>
+                           <p class="text-md">Create a service template in source control that defines how your application is built in a Dockerfile, and how it's deployed with a Kubernetes manifest. Here's a sample Python service template:</p>
                            <div class="code-box">
                                <pre><code>git clone https://github.com/datawire/hello-world-python.git</code></pre></code></pre>
                            </div>
                           </li>
+                          <li>
+                              <p class="text-md">Add a <span class="inline-code">service.yaml</span> to your service that specifies the service name, any dependencies, and deployment configuration.</p>
+                              <div class="code-box">
+                                  <pre><code>
+  name: hello-world
+
+  profiles:
+    default:
+      endpoint: /hello/
+      max_memory: 0.5G
+      max_cpu: 0.5
+    canary:
+      endpoint: /hello/
+      weight: 10.0
+      max_memory: 0.5G
+      max_cpu: 0.5
+                                  </pre></code>
+                              </div>
+                        </li>
                         <li>
                           <p class="text-md">
-                                <a target="_blank" href="https://forge.sh/docs/tutorials/quickstart">Install</a> and configure the Forge binary.
+                                <a target="_blank" href="https://forge.sh/docs/tutorials/quickstart">Install</a> and configure the Forge binary (if you want, you can even check this into source control, too).
                           </p>
                           <div class="code-box">
                               <pre><code>
@@ -137,25 +156,7 @@ sudo mv /tmp/forge /usr/local/bin
 forge setup</code></pre>
                           </div>
                         </li>
-                        <li>
-                            <p class="text-md">Add a <span class="inline-code">service.yaml</span> to your service that specifies the service name, any dependencies, and deployment configuration.</p>
-                            <div class="code-box">
-                                <pre><code>
-name: hello-world
 
-profiles:
-  default:
-    endpoint: /hello/
-    max_memory: 0.5G
-    max_cpu: 0.5
-  canary:
-    endpoint: /hello/
-    weight: 10.0
-    max_memory: 0.5G
-    max_cpu: 0.5
-                                </pre></code>
-                            </div>
-                        </li>
                         <li>
                             <p class="text-md">Deploy the service into Kubernetes using a specific profile:</p>
                             <div class="code-box">
