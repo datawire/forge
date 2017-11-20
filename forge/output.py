@@ -23,8 +23,8 @@ logger = logging.getLogger("tasks")
 
 class Terminal(blessed.Terminal):
 
-    def __init__(self):
-        blessed.Terminal.__init__(self)
+    def __init__(self, *args, **kwargs):
+        blessed.Terminal.__init__(self, *args, **kwargs)
         # for tokenizer, the '.lastgroup' is the primary lookup key for
         # 'self.caps', unless 'MISMATCH'; then it is an unmatched character.
         self._caps_compiled_any = re.compile('|'.join(
