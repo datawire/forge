@@ -1,6 +1,6 @@
 # Changelog
 
-#### 0.3.17 (Nov 7th, 2012)
+#### 0.3.17 (Nov 7th, 2017)
 
 * Set default encoding to UTF-8.
 * Added `forge pull` command: [#90](https://github.com/datawire/forge/issues/90)
