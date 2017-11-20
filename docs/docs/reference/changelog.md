@@ -81,20 +81,20 @@
 * Restructured CLI and improved documentation: [#27](https://github.com/datawire/forge/issues/27)
 * Added 'build metadata' command to show all variables and metadata that can be interpolated: [#30](https://github.com/datawire/forge/issues/30)
 
-#### 0.2.16 (Agust 23, 2017)
+#### 0.2.16 (August 23, 2017)
 
 * Added a schema for service.yaml: [#22](https://github.com/datawire/forge/issues/22)
 * Added support for customizing docker builds: [#33](https://github.com/datawire/forge/issues/33)
 
-#### 0.2.14 (Agust 23, 2017)
+#### 0.2.14 (August 23, 2017)
 
 * Add version to build metadata.
 
-#### 0.2.13 (Agust 23, 2017)
+#### 0.2.13 (August 23, 2017)
 
 * Add command line arg: -n,--namespace=<name> for deploy.
 
-#### 0.2.12 (Agust 22, 2017)
+#### 0.2.12 (August 22, 2017)
 
 * Pass the K8S_NAMESPACE environment variable through to kubectl
 
