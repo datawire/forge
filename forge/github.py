@@ -62,7 +62,7 @@ class Github(object):
             repos.extend(response.json())
         filtered = [r for r in repos if fnmatch.fnmatch(r["full_name"], filter)]
 
-        real_repos = project(self.get, ["repos/%s" % r["full_name"] for r in filtered])
+        real_repos = project(lambda x: self.get(x).json(), ["repos/%s" % r["full_name"] for r in filtered])
         urls = [(r["full_name"], r["clone_url"]) for r in real_repos if "id" in r]
         return urls
 
