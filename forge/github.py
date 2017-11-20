@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import fnmatch, os, re, requests
 from .tasks import sh, get, project, Elidable, Secret, TaskError
-import fnmatch
-import os
-import re
 
 def next_page(response):
     if "Link" in response.headers:
@@ -37,18 +35,20 @@ class Github(object):
 
     def __init__(self, token):
         self.token = token
+        self._headers = {'Authorization': 'token %s' % self.token} if self.token else None
 
     def get(self, api):
-        headers = {'Authorization': 'token %s' % self.token} if self.token else None
-        response = get("https://api.github.com/%s" % api, headers=headers)
-        result = response.json()
+        return get("https://api.github.com/%s" % api, headers=self._headers)
+
+    def paginate(self, api):
+        response = self.get(api)
+        yield response
         if response.ok:
             next_url = next_page(response)
             while next_url:
-                response = self.get(next_url, headers=headers)
-                result.extend(response.json())
+                response = get(next_url, headers=self._headers)
                 next_url = next_page(response)
-        return result
+                yield response
 
     def pull(self, url, directory):
         if not os.path.exists(directory):
@@ -57,7 +57,9 @@ class Github(object):
         sh("git", "pull", inject_token(url, self.token), cwd=directory)
 
     def list(self, organization, filter="*"):
-        repos = self.get("orgs/%s/repos" % organization)
+        repos = []
+        for response in self.paginate("orgs/%s/repos" % organization):
+            repos.extend(response.json())
         filtered = [r for r in repos if fnmatch.fnmatch(r["full_name"], filter)]
 
         real_repos = project(self.get, ["repos/%s" % r["full_name"] for r in filtered])
