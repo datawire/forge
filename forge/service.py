@@ -194,7 +194,7 @@ def get_version(path, dirty):
     if is_git(path):
         result = sh("git", "diff", "--quiet", "HEAD", ".", cwd=path, expected=(0, 1))
         if result.code == 0:
-            line = sh("git", "log", "-n1", "--format=oneline", "--", ".", cwd=path).output.strip()
+            line = sh("git", "log", "--no-color", "-n1", "--format=oneline", "--", ".", cwd=path).output.strip()
             if line:
                 version = line.split()[0]
                 return "%s.git" % version
