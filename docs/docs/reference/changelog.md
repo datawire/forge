@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.19 (Nov 28th, 2017)
+
+* Add the --no-color option to git log. This fixes [#99](https://github.com/datawire/forge/issues/99)
+
 #### 0.3.18 (Nov 27th, 2017)
 
 * Add extra debug logging when querying ECR.
