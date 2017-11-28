@@ -286,6 +286,7 @@ class ECRDocker(DockerBase):
     @task()
     def remote_exists(self, name, version):
         try:
+            task.info('checking for remote version: %r' % version)
             response =  self.ecr.describe_images(registryId=self.account,
                                                  repositoryName=name,
                                                  imageIds=[{'imageTag': version}])
