@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.18 (Nov 27th, 2017)
+
+* Add extra debug logging when querying ECR.
+
 #### 0.3.17 (Nov 7th, 2017)
 
 * Set default encoding to UTF-8.
