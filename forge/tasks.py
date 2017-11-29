@@ -227,6 +227,7 @@ class decorator(object):
     def __init__(self, task, object = _UNBOUND):
         self.task = task
         self.object = object
+        self.__name__ = getattr(self.task.function, "__name__", "<unknown>")
 
     def __get__(self, object, clazz):
         return decorator(self.task, object)
@@ -349,6 +350,7 @@ import os
 @task("CMD")
 def sh(*args, **kwargs):
     expected = kwargs.pop("expected", (0,))
+    output_buffer = kwargs.pop("output_buffer", 10)
     cmd = tuple(str(a) for a in args)
 
     kwcopy = kwargs.copy()
@@ -377,7 +379,7 @@ def sh(*args, **kwargs):
             output += line
             line_buffer.append(line[:-1])
             elapsed = time.time() - start
-            if (len(line_buffer) > 10) or (elapsed > 1.0):
+            if (len(line_buffer) > output_buffer) or (elapsed > 1.0):
                 while line_buffer:
                     task.info(line_buffer.pop(0))
             start = time.time()
@@ -413,3 +415,25 @@ def get(url, **kwargs):
         return response
     except requests.RequestException, e:
         raise TaskError(e)
+
+import watchdog, watchdog.events
+
+class _Wrapper(watchdog.events.FileSystemEventHandler):
+
+    def __init__(self, action):
+        for attr in "on_any_event", "on_created", "on_deleted", "on_modified", "on_moved":
+            meth = getattr(action, attr, None)
+            if meth:
+                setattr(self, attr, meth)
+
+    @task()
+    def dispatch(self, event):
+        watchdog.events.FileSystemEventHandler.dispatch(self, event)
+
+@task()
+def watch(paths, action):
+    handler = _Wrapper(action)
+    obs = watchdog.observers.Observer()
+    for path in paths:
+        obs.schedule(handler, path, recursive=True)
+    obs.start()

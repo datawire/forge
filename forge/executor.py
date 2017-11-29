@@ -328,7 +328,7 @@ class executor(object):
     @classmethod
     def setup(cls):
         eventlet.sleep() # workaround for import cycle: https://github.com/eventlet/eventlet/issues/401
-        eventlet.monkey_patch()
+        eventlet.monkey_patch(thread=False)
 
         if 'pytest' not in sys.modules:
             import getpass

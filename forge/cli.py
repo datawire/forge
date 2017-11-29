@@ -388,6 +388,29 @@ def forge(context, verbose, config, profile, branch):
 
 @forge.command()
 @click.pass_obj
+@click.argument('script', nargs=1, type=click.Path(exists=True))
+@click.argument('args', nargs=-1)
+@task()
+def invoke(forge, script, args):
+    """
+    Invoke a python script using the forge runtime.
+
+    Forge uses a portable self contained python runtime with a well
+    defined set of packages in order to behave consistently across
+    environments. The invoke command allows arbitrary python code to
+    be executed using the forge runtime.
+
+
+    The code is executed much as a normal python script, but with a
+    few exceptions. The "forge" global variable is set to an instance
+    of the forge object. Use forge.args to access any arguments
+    supplied to the script.
+    """
+    forge.args = args
+    execfile(script, {"forge": forge, "__file__": os.path.abspath(script)})
+
+@forge.command()
+@click.pass_obj
 def setup(forge):
     """
     Help with first time setup of forge.
