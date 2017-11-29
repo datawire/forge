@@ -1,4 +1,3 @@
 name: forge-dep-test
 requires:
  - forge-dep-test-foo
- - forge-dep-test-bar

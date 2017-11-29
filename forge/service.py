@@ -148,6 +148,7 @@ class Discovery(object):
     @task()
     def dependencies(self, targets):
         todo = [self.services[t] for t in targets]
+        root = todo[0]
         visited = set()
         added = []
         missing = []
@@ -158,7 +159,7 @@ class Discovery(object):
             visited.add(svc)
             for r in svc.requires:
                 if r not in self.services:
-                    if not self.resolve(svc, r): missing.append(r)
+                    if not self.resolve(root, r): missing.append(r)
                 if r not in targets and r not in added:
                     added.append(r)
                 if r in self.services:
