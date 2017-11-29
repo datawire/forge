@@ -247,7 +247,7 @@ class Service(object):
     @task()
     def pull(self):
         if self.is_git:
-            sh("git", "pull", cwd=self.root)
+            sh("git", "pull", "--update-shallow", cwd=self.root)
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()

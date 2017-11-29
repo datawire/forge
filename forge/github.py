@@ -87,4 +87,4 @@ class Github(object):
                 raise TaskError(str(result))
 
     def clone(self, url, directory):
-        sh("git", "-c", "core.askpass=true", "clone", inject_token(url, self.token), directory)
+        sh("git", "-c", "core.askpass=true", "clone", "--depth=1", inject_token(url, self.token), directory)
