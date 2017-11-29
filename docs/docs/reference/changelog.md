@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.20 (Nov 28th, 2017)
+
+* Flatten nested service dependencies into the topmost .forge directory.
+
 #### 0.3.19 (Nov 28th, 2017)
 
 * Add the --no-color option to git log. This fixes [#99](https://github.com/datawire/forge/issues/99)
