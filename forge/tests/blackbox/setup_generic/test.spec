@@ -1,3 +1,4 @@
+RUN rm forge.yaml
 RUN forge setup
 OUT Registry type ; TYPE <ENTER>
 OUT Docker registry url ; TYPE <ENTER>

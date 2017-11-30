@@ -14,11 +14,19 @@
 
 import os
 from tempfile import mkdtemp
+from forge.match import match
 
+@match(basestring)
 def mktree(treespec, **substitutions):
-    files = parse_treespec(treespec, **substitutions)
+    files = parse_treespec(treespec)
+    return mktree(files, **substitutions)
+
+@match(dict)
+def mktree(files, **substitutions):
     root = mkdtemp()
     for name, content in files.items():
+        for k, v in substitutions.items():
+            content = content.replace(k, v)
         path = os.path.join(root, name)
         directory = os.path.dirname(path)
         if not os.path.exists(directory):
@@ -41,8 +49,6 @@ def parse_treespec(treespec, **substitutions):
         else:
             if line == "@@":
                 content = "\n".join(filelines)
-                for k, v in substitutions.items():
-                    content = content.replace(k, v)
                 result[filename] = content
                 filename = None
                 filelines = []
