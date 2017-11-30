@@ -1,0 +1,3 @@
+name: child
+requires:
+ - forge-dep-test-foo

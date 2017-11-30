@@ -131,7 +131,7 @@ class Discovery(object):
 
     def resolve(self, svc, dep):
         gh = Github(None)
-        target = os.path.join(svc.root, ".forge", dep)
+        target = os.path.join(svc.forgeroot, ".forge", dep)
         if not os.path.exists(target):
             url = gh.remote(svc.root)
             if url is None: return False
@@ -160,7 +160,8 @@ class Discovery(object):
             visited.add(svc)
             for r in svc.requires:
                 if r not in self.services:
-                    if not self.resolve(root, r): missing.append(r)
+                    if not self.resolve(root, r):
+                        if r not in missing: missing.append(r)
                 if r not in targets and r not in added:
                     added.append(r)
                 if r in self.services:
@@ -220,6 +221,7 @@ class Service(object):
         else:
             self.branch = None
         self.profile = profile
+        self.forgeroot = os.path.dirname(util.search_parents("service.yaml", self.root, root=True))
 
     @property
     def root(self):
