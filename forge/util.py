@@ -26,13 +26,17 @@ def setup():
     setup_yaml()
     setup_logging()
 
-def search_parents(name, start=None):
+def search_parents(name, start=None, root=False):
+    rootiest = None
     prev = None
     path = start or os.getcwd()
     while path != prev:
         prev = path
         candidate = os.path.join(path, name)
         if os.path.exists(candidate):
-            return candidate
+            if root:
+                rootiest = candidate
+            else:
+                return candidate
         path = os.path.dirname(path)
-    return None
+    return rootiest

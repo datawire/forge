@@ -81,7 +81,7 @@ class Discovery(object):
         self.branch = branch
 
     @task()
-    def search(self, directory):
+    def search(self, directory, shallow=False):
         directory = os.path.abspath(directory)
         if not os.path.exists(directory):
             raise TaskError("no such directory: %s" % directory)
@@ -109,7 +109,8 @@ class Discovery(object):
                                                                                         directory))]
 
             if "service.yaml" in names:
-                svc = Service(os.path.join(path, "service.yaml"), profile=self.profile, branch=self.branch)
+                svc = Service(os.path.join(path, "service.yaml"), profile=self.profile, branch=self.branch,
+                              shallow=shallow)
                 if svc.name not in self.services:
                     self.services[svc.name] = svc
                 found.append(svc)
@@ -130,7 +131,7 @@ class Discovery(object):
 
     def resolve(self, svc, dep):
         gh = Github(None)
-        target = os.path.join(svc.root, ".forge", dep)
+        target = os.path.join(svc.forgeroot, ".forge", dep)
         if not os.path.exists(target):
             url = gh.remote(svc.root)
             if url is None: return False
@@ -142,7 +143,7 @@ class Discovery(object):
                 gh.clone(remote, target)
             else:
                 raise TaskError("cannot resolve dependency: %s" % dep)
-        found = self.search(target)
+        found = self.search(target, shallow=True)
         return dep in [svc.name for svc in found]
 
     @task()
@@ -159,7 +160,8 @@ class Discovery(object):
             visited.add(svc)
             for r in svc.requires:
                 if r not in self.services:
-                    if not self.resolve(root, r): missing.append(r)
+                    if not self.resolve(root, r):
+                        if r not in missing: missing.append(r)
                 if r not in targets and r not in added:
                     added.append(r)
                 if r in self.services:
@@ -203,12 +205,13 @@ def get_version(path, dirty):
 
 class Service(object):
 
-    def __init__(self, descriptor, profile=None, branch=None):
+    def __init__(self, descriptor, profile=None, branch=None, shallow=False):
         self.descriptor = descriptor
         self.dockerfiles = []
         self.files = []
         self._info = None
         self._version = None
+        self.shallow = shallow
         self.is_git = is_git(self.root)
         if branch:
             self.branch = branch
@@ -218,6 +221,7 @@ class Service(object):
         else:
             self.branch = None
         self.profile = profile
+        self.forgeroot = os.path.dirname(util.search_parents("service.yaml", self.root, root=True))
 
     @property
     def root(self):
@@ -246,7 +250,7 @@ class Service(object):
 
     @task()
     def pull(self):
-        if self.is_git:
+        if self.is_git and self.shallow:
             sh("git", "pull", "--update-shallow", cwd=self.root)
 
     def metadata(self, registry, repo):

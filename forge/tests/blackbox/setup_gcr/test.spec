@@ -1,3 +1,4 @@
+RUN rm forge.yaml
 RUN forge setup
 OUT Registry type ; TYPE gcr
 OUT url ; TYPE gcr.io

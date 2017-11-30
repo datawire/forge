@@ -1,3 +1,4 @@
+RUN rm forge.yaml
 RUN forge setup
 OUT Registry type ; TYPE ecr
 OUT account ; TYPE 914373874199
