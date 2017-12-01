@@ -248,12 +248,12 @@ class Forge(object):
 
     def load_config(self):
         if not self.config:
-            raise CLIError("unable to find forge.yaml, try running `forge setup`")
+            raise TaskError("unable to find forge.yaml, try running `forge setup`")
 
         try:
             conf = config.load(self.config)
         except config.SchemaError, e:
-            raise CLIError(str(e))
+            raise TaskError(str(e))
 
         self.base = os.path.dirname(os.path.abspath(self.config))
         self.search_path = conf.search_path
