@@ -73,12 +73,15 @@ def get_ancestors(path, stop="/"):
             yield d
         yield parent
 
+def get_search_path(forge):
+    for p in forge.search_path:
+        yield os.path.join(forge.base, p)
+
 class Discovery(object):
 
-    def __init__(self, profile=None, branch=None):
+    def __init__(self, forge):
+        self.forge = forge
         self.services = OrderedDict()
-        self.profile = profile
-        self.branch = branch
 
     @task()
     def search(self, directory, shallow=False):
@@ -109,8 +112,7 @@ class Discovery(object):
                                                                                         directory))]
 
             if "service.yaml" in names:
-                svc = Service(os.path.join(path, "service.yaml"), profile=self.profile, branch=self.branch,
-                              shallow=shallow)
+                svc = Service(self.forge, os.path.join(path, "service.yaml"), shallow=shallow)
                 if svc.name not in self.services:
                     self.services[svc.name] = svc
                 found.append(svc)
@@ -130,6 +132,11 @@ class Discovery(object):
         return found
 
     def resolve(self, svc, dep):
+        for path in get_search_path(self.forge):
+            found = self.search(path)
+            if dep in [svc.name for svc in found]:
+                return True
+
         gh = Github(None)
         target = os.path.join(svc.forgeroot, ".forge", dep)
         if not os.path.exists(target):
@@ -205,7 +212,8 @@ def get_version(path, dirty):
 
 class Service(object):
 
-    def __init__(self, descriptor, profile=None, branch=None, shallow=False):
+    def __init__(self, forge, descriptor, shallow=False):
+        self.forge = forge
         self.descriptor = descriptor
         self.dockerfiles = []
         self.files = []
@@ -213,14 +221,13 @@ class Service(object):
         self._version = None
         self.shallow = shallow
         self.is_git = is_git(self.root)
-        if branch:
+        if forge.branch:
             self.branch = branch
         elif self.is_git:
             output = sh("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=self.root).output.strip()
             self.branch = None if output == "HEAD" else output
         else:
             self.branch = None
-        self.profile = profile
         self.forgeroot = os.path.dirname(util.search_parents("service.yaml", self.root, root=True))
 
     @property
@@ -268,7 +275,7 @@ class Service(object):
 
         build["branch"] = self.branch
 
-        if self.profile is None:
+        if self.forge.profile is None:
             profile = "default"
             if self.branch:
                 for k, v in svc.get("branches", {}).items():
@@ -276,7 +283,7 @@ class Service(object):
                         profile = v
                         break
         else:
-            profile = self.profile
+            profile = self.forge.profile
 
         build["version"] = self.version
         prof = copy.deepcopy(svc.get("profiles", {}).get(profile, {}))

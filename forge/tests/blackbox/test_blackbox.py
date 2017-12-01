@@ -28,6 +28,8 @@ password: >
     for path, dirs, files in os.walk(test_dir):
         for name in files:
             key = os.path.join(os.path.relpath(path, test_dir), name)
+            if key.startswith("./"):
+                key = key[2:]
             with open(os.path.join(path, name), "r") as fd:
                 tree[key] = fd.read()
 
@@ -85,8 +87,13 @@ class Runner(object):
     def do_TYPE(self, arg):
         if arg.strip().lower() == "<enter>":
             self.child.sendline()
+        elif arg.strip().lower() == "<esc>":
+            self.child.send("\x1B")
         else:
             self.child.sendline(arg)
+
+    def do_EOF(self, arg):
+        self.child.sendeof()
 
     def do_ERR(self, arg):
         self.child.expect(pexpect.EOF)

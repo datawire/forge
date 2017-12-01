@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .schema import Class, Field, Union, Constant, String, Base64, SchemaError
+from .schema import Class, Field, Union, Constant, Sequence, String, Base64, SchemaError
 
 class Registry(object):
 
@@ -74,7 +74,9 @@ ECR = Class(
 
 class Config(object):
 
-    def __init__(self, registry=None, docker_repo=None, user=None, password=None, workdir=None):
+    def __init__(self, search_path=None, registry=None, docker_repo=None, user=None, password=None, workdir=None):
+        self.search_path = search_path or ()
+
         if registry:
             if docker_repo:
                 raise SchemaError("cannot specify both registry and docker-repo")
@@ -91,7 +93,7 @@ class Config(object):
                                 namespace=namespace,
                                 user=user,
                                 password=password)
-                                
+
         self.registry = registry
 
 CONFIG = Class(
@@ -101,6 +103,7 @@ CONFIG = Class(
     registry configuration and credentials.
     """,
     Config,
+    Field("search-path", Sequence(String()), "search_path", default=None, docs="Search path for service dependencies."),
     Field("registry", Union(DOCKER, GCR, ECR), default=None),
     Field("docker-repo", String(), "docker_repo", default=None, docs="Deprecated, use registry instead."),
     Field("user", String(), default=None, docs="Deprecated, use registry instead."),

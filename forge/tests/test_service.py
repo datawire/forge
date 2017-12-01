@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os, pytest
+from forge.core import Forge
 from forge.service import load_service_yamls, Discovery
 from forge.tasks import sh, TaskError
 from .common import mktree
@@ -186,7 +187,7 @@ def mkgittree(treespec, **substitutions):
 
 def test_discovery_root():
     directory = mkgittree(GIT_ROOT + ROOT_SVC)
-    disco = Discovery()
+    disco = Discovery(Forge())
     found = disco.search(directory)
     assert [f.name for f in found] == ["root"]
 
@@ -202,7 +203,7 @@ def test_discovery_root():
 
 def test_discovery_nested():
     directory = mkgittree(GIT_ROOT + NESTED_SVC)
-    disco = Discovery()
+    disco = Discovery(Forge())
     found = disco.search(directory)
     assert [f.name for f in found] == ["nested"]
 
@@ -218,7 +219,7 @@ def test_discovery_nested():
 
 def test_discovery_combined():
     directory = mkgittree(GIT_ROOT + ROOT_SVC + NESTED_SVC)
-    disco = Discovery()
+    disco = Discovery(Forge())
     found = disco.search(directory)
     assert [f.name for f in found] == ["root", "nested"]
 
@@ -246,29 +247,29 @@ def test_discovery_combined():
 def test_versioning():
     directory = mkgittree(GIT_ROOT + ROOT_SVC)
 
-    v1 = Discovery().search(directory)[0].version
+    v1 = Discovery(Forge()).search(directory)[0].version
     assert v1.endswith(".git")
 
     with open(os.path.join(directory, "root.py"), "write") as fd:
         fd.write("blah")
-    v2 = Discovery().search(directory)[0].version
+    v2 = Discovery(Forge()).search(directory)[0].version
     assert v2.endswith(".sha")
 
     with open(os.path.join(directory, "root.py"), "write") as fd:
         fd.write("blahblah")
-    v3 = Discovery().search(directory)[0].version
+    v3 = Discovery(Forge()).search(directory)[0].version
 
     assert v3.endswith(".sha")
     assert v2 != v3
 
 def test_nonexistent():
     try:
-        Discovery().search("thisfileshouldreallynotexist")
+        Discovery(Forge()).search("thisfileshouldreallynotexist")
     except TaskError, e:
         assert "no such directory" in str(e)
 
 def test_nondirectory():
     try:
-        Discovery().search(__file__)
+        Discovery(Forge()).search(__file__)
     except TaskError, e:
         assert "not a directory" in str(e)
