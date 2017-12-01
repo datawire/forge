@@ -18,7 +18,8 @@ Forge CLI.
 
 from .tasks import (
     setup,
-    task
+    task,
+    TaskError
 )
 
 setup()
@@ -32,9 +33,6 @@ from .core import Forge
 
 ENV = find_dotenv(usecwd=True)
 if ENV: load_dotenv(ENV)
-
-# XXX I changed CLIError to TaskError in core.py!!!
-class CLIError(Exception): pass
 
 @click.group()
 @click.version_option(__version__, message="%(prog)s %(version)s")
@@ -198,7 +196,7 @@ def call_main():
     util.setup_yaml()
     try:
         exit(forge())
-    except CLIError, e:
+    except TaskError, e:
         exit(e)
     except KeyboardInterrupt, e:
         exit(e)
