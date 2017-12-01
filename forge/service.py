@@ -73,6 +73,10 @@ def get_ancestors(path, stop="/"):
             yield d
         yield parent
 
+def get_search_path(forge):
+    for p in forge.search_path:
+        yield os.path.join(forge.base, p)
+
 class Discovery(object):
 
     def __init__(self, forge):
@@ -128,6 +132,11 @@ class Discovery(object):
         return found
 
     def resolve(self, svc, dep):
+        for path in get_search_path(self.forge):
+            found = self.search(path)
+            if dep in [svc.name for svc in found]:
+                return True
+
         gh = Github(None)
         target = os.path.join(svc.forgeroot, ".forge", dep)
         if not os.path.exists(target):

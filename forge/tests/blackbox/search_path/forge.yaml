@@ -1,0 +1,14 @@
+# Global forge configuration
+# Normally you would not want to check this into git, but this is here
+# for testing purposes.
+
+search-path:
+ - services
+
+registry:
+  type: docker
+  url: registry.hub.docker.com
+  user: forgetest
+  namespace: forgeorg
+  password: >
+    Zm9yZ2V0ZXN0

@@ -256,6 +256,7 @@ class Forge(object):
             raise CLIError(str(e))
 
         self.base = os.path.dirname(os.path.abspath(self.config))
+        self.search_path = conf.search_path
         self.docker = get_docker(conf.registry)
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
