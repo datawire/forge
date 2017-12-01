@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.23 (Dec 1st, 2017)
+
+* Prevent concurrent git pulls for monorepo style usage: [#109](https://github.com/datawire/forge/issues/109)
+
 #### 0.3.22 (Dec 1st, 2017)
 
 * Fix bad reference to CLIError.
