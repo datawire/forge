@@ -1,6 +1,10 @@
 # Changelog
 
-#### 0.3.21 (Nov 28th, 2017)
+#### 0.3.22 (Dec 1st, 2017)
+
+* Fix bad reference to CLIError.
+
+#### 0.3.21 (Nov 30th, 2017)
 
 * Only git pull for services auto cloned into .forge: [#109](https://github.com/datawire/forge/issues/109)
 * Use a single shared .forge for each service tree: [#107](https://github.com/datawire/forge/issues/107)
