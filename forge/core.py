@@ -242,9 +242,9 @@ class Forge(object):
         self.deployed.append((service, k8s_dir))
 
     @task()
-    def pull(self, service):
+    def pull(self, service, pulled):
         with task.verbose(True):
-            service.pull()
+            service.pull(pulled)
 
     def load_config(self):
         if not self.config:

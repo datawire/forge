@@ -182,7 +182,9 @@ def pull(forge):
     """
     Do a git pull on all services.
     """
-    forge.execute(forge.pull)
+    # XXX: should have a better way to track this, but this is quick
+    pulled = {}
+    forge.execute(lambda svc: forge.pull(svc, pulled))
 
 @forge.command()
 @click.pass_obj

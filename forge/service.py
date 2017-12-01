@@ -220,7 +220,13 @@ class Service(object):
         self._info = None
         self._version = None
         self.shallow = shallow
-        self.is_git = is_git(self.root)
+        gitdir = util.search_parents(".git", self.root)
+        if gitdir:
+            self.gitroot = os.path.dirname(gitdir)
+            self.is_git = True
+        else:
+            self.gitroot = None
+            self.is_git = False
         if forge.branch:
             self.branch = branch
         elif self.is_git:
@@ -256,9 +262,11 @@ class Service(object):
 
 
     @task()
-    def pull(self):
+    def pull(self, pulled):
         if self.is_git and self.shallow:
-            sh("git", "pull", "--update-shallow", cwd=self.root)
+            if self.gitroot not in pulled:
+                pulled[self.gitroot] = True
+                sh("git", "pull", "--update-shallow", cwd=self.gitroot)
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()
