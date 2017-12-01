@@ -249,7 +249,7 @@ h1, h2, h3, h4, h5, h6, strong {
     background: url('/images/hero-background.svg') no-repeat center bottom;
     max-width: 1120px;
     margin: 0 auto 50px;
-    padding: 60px 30px 400px;
+    padding: 60px 30px 430px;
 }
 #hero h1 {
     font-weight: 900;
@@ -266,9 +266,9 @@ h1, h2, h3, h4, h5, h6, strong {
     text-align: center;
     border: 2px solid #222;
     border-radius: 30px;
-    font-size: 28px;
-    font-weight: 300;
-    margin: 10px 0;
+    font-size: 20px;
+    font-weight: 400;
+    margin: 50px 0 10px;
 }
 
 #tabs {
