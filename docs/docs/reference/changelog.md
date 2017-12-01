@@ -1,5 +1,12 @@
 # Changelog
 
+#### 0.3.21 (Nov 28th, 2017)
+
+* Only git pull for services auto cloned into .forge: [#109](https://github.com/datawire/forge/issues/109)
+* Use a single shared .forge for each service tree: [#107](https://github.com/datawire/forge/issues/107)
+* Added a search-path option to forge.yaml for local services: [#106](https://github.com/datawire/forge/issues/106)
+* Use shallow cloning: [#105](https://github.com/datawire/forge/issues/105)
+
 #### 0.3.20 (Nov 28th, 2017)
 
 * Flatten nested service dependencies into the topmost .forge directory.
