@@ -14,7 +14,7 @@
 
 import yaml
 from collections import OrderedDict
-from forge.schema import Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, SchemaError
+from forge.schema import Any, Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, SchemaError
 from forge import util
 
 class Klass(object):
@@ -110,3 +110,18 @@ def test_union():
     assert s.load("test", "foo: bar") == Klass(foo="bar")
     assert s.load("test", "foobar: bar") == Klass(foobar="bar")
     assert s.load("test", "bar: foo") == {"bar": "foo"}
+
+def test_any():
+    s = Any()
+    assert s.load("test", "asdf") == "asdf"
+    assert s.load("test", "[]") == []
+    assert s.load("test", "[1, 2, 3]") == [1, 2, 3]
+    assert s.load("test", "[a, b, c]") == ['a', 'b', 'c']
+    assert s.load("test", "[1, two, 3.0, {four: five, 6.0: 7, ate: 8.0}]") == [1, 'two', 3.0,
+                                                                               {"four": "five",
+                                                                                "6.0": 7,
+                                                                                "ate": 8.0}]
+    assert s.load("test", "{a: b, c: 1, d: 1.0, e: [1, 2, 3]}") == {"a": "b",
+                                                                    "c": 1,
+                                                                    "d": 1.0,
+                                                                    "e": [1, 2, 3]}

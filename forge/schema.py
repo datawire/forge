@@ -186,12 +186,51 @@ class Field(object):
     def required(self):
         return self.default is REQUIRED
 
+class Any(Schema):
+
+    name = "any"
+
+    @match(ScalarNode)
+    def load(self, node):
+        return self.decode(node.tag.split(":")[-1], node)
+
+    @match("null", ScalarNode)
+    def decode(self, tag, node):
+        return None
+
+    @match("str", ScalarNode)
+    def decode(self, tag, node):
+        return node.value
+
+    @match("int", ScalarNode)
+    def decode(self, tag, node):
+        return int(node.value)
+
+    @match("float", ScalarNode)
+    def decode(self, tag, node):
+        return float(node.value)
+
+    @match(MappingNode)
+    def load(self, node):
+        result = OrderedDict()
+        for k, v in node.value:
+            result[k.value] = self.load(v)
+        return result
+
+    @match(SequenceNode)
+    def load(self, node):
+        return [self.load(n) for n in node.value]
+
 class Class(Schema):
 
     @match(basestring, basestring, object, many(Field))
     def __init__(self, name, docs, constructor, *fields):
         self.name = name
         self.docs = docs
+        if isinstance(constructor, Field):
+            raise TypeError("missing constructor")
+        if not callable(constructor):
+            raise TypeError("constructor must be callable")
         self.constructor = constructor
         self.fields = OrderedDict()
         for f in fields:
