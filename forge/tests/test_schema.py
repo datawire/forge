@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
+import pytest, yaml
 from collections import OrderedDict
-from forge.schema import Any, Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, SchemaError
+from forge.schema import Any, Scalar, Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, \
+    SchemaError
 from forge import util
 
 class Klass(object):
@@ -125,3 +126,24 @@ def test_any():
                                                                     "c": 1,
                                                                     "d": 1.0,
                                                                     "e": [1, 2, 3]}
+
+def test_scalar():
+    s = Scalar()
+    assert s.load("test", "pi") == "pi"
+    assert s.load("test", "3.14159") == 3.14159
+    assert s.load("test", "3") == 3
+
+SCALAR_VALIDATIONS = (
+    (String, "1", "expecting string, got tag:yaml.org,2002:int"),
+    (Integer, "a", "expecting int, got tag:yaml.org,2002:str"),
+    (Float, "a", "expecting one of (float|int), got tag:yaml.org,2002:str")
+)
+
+@pytest.mark.parametrize("cls,input,error", SCALAR_VALIDATIONS)
+def test_scalar_validation(cls, input, error):
+    s = cls()
+    try:
+        s.load("test", input)
+        assert False, "expecting error"
+    except SchemaError, e:
+        assert error in str(e)

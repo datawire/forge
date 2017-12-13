@@ -41,6 +41,27 @@ class Schema(object):
         tree = trees[0]
         return self.load(tree)
 
+@match(ScalarNode)
+def _scalar2py(node):
+    return _scalar2py(node.tag.split(":")[-1], node)
+
+@match("null", ScalarNode)
+def _scalar2py(tag, node):
+    return None
+
+@match("str", ScalarNode)
+def _scalar2py(tag, node):
+    return node.value
+
+@match("int", ScalarNode)
+def _scalar2py(tag, node):
+    return int(node.value)
+
+@match("float", ScalarNode)
+def _scalar2py(tag, node):
+    return float(node.value)
+
+
 class Scalar(Schema):
 
     @match(ScalarNode)
@@ -50,12 +71,31 @@ class Scalar(Schema):
         else:
             return self.decode(node)
 
+    @match(ScalarNode)
+    def decode(self, node):
+        return _scalar2py(node)
+
+PRETTY = {
+    "str": "string"
+}
+
+def _check(node, *allowed):
+    actual = node.tag.split(":")[-1]
+    if actual not in allowed:
+        if len(allowed) == 1:
+            tag = allowed[0]
+            pretty = PRETTY.get(tag, tag)
+        else:
+            pretty = "one of (%s)" % "|".join(PRETTY.get(t, t) for t in allowed)
+        raise SchemaError("expecting %s, got %s" % (pretty, node.tag))
+
 class String(Scalar):
 
     name = "string"
 
     @match(ScalarNode)
     def decode(self, node):
+        _check(node, "str")
         return node.value
 
     @property
@@ -71,6 +111,7 @@ class Base64(Scalar):
 
     @match(ScalarNode)
     def decode(self, node):
+        _check(node, "str")
         return base64.decodestring(node.value)
 
     @property
@@ -86,6 +127,7 @@ class Integer(Scalar):
 
     @match(ScalarNode)
     def decode(self, node):
+        _check(node, "int")
         return int(node.value)
 
     @property
@@ -101,6 +143,7 @@ class Float(Scalar):
 
     @match(ScalarNode)
     def decode(self, node):
+        _check(node, "float", "int")
         return float(node.value)
 
     @property
@@ -192,23 +235,7 @@ class Any(Schema):
 
     @match(ScalarNode)
     def load(self, node):
-        return self.decode(node.tag.split(":")[-1], node)
-
-    @match("null", ScalarNode)
-    def decode(self, tag, node):
-        return None
-
-    @match("str", ScalarNode)
-    def decode(self, tag, node):
-        return node.value
-
-    @match("int", ScalarNode)
-    def decode(self, tag, node):
-        return int(node.value)
-
-    @match("float", ScalarNode)
-    def decode(self, tag, node):
-        return float(node.value)
+        return _scalar2py(node)
 
     @match(MappingNode)
     def load(self, node):
