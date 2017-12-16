@@ -24,7 +24,7 @@ class Schema(object):
 
     @match(Node)
     def load(self, node):
-        raise SchemaError("expecting %s, got %s\n%s" % (self.name, node.tag, node.start_mark))
+        raise SchemaError("expecting %s, got %s\n%s" % (self.name, _tag(node), node.start_mark))
 
     @match(basestring)
     def load(self, name):
@@ -61,6 +61,10 @@ def _scalar2py(tag, node):
 def _scalar2py(tag, node):
     return float(node.value)
 
+@match("bool", ScalarNode)
+def _scalar2py(tag, node):
+    return node.value.lower() == "true"
+
 
 class Scalar(Schema):
 
@@ -75,19 +79,14 @@ class Scalar(Schema):
     def decode(self, node):
         return _scalar2py(node)
 
-PRETTY = {
-    "str": "string"
-}
-
 def _check(node, *allowed):
-    actual = node.tag.split(":")[-1]
+    actual = _tag(node)
     if actual not in allowed:
         if len(allowed) == 1:
-            tag = allowed[0]
-            pretty = PRETTY.get(tag, tag)
+            expecting = allowed[0]
         else:
-            pretty = "one of (%s)" % "|".join(PRETTY.get(t, t) for t in allowed)
-        raise SchemaError("expecting %s, got %s" % (pretty, node.tag))
+            expecting = "one of (%s)" % "|".join(allowed)
+        raise SchemaError("expecting %s, got %s" % (expecting, actual))
 
 class String(Scalar):
 
@@ -95,7 +94,7 @@ class String(Scalar):
 
     @match(ScalarNode)
     def decode(self, node):
-        _check(node, "str")
+        _check(node, "string")
         return node.value
 
     @property
@@ -111,7 +110,7 @@ class Base64(Scalar):
 
     @match(ScalarNode)
     def decode(self, node):
-        _check(node, "str")
+        _check(node, "string")
         return base64.decodestring(node.value)
 
     @property
@@ -214,6 +213,7 @@ class Sequence(Collection):
         return [self.type.load(n) for n in node.value]
 
 REQUIRED = object()
+OMIT = object()
 
 class Field(object):
 
@@ -251,17 +251,21 @@ class Any(Schema):
 class Class(Schema):
 
     @match(basestring, basestring, object, many(Field))
-    def __init__(self, name, docs, constructor, *fields):
+    def __init__(self, name, docs, constructor, *fields, **kwargs):
         self.name = name
         self.docs = docs
         if isinstance(constructor, Field):
-            raise TypeError("missing constructor")
-        if not callable(constructor):
+            fields = (constructor,) + fields
+            constructor = OrderedDict
+        elif not callable(constructor):
             raise TypeError("constructor must be callable")
         self.constructor = constructor
         self.fields = OrderedDict()
         for f in fields:
             self.fields[f.name] = f
+        self.strict = kwargs.pop("strict", True)
+        if kwargs:
+            raise TypeError("no such arg(s): %s" % ", ".join(kwargs.keys()))
 
     @match(basestring, object, many(Field))
     def __init__(self, name, constructor, *fields):
@@ -272,16 +276,20 @@ class Class(Schema):
         loaded = {}
         for k, v in node.value:
             key = k.value
-            if key not in self.fields:
+            if key in self.fields:
+                f = self.fields[key]
+            elif self.strict:
                 raise SchemaError("no such field: %s\n%s" % (key, k.start_mark))
-            f = self.fields[key]
+            else:
+                f = Field(key, Any())
+
             loaded[f.alias or f.name] = f.type.load(v)
         for f in self.fields.values():
             key = (f.alias or f.name)
             if key not in loaded:
                 if f.default is REQUIRED:
                     raise SchemaError("required field '%s' is missing\n%s" % (f.name, node.start_mark))
-                else:
+                elif f.default is not OMIT:
                     loaded[key] = f.default
         try:
             return self.constructor(**loaded)
@@ -320,11 +328,122 @@ class Class(Schema):
             result = result[:-1]
         return "\n".join(result)
 
+@match(String)
+def _tag(scalar):
+    return "string"
+
+@match(Integer)
+def _tag(scalar):
+    return "int"
+
+@match(Float)
+def _tag(scalar):
+    return "float"
+
+_YAML2ENGLISH={
+    "str": "string",
+}
+
+@match(ScalarNode)
+def _tag(nd):
+    tag = nd.tag.split(":")[-1]
+    return _YAML2ENGLISH.get(tag, tag)
+
+@match(Sequence)
+def _tag(seq):
+    return "sequence"
+
+@match(SequenceNode)
+def _tag(nd):
+    return "sequence"
+
+@match(Map)
+def _tag(map):
+    return "map"
+
+@match(MappingNode)
+def _tag(nd):
+    return "map"
+
+class _Signature(object):
+
+    def __init__(self, cls, fields):
+        self.cls = cls
+        self.fields = fields
+
+    def descriminates(self, other):
+        return not self.fields.issubset(other.fields) and not other.fields.issubset(self.fields)
+
+    def __repr__(self):
+        stub = "%s:map" % self.cls.name
+        if self.fields:
+            return "%s{%s}" % (stub, ", ".join("%s=%s" % (n, v) for n, v in sorted(self.fields)))
+        else:
+            return stub
+
+@match(Class)
+def _sig(cls):
+    fields = set()
+    for f in cls.fields.values():
+        if f.required and isinstance(f.type, Constant):
+            fields.add((f.name, f.type.value))
+    return _Signature(cls, fields)
+
 class Union(Schema):
+
+    """Unions must be able to descriminate between their schemas. The
+    means to descriminate can be somewhat flexible. A descriminator is
+    computed according to the following algorithm:
+
+    Logically the descriminator consists of the following components:
+
+    1. The type. This is sufficient for scalar values and seqences,
+       but we need more to descriminate maps into distinct types.
+
+    2. For maps, a further descriminator is computed based on a
+       signature composed of all required fields of type Constant.
+    """
 
     @match(many(Schema, min=1))
     def __init__(self, *schemas):
         self.schemas = schemas
+
+        self.tags = {}
+        for s in self.schemas:
+            if isinstance(s, Class): continue
+            t = _tag(s)
+            if t in self.tags:
+                raise ValueError("ambiguous union: %s appears multiple times" % t)
+            else:
+                self.tags[t] = s
+
+        self.signatures = []
+        self.constants = {}
+        for s in self.schemas:
+            if not isinstance(s, Class): continue
+            cls_sig = _sig(s)
+            for sig in self.signatures:
+                if not cls_sig.descriminates(sig):
+                    raise ValueError("ambiguous union: %s, %s" % (sig, cls_sig))
+            else:
+                self.signatures.append(cls_sig)
+
+            for f in s.fields.values():
+                if f.required and isinstance(f.type, Constant):
+                    if f.name not in self.constants:
+                        self.constants[f.name] = {}
+                    if f.type.value not in self.constants[f.name]:
+                        self.constants[f.name][f.type.value] = set()
+                    self.constants[f.name][f.type.value].add(s)
+
+        for s in self.schemas:
+            if not isinstance(s, Class): continue
+            for f in s.fields.values():
+                if not isinstance(f.type, Constant) and f.name in self.constants:
+                    raise ValueError("ambiguous union: '%s' both constant and unconstrained" % f.name)
+
+        if self.signatures and "map" in self.tags:
+            raise ValueError("ambiguous union: map and %s" % ", ".join(str(s) for s in self.signatures))
 
     @property
     def name(self):
@@ -332,13 +451,22 @@ class Union(Schema):
 
     @match(Node)
     def load(self, node):
-        for s in self.schemas:
-            try:
+        t = _tag(node)
+        if self.signatures and t == "map":
+            candidates = set(s for s in self.schemas if isinstance(s, Class))
+            for k, v in node.value:
+                if v.tag.endswith(":map") or v.tag.endswith(":seq"): continue
+                if k.value in self.constants and v.value in self.constants[k.value]:
+                    candidates.intersection_update(self.constants[k.value][v.value])
+            if len(candidates) == 1:
+                s = candidates.pop()
                 return s.load(node)
-            except SchemaError, e:
-                pass
-        raise SchemaError("expecting one of (%s), got %s\n%s" % ("|".join((s.name for s in self.schemas)),
-                                                                 node.tag, node.start_mark))
+            else:
+                raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in self.signatures), t))
+        if t not in self.tags:
+            raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in
+                                                                          self.tags.keys() + self.signatures), t))
+        return self.tags[t].load(node)
 
     @property
     def traversal(self):
