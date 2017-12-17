@@ -29,26 +29,26 @@ YAML = (
 # unparseable
     ERROR("error parsing service yaml:", "{"),
 # root
-    ERROR("None is not of type 'object'", ""),
-    ERROR("'name' is a required property", "{}"),
+    ERROR("expected a single yaml document, found 0 documents", ""),
+    ERROR("required field 'name' is missing", "{}"),
     VALID("name: foo"),
 # name
-    ERROR("3 is not of type 'string'", "name: 3"),
-    ERROR("True is not of type 'string'", "name: true"),
-    ERROR("{} is not of type 'string'", "name: {}"),
+    ERROR("expecting string, got int", "name: 3"),
+    ERROR("expecting string, got bool", "name: true"),
+    ERROR("expecting string, got map", "name: {}"),
 # requires
-    ERROR("3 is not of type 'string'",
+    ERROR("expecting one of (string|sequence), got int",
           """
 name: foo
 requires: 3
           """),
-    ERROR("{'foo': 'bar'} is not of type 'string'",
+    ERROR("expecting one of (string|sequence), got map",
           """
 name: foo
 requires:
   foo: bar
           """),
-    ERROR("[3] is not of type 'string'",
+    ERROR("expecting string, got int",
           """
 name: foo
 requires:
@@ -65,18 +65,18 @@ requires:
  - fdsa
     """),
 # containers
-    ERROR("'blah' is not of type 'array'",
+    ERROR("expecting sequence[(string|container)], got string",
      """
 name: foo
 containers: blah
      """),
-    ERROR("1 is not of type 'string'",
+    ERROR("expecting one of (string|container:map), got int",
      """
 name: foo
 containers: [1, 2, 3]
      """),
 # containers.item
-    ERROR("{'a': 'b'} is not of type 'string'",
+    ERROR("no such field: a",
      """
 name: foo
 containers:

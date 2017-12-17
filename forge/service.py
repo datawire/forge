@@ -14,8 +14,10 @@
 
 import copy, errno, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
+from forge import service_info
 from .jinja2 import render, renders
 from .docker import image
+from .schema import SchemaError
 from .tasks import sh, task, TaskError
 from .github import Github
 
@@ -39,18 +41,13 @@ def load_service_yamls(name, content, **vars):
         vars["env"] = os.environ
     rendered = renders(name, content, **vars)
     try:
-        info = yaml.load(rendered)
+        return service_info.load(name, rendered)
+    except SchemaError, e:
+        _dump_and_raise(rendered, TaskError(str(e)))
     except yaml.parser.ParserError, e:
         _dump_and_raise(rendered, e)
     except yaml.scanner.ScannerError, e:
         _dump_and_raise(rendered, e)
-
-    try:
-        jsonschema.validate(info, SCHEMA)
-        return info
-    except jsonschema.ValidationError, e:
-        best = jsonschema.exceptions.best_match(e.context)
-        raise TaskError("error loading %s: %s" % (name, (best or e).message))
 
 def get_ignores(directory):
     ignorefiles = [os.path.join(directory, ".gitignore"),
