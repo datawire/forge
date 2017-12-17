@@ -133,8 +133,8 @@ def test_scalar():
 
 SCALAR_VALIDATIONS = (
     (String, "1", "expecting string, got int"),
-    (Integer, "a", "expecting int, got string"),
-    (Float, "a", "expecting one of (float|int), got string")
+    (Integer, "a", "expecting integer, got string"),
+    (Float, "a", "expecting one of (float|integer), got string")
 )
 
 @pytest.mark.parametrize("cls,input,error", SCALAR_VALIDATIONS)

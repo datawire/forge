@@ -68,33 +68,39 @@ def _scalar2py(tag, node):
 
 class Scalar(Schema):
 
+    default_tags = ("string", "integer", "float")
+
+    def __init__(self, *tags):
+        self.tags = tags or self.default_tags
+
     @match(ScalarNode)
     def load(self, node):
         if node.tag.endswith(":null"):
             return None
         else:
+            self._check(node)
             return self.decode(node)
 
     @match(ScalarNode)
     def decode(self, node):
         return _scalar2py(node)
 
-def _check(node, *allowed):
-    actual = _tag(node)
-    if actual not in allowed:
-        if len(allowed) == 1:
-            expecting = allowed[0]
-        else:
-            expecting = "one of (%s)" % "|".join(allowed)
-        raise SchemaError("expecting %s, got %s" % (expecting, actual))
+    def _check(self, node):
+        actual = _tag(node)
+        if actual not in self.tags:
+            if len(self.tags) == 1:
+                expecting = self.tags[0]
+            else:
+                expecting = "one of (%s)" % "|".join(self.tags)
+            raise SchemaError("expecting %s, got %s" % (expecting, actual))
 
 class String(Scalar):
 
     name = "string"
+    default_tags = ("string",)
 
     @match(ScalarNode)
     def decode(self, node):
-        _check(node, "string")
         return node.value
 
     @property
@@ -107,10 +113,10 @@ class String(Scalar):
 class Base64(Scalar):
 
     name = "base64"
+    default_tags= ("string",)
 
     @match(ScalarNode)
     def decode(self, node):
-        _check(node, "string")
         return base64.decodestring(node.value)
 
     @property
@@ -123,10 +129,10 @@ class Base64(Scalar):
 class Integer(Scalar):
 
     name = "integer"
+    default_tags = ("integer",)
 
     @match(ScalarNode)
     def decode(self, node):
-        _check(node, "int")
         return int(node.value)
 
     @property
@@ -139,10 +145,10 @@ class Integer(Scalar):
 class Float(Scalar):
 
     name = "float"
+    default_tags = ("float", "integer")
 
     @match(ScalarNode)
     def decode(self, node):
-        _check(node, "float", "int")
         return float(node.value)
 
     @property
@@ -155,6 +161,7 @@ class Float(Scalar):
 class Constant(Scalar):
 
     def __init__(self, value, type=None):
+        Scalar.__init__(self, "string")
         self.value = value
         self.type = type or String()
 
@@ -334,7 +341,7 @@ def _tag(scalar):
 
 @match(Integer)
 def _tag(scalar):
-    return "int"
+    return "integer"
 
 @match(Float)
 def _tag(scalar):
@@ -342,6 +349,7 @@ def _tag(scalar):
 
 _YAML2ENGLISH={
     "str": "string",
+    "int": "integer"
 }
 
 @match(ScalarNode)
