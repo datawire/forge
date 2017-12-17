@@ -66,7 +66,7 @@ ECR = Class(
     """An amazon ECR registry.""",
     ECRRegistry,
     Field("type", Constant('ecr'), docs="The type of the registry, this will be 'ecr' for amazon registires"),
-    Field("account", String(), default=None, docs="The amazon account id to use."),
+    Field("account", String("string", "integer"), default=None, docs="The amazon account id to use."),
     Field("region", String(), default=None, docs="The amazon region to use."),
     Field("aws_access_key_id", String(), default=None, docs="The id of the aws access key to use."),
     Field("aws_secret_access_key", String(), default=None, docs="The aws secrete access key.")
