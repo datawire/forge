@@ -20,6 +20,7 @@
 
 ## Reference
 
+* [Forge Configuration](docs/reference/forge-config.md)
 * [Service Descriptor](docs/reference/service-descriptor.md)
 * [Customizing Container Builds](docs/reference/customize-container-builds.md)
 * [Profiles](docs/reference/profiles.md)

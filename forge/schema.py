@@ -22,6 +22,10 @@ class SchemaError(Exception):
 
 class Schema(object):
 
+    @property
+    def docname(self):
+        return self.name
+
     @match(Node)
     def load(self, node):
         raise SchemaError("expecting %s, got %s\n%s" % (self.name, _tag(node), node.start_mark))
@@ -68,6 +72,7 @@ def _scalar2py(tag, node):
 
 class Scalar(Schema):
 
+    name = "scalar"
     default_tags = ("string", "integer", "float")
 
     def __init__(self, *tags):
@@ -94,6 +99,10 @@ class Scalar(Schema):
                 expecting = "one of (%s)" % "|".join(self.tags)
             raise SchemaError("expecting %s, got %s" % (expecting, actual))
 
+    @property
+    def traversal(self):
+        yield self
+
 class String(Scalar):
 
     name = "string"
@@ -102,10 +111,6 @@ class String(Scalar):
     @match(ScalarNode)
     def decode(self, node):
         return node.value
-
-    @property
-    def traversal(self):
-        yield self
 
     def render(self):
         return "an unconstrained string"
@@ -119,10 +124,6 @@ class Base64(Scalar):
     def decode(self, node):
         return base64.decodestring(node.value)
 
-    @property
-    def traversal(self):
-        yield self
-
     def render(self):
         return "a base64 encoded string"
 
@@ -135,10 +136,6 @@ class Integer(Scalar):
     def decode(self, node):
         return int(node.value)
 
-    @property
-    def traversal(self):
-        yield self
-
     def render(self):
         return "an unconstrained integer"
 
@@ -150,10 +147,6 @@ class Float(Scalar):
     @match(ScalarNode)
     def decode(self, node):
         return float(node.value)
-
-    @property
-    def traversal(self):
-        yield self
 
     def render(self):
         return "an unconstrained float"
@@ -198,12 +191,22 @@ class Map(Collection):
     def name(self):
         return "map[%s]" % self.type.name
 
+    @property
+    def docname(self):
+        return "map[%s]" % self.type.docname
+
     @match(MappingNode)
     def load(self, node):
         result = OrderedDict()
         for k, v in node.value:
             result[k.value] = self.type.load(v)
         return result
+
+    @property
+    def traversal(self):
+        yield self
+        for t in self.type.traversal:
+            yield t
 
 class Sequence(Collection):
 
@@ -215,9 +218,19 @@ class Sequence(Collection):
     def name(self):
         return "sequence[%s]" % self.type.name
 
+    @property
+    def docname(self):
+        return "sequence[%s]" % self.type.docname
+
     @match(SequenceNode)
     def load(self, node):
         return [self.type.load(n) for n in node.value]
+
+    @property
+    def traversal(self):
+        yield self
+        for t in self.type.traversal:
+            yield t
 
 REQUIRED = object()
 OMIT = object()
@@ -254,6 +267,10 @@ class Any(Schema):
     @match(SequenceNode)
     def load(self, node):
         return [self.load(n) for n in node.value]
+
+    @property
+    def traversal(self):
+        yield self
 
 class Class(Schema):
 
@@ -310,27 +327,35 @@ class Class(Schema):
             for t in f.type.traversal:
                 yield t
 
+    @property
+    def docname(self):
+        return '<a href="#%s">%s</a>' % (self.name.replace(":", "_"), self.name)
+
     def render_all(self):
         types = OrderedDict()
         for t in self.traversal:
             if isinstance(t, Class):
-                types[t.name] = t.render()
+                types[t] = t.render()
         for k, v in types.items():
-            print "## %s" % k
+            print '<div id="%s">' % k.name.replace(":", "_")
+            print '<h2>%s</h2>' % k.name
             print
             print v
             print
+            print '</div>'
 
     def render(self):
         result = []
+        result.append("<p>")
         result.extend(textwrap.wrap(self.docs.strip()))
-        result.append("")
+        result.append("</p>")
+        result.append('<table>')
+        result.append("<tr><th>Field</th><th>Type</th><th>Docs</th></tr>")
         for f in self.fields.values():
-            result.append(" - %s: %s" % (f.name, f.type.name))
-            if f.docs:
-                result.append("")
-                result.extend(textwrap.wrap(f.docs.strip(), initial_indent="    ", subsequent_indent="    "))
-            result.append("")
+            docs = "\n".join(textwrap.wrap(f.docs.strip(), initial_indent="    ", subsequent_indent="    ")) \
+                                                                               if f.docs else ""
+            result.append("<tr><td>%s</td><td>%s</td><td>%s</td></tr>" % (f.name, f.type.docname, docs))
+        result.append("</table>")
         if result[-1] == "":
             result = result[:-1]
         return "\n".join(result)
@@ -456,6 +481,10 @@ class Union(Schema):
     @property
     def name(self):
         return "(%s)" % "|".join(s.name for s in self.schemas)
+
+    @property
+    def docname(self):
+        return "(%s)" % "|".join(s.docname for s in self.schemas)
 
     @match(Node)
     def load(self, node):

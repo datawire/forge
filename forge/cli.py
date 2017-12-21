@@ -194,6 +194,29 @@ def clean(forge):
     """
     forge.execute(forge.clean)
 
+@forge.group()
+def schema_docs():
+    """
+    Generate schema documentation.
+    """
+    pass
+
+@schema_docs.command()
+def forge_yaml():
+    """
+    Output schema documentation for forge.yaml
+    """
+    import config
+    config.CONFIG.render_all()
+
+@schema_docs.command()
+def service_yaml():
+    """
+    Output schema documentation for service.yaml
+    """
+    import service_info
+    service_info.SERVICE.render_all()
+
 def call_main():
     util.setup_yaml()
     try:
