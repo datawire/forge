@@ -16,12 +16,12 @@ env:
     - AWS_SECRET_ACCESS_KEY="${FORGE_ECR_SECRET_KEY}"
 
 before_install:
- - pyenv global system 2.7 3.5
+ - pyenv global system 2.7 3.6
 
 install:
  - scripts/setup.sh
- - python3.5 --version
- - python3.5 $(which kubernaut) set-token $KUBERNAUT_TOKEN
+ - python3.6 --version
+ - python3.6 $(which kubernaut) set-token $KUBERNAUT_TOKEN
  - pip install -r dev-requirements.txt
  - pip install -r requirements.txt
  - scripts/build.sh
