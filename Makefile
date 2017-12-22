@@ -1,30 +1,14 @@
-.PHONY: default forge release
-
-VERSION=$(shell python -c "import versioneer; print versioneer.get_versions()['version']")
-SHELL:=/bin/bash
-SOURCE=$(shell find forge -name "*.py" -or -name "*.json")
-
-default:
-	@echo "See https://github.com/datawire/forge/blob/master/DEVELOPING.md"
-
-version:
-	@echo $(VERSION)
-
-## Setup dependencies ##
-
-virtualenv:
-	virtualenv --python=python2 virtualenv
-	virtualenv/bin/pip install -Ur requirements.txt
+.PHONY: shell test release
 
 ## Development ##
 
-forge: dist/forge
+shell:
+	@/bin/bash -l
 
-dist/forge: ${SOURCE} setup.py
-	scripts/build.sh
-
-clean:
-	rm -rf build dist
+test:
+	scripts/build.sh && scripts/test.sh
 
 ## Release ##
 
+release:
+	scripts/build.sh && scripts/test.sh && scripts/deploy.sh

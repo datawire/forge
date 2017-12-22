@@ -10,17 +10,17 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 SRC_DIR=${DIR}/..
-BIN_DIR=${HOME}/bin
+BIN_DIR=/usr/local/bin
 
 curl -L https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl -o ${BIN_DIR}/kubectl
 chmod +x ${BIN_DIR}/kubectl
 
-ISTIO_VERSION=0.1.6
+ISTIO_VERSION=0.4.0
 ISTIO=istio-${ISTIO_VERSION}
 
 curl -L https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${ISTIO}-linux.tar.gz -o /tmp/istio.tar.gz
-tar --no-overwrite-dir -C /tmp -xzf /tmp/istio.tar.gz
-mv /tmp/${ISTIO}/bin/istioctl ${HOME}/bin
+tar -C /tmp -xzf /tmp/istio.tar.gz
+mv /tmp/${ISTIO}/bin/istioctl ${BIN_DIR}
 chmod +x ${BIN_DIR}/istioctl
 
 curl -L https://s3.amazonaws.com/datawire-static-files/kubernaut/$(curl -s https://s3.amazonaws.com/datawire-static-files/kubernaut/stable.txt)/kubernaut -o ${BIN_DIR}/kubernaut
