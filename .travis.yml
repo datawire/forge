@@ -11,4 +11,4 @@ before_install:
  - echo "DEPLOY_KEY=${DEPLOY_KEY}" >> env
 
 script:
- - dev.sh test
+ - ./dev.sh test
