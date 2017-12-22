@@ -11,20 +11,20 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 BRIDGE=$DIR/bridge
 
-cleanup() {
+build() {
+    docker build -f $BRIDGE/Dockerfile $BRIDGE -t bridge
+    docker build -f $DIR/Dockerfile $DIR -t forge
+}
+
+clean() {
     docker kill bridge || true
     sleep 0.25
     docker volume rm forge || true
     sleep 0.25
 }
 
-build () {
-    docker build -f $BRIDGE/Dockerfile $BRIDGE -t bridge
-    docker build -f $DIR/Dockerfile $DIR -t forge
-}
-
-watch() {
-    cleanup
+bridge() {
+    clean
     docker volume create forge
     docker run --rm --name bridge -v $DIR:/input -v forge:/output -d bridge
 }
@@ -33,5 +33,26 @@ run() {
     docker run --rm --env-file $DIR/env -it -v /var/run/docker.sock:/var/run/docker.sock -v forge:/work -p 4000:4000 -p 35729:35729 forge "$@"
 }
 
-build
-run "$@"
+
+case $1 in
+
+build)
+    build
+    ;;
+
+clean)
+    clean
+    ;;
+
+bridge)
+    build
+    bridge
+    run shell
+    ;;
+
+*)
+    build
+    run "$@"
+    ;;
+
+esac
