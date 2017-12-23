@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .schema import Any, Class, Field, Union, Constant, Map, Scalar, Sequence, String, Base64, SchemaError, OMIT
+from .schema import Any, Class, Field, Union, Constant, Map, Scalar, Sequence, String, Base64, SchemaError, OMIT, \
+    Boolean
 
 REBUILD = Class(
     "rebuild",
@@ -56,6 +57,7 @@ SERVICE = Class(
           docs="A mapping from profile name to profile-specific values."),
     Field("branches", Map(String()), default=OMIT, docs="A mapping from branch pattern to profile name."),
     Field("config", Any(), default=OMIT, docs="Arbitrary application defined configuration parameters for a service."),
+    Field("istio", Boolean(), default=OMIT, docs="If true run istioctl kube-inject before applying yaml."),
     strict=False
 )
 

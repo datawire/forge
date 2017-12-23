@@ -21,9 +21,6 @@ from .schema import SchemaError
 from .tasks import sh, task, TaskError
 from .github import Github
 
-with open(os.path.join(os.path.dirname(__file__), "service.json")) as f:
-    SCHEMA = yaml.load(f)
-
 def load_service_yaml(path, **vars):
     with open(path, "read") as f:
         return load_service_yamls(path, f.read(), **vars)
