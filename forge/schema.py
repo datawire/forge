@@ -103,6 +103,18 @@ class Scalar(Schema):
     def traversal(self):
         yield self
 
+class Boolean(Scalar):
+
+    name = "boolean"
+    default_tags = ("bool",)
+
+    @match(ScalarNode)
+    def decode(self, node):
+        return node.value.lower() == "true"
+
+    def render(self):
+        return "a boolean value"
+
 class String(Scalar):
 
     name = "string"

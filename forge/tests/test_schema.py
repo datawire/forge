@@ -15,7 +15,7 @@
 import pytest, yaml
 from collections import OrderedDict
 from forge.schema import Any, Scalar, Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, \
-    SchemaError, OMIT
+    SchemaError, OMIT, Boolean
 from forge import util
 
 class Klass(object):
@@ -32,10 +32,11 @@ def test_scalars():
         Klass,
         Field("string", String()),
         Field("integer", Integer()),
-        Field("float", Float())
+        Field("float", Float()),
+        Field("bool", Boolean())
     )
 
-    obj = {"string": "asdf", "integer": 3, "float": 3.14159}
+    obj = {"string": "asdf", "integer": 3, "float": 3.14159, "bool": True}
     k1 = s.load("test", yaml.dump(obj))
     k2 = Klass(**obj)
     assert k1 == k2
@@ -134,7 +135,8 @@ def test_scalar():
 SCALAR_VALIDATIONS = (
     (String, "1", "expecting string, got int"),
     (Integer, "a", "expecting integer, got string"),
-    (Float, "a", "expecting one of (float|integer), got string")
+    (Float, "a", "expecting one of (float|integer), got string"),
+    (Boolean, "a", "expecting bool, got string")
 )
 
 @pytest.mark.parametrize("cls,input,error", SCALAR_VALIDATIONS)
