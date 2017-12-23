@@ -14,4 +14,6 @@ COPY docs docs
 COPY Makefile setup.cfg setup.py versioneer.py MANIFEST.in LICENSE ./
 COPY entrypoint.sh /
 
+RUN pip install -e .
+
 ENTRYPOINT ["/entrypoint.sh"]

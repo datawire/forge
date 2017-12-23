@@ -38,7 +38,13 @@ bridge() {
 }
 
 run() {
-    docker run --rm --env-file $DIR/env -it -v /var/run/docker.sock:/var/run/docker.sock -v forge:/work -p 4000:4000 -p 35729:35729 forge "$@"
+    if [ -e "$DIR/env" ]; then
+        ARGS="--env-file $DIR/env"
+    else
+        ARGS=""
+    fi
+
+    docker run --rm $ARGS -it -v /var/run/docker.sock:/var/run/docker.sock -v forge:/work -p 4000:4000 -p 35729:35729 forge "$@"
 }
 
 
