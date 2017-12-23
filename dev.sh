@@ -11,9 +11,17 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 BRIDGE=$DIR/bridge
 
-build() {
+build_bridge() {
     docker build -f $BRIDGE/Dockerfile $BRIDGE -t bridge
+}
+
+build_env() {
     docker build -f $DIR/Dockerfile $DIR -t forge
+}
+
+build() {
+    build_bridge
+    build_env
 }
 
 clean() {
@@ -51,7 +59,7 @@ bridge)
     ;;
 
 *)
-    build
+    build_env
     run "$@"
     ;;
 
