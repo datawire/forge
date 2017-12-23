@@ -1,58 +1,14 @@
-language: python
-sudo: false
-os: linux
-dist: trusty
-
-cache: pip
-
 services:
  - docker
 
-env:
-  global:
-    - KUBECONFIG="${HOME}/.kube/kubernaut"
-    - SCOUT_DISABLE=1
-    - AWS_ACCESS_KEY_ID="${FORGE_ECR_KEY_ID}"
-    - AWS_SECRET_ACCESS_KEY="${FORGE_ECR_SECRET_KEY}"
-
 before_install:
- - pyenv global system 2.7 3.5
-
-install:
- - scripts/setup.sh
- - python3.5 --version
- - python3.5 $(which kubernaut) set-token $KUBERNAUT_TOKEN
- - pip install -r dev-requirements.txt
- - pip install -r requirements.txt
- - scripts/build.sh
-
-before_script:
- - python3.5 $(which kubernaut) claim
- - scripts/istio.sh
+ - echo "KUBERNAUT_TOKEN=${KUBERNAUT_TOKEN}" > env
+ - echo "AWS_ACCESS_KEY_ID=AKIAJ33BRO7J2Y5EXWIQ" >> env
+ - echo "AWS_SECRET_ACCESS_KEY=${FORGE_ECR_SECRET_KEY}" >> env
+ - echo "FORGE_ECR_KEY_ID=AKIAJ33BRO7J2Y5EXWIQ" >> env
+ - echo "FORGE_ECR_SECRET_KEY=${FORGE_ECR_SECRET_KEY}" >> env
+ - echo "DEPLOY_KEY_ID=AKIAIVJWBEJIYPFYB3FQ" >> env
+ - echo "DEPLOY_KEY=${DEPLOY_KEY}" >> env
 
 script:
- - scripts/test.sh
-
-after_script:
- - python3.5 $(which kubernaut) discard
- - scripts/scout.sh
-
-before_deploy:
- - echo $(dist/forge --version | cut -d" " -f2) > dist/latest.txt
- - mkdir dist/$(cat dist/latest.txt)
- - mv dist/forge dist/$(cat dist/latest.txt)
- - cat dist/latest.txt | python -c 'import sys, urllib; print urllib.quote(sys.stdin.read().strip())' > dist/latest.url
-
-deploy:
-  provider: s3
-  bucket: datawire-static-files
-  skip_cleanup: true
-  acl: public_read
-  local_dir: dist
-  upload-dir: forge
-  on:
-    tags: true
-  secret_access_key:
-    secure: hMVS9Axjso4qfZmbnKIyZyju4nFAVHGr27VsiujGS1DxOZLBiCblrpthpy7ZEyYNjX1fgeWLrrsRiHxuQcTbeWSQVo9mKKW2xjVixs165DYCvgCNGzOaOOp+pNchVBbPcJ7emujdw62fhR7PxzU6JIBVyGeuB8o3CAu2No7LmbPpKNx+Bsi1AoEddtZG7gvjQHBsC0VXHJHC7Q6hSPGL5zKWkQUNA0dKC9DY/IzgaAcdRigyrEQ7qd7eFL7PWztPYTNRO9Z6OtxJQOsrNnhrEwTeLiTdxo5jf/RbsbInxyTHR5Zsunwr/7jZAmqCihbrbFAbdek0cbrluT4LTEmIof67JJYAmH4B3pwn9WaWkDNzVedv4wfNxx5hy5nSwSfkm2aAt0Fnn2ohtseGQ7XOVRLwcVLA9m9yjNIHLaY74Y4M8ElToIre9o34edH27dBOGRIEV4R7Ni49J/PDbqsN1VA0qM8Ap4kvE9F2fkt5Bnz3O0YO8/vAF1eltXk9gcHUw7gXF29h8MxG6AT+BEZleYX2o+n4W9y/XQK8kx957KxJaEQPf6T/jMDzhROPKsVtuPFFwAESuZZZC2RfVdMYFzxr+Z3pvbDCQA+tAWWUkGS9jq6lCX+6aLgCMBgj5I2CpfOyUznbg2DrTMVFE9AmKtUE6UUgsPLUfwXUtPKqmAY=
-  access_key_id:
-    secure: 4KuOCvNiFx1PdCWwlXL26MZtikW3PxcncsWO8wnFSVcYF+PXimcmDpFZGUGH/IniPoTcyEVxmX5Kc2Sag6v0A/AfHqVPh40UAJ5vpeEP1vtJy5UWLqyv+mvLFmNT7I33pVXZbPfZOOY+a9Rq1dIPz1M1cpIXMNj7qGMfjzmKhtSbSQhI3uvWt4ZTe43RKWeirnTNb07Cofy7qwB7VwFA0id0Dix6ZndL//BWXCmwPu91LS+x9bQA+lEPSuERAT4m+OO1dUxGIJO3wbscsAPWJxj2fKxjhtk06h9zfRoGOGi9VVd3/I8RtjpNS2N5LM67R4IiPKCWbp5oQKR8lFEL9WMVnPyRPzPaMgvHdePFmXTtMPJKym1GG3CkZCGE3vxvzZC0vl+eaEZElGWgjlAjxnx8hFIn6z3NHwSll/KzHdnhdMHfJzPyo3yQKkof82j+T9sEALqlLs9Yct0xmaRZD/rqysYiZPCamW4bVbER1USdDb4LTQStXZv8xAkWwjR7UyraQPNgOLNXYbTtf8vkAIKRJHjwJaH/6MpXfa23+ha8w77Ic8nI4g8H7nBETkI0sephffAQTYER7ghrN/9luoHsGJca0ktiGSTSL/me85Tt+uh+IhHokvqECWF701lhfDjA8pdtOzGgFURyW7Gd72Nv/qQ6zuw1fPZuub8E6H4=
+ - ./dev.sh release

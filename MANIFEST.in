@@ -1,2 +1,3 @@
 include versioneer.py
 include forge/_version.py
+include forge/*.json

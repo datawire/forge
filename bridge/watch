@@ -1,0 +1,28 @@
+import os, sys, time
+from watchdog.observers import Observer
+from forge.tasks import sh, task, watch
+
+class Sync(object):
+
+    def __init__(self, source, target):
+        self.source = source
+        self.target = target
+
+    def sync(self):
+        with task.verbose(True):
+            sh("rsync", "-vrtRlEp", ".", self.target, cwd=self.source)
+        sys.stdout.flush()
+
+    def on_any_event(self, event):
+        print event
+        self.sync()
+
+def doit():
+  s = Sync("/input", "/output")
+  s.sync()
+
+  watch(("/input",), s)
+  while True:
+      time.sleep(1.0)
+
+doit()

@@ -22,9 +22,13 @@ class SchemaError(Exception):
 
 class Schema(object):
 
+    @property
+    def docname(self):
+        return self.name
+
     @match(Node)
     def load(self, node):
-        raise SchemaError("expecting %s, got %s\n%s" % (self.name, node.tag, node.start_mark))
+        raise SchemaError("expecting %s, got %s\n%s" % (self.name, _tag(node), node.start_mark))
 
     @match(basestring)
     def load(self, name):
@@ -41,26 +45,72 @@ class Schema(object):
         tree = trees[0]
         return self.load(tree)
 
+@match(ScalarNode)
+def _scalar2py(node):
+    return _scalar2py(node.tag.split(":")[-1], node)
+
+@match("null", ScalarNode)
+def _scalar2py(tag, node):
+    return None
+
+@match("str", ScalarNode)
+def _scalar2py(tag, node):
+    return node.value
+
+@match("int", ScalarNode)
+def _scalar2py(tag, node):
+    return int(node.value)
+
+@match("float", ScalarNode)
+def _scalar2py(tag, node):
+    return float(node.value)
+
+@match("bool", ScalarNode)
+def _scalar2py(tag, node):
+    return node.value.lower() == "true"
+
+
 class Scalar(Schema):
+
+    name = "scalar"
+    default_tags = ("string", "integer", "float")
+
+    def __init__(self, *tags):
+        self.tags = tags or self.default_tags
 
     @match(ScalarNode)
     def load(self, node):
         if node.tag.endswith(":null"):
             return None
         else:
+            self._check(node)
             return self.decode(node)
-
-class String(Scalar):
-
-    name = "string"
 
     @match(ScalarNode)
     def decode(self, node):
-        return node.value
+        return _scalar2py(node)
+
+    def _check(self, node):
+        actual = _tag(node)
+        if actual not in self.tags:
+            if len(self.tags) == 1:
+                expecting = self.tags[0]
+            else:
+                expecting = "one of (%s)" % "|".join(self.tags)
+            raise SchemaError("expecting %s, got %s" % (expecting, actual))
 
     @property
     def traversal(self):
         yield self
+
+class String(Scalar):
+
+    name = "string"
+    default_tags = ("string",)
+
+    @match(ScalarNode)
+    def decode(self, node):
+        return node.value
 
     def render(self):
         return "an unconstrained string"
@@ -68,14 +118,11 @@ class String(Scalar):
 class Base64(Scalar):
 
     name = "base64"
+    default_tags= ("string",)
 
     @match(ScalarNode)
     def decode(self, node):
         return base64.decodestring(node.value)
-
-    @property
-    def traversal(self):
-        yield self
 
     def render(self):
         return "a base64 encoded string"
@@ -83,14 +130,11 @@ class Base64(Scalar):
 class Integer(Scalar):
 
     name = "integer"
+    default_tags = ("integer",)
 
     @match(ScalarNode)
     def decode(self, node):
         return int(node.value)
-
-    @property
-    def traversal(self):
-        yield self
 
     def render(self):
         return "an unconstrained integer"
@@ -98,14 +142,11 @@ class Integer(Scalar):
 class Float(Scalar):
 
     name = "float"
+    default_tags = ("float", "integer")
 
     @match(ScalarNode)
     def decode(self, node):
         return float(node.value)
-
-    @property
-    def traversal(self):
-        yield self
 
     def render(self):
         return "an unconstrained float"
@@ -113,6 +154,7 @@ class Float(Scalar):
 class Constant(Scalar):
 
     def __init__(self, value, type=None):
+        Scalar.__init__(self, "string")
         self.value = value
         self.type = type or String()
 
@@ -149,12 +191,22 @@ class Map(Collection):
     def name(self):
         return "map[%s]" % self.type.name
 
+    @property
+    def docname(self):
+        return "map[%s]" % self.type.docname
+
     @match(MappingNode)
     def load(self, node):
         result = OrderedDict()
         for k, v in node.value:
             result[k.value] = self.type.load(v)
         return result
+
+    @property
+    def traversal(self):
+        yield self
+        for t in self.type.traversal:
+            yield t
 
 class Sequence(Collection):
 
@@ -166,11 +218,22 @@ class Sequence(Collection):
     def name(self):
         return "sequence[%s]" % self.type.name
 
+    @property
+    def docname(self):
+        return "sequence[%s]" % self.type.docname
+
     @match(SequenceNode)
     def load(self, node):
         return [self.type.load(n) for n in node.value]
 
+    @property
+    def traversal(self):
+        yield self
+        for t in self.type.traversal:
+            yield t
+
 REQUIRED = object()
+OMIT = object()
 
 class Field(object):
 
@@ -186,16 +249,47 @@ class Field(object):
     def required(self):
         return self.default is REQUIRED
 
+class Any(Schema):
+
+    name = "any"
+
+    @match(ScalarNode)
+    def load(self, node):
+        return _scalar2py(node)
+
+    @match(MappingNode)
+    def load(self, node):
+        result = OrderedDict()
+        for k, v in node.value:
+            result[k.value] = self.load(v)
+        return result
+
+    @match(SequenceNode)
+    def load(self, node):
+        return [self.load(n) for n in node.value]
+
+    @property
+    def traversal(self):
+        yield self
+
 class Class(Schema):
 
     @match(basestring, basestring, object, many(Field))
-    def __init__(self, name, docs, constructor, *fields):
+    def __init__(self, name, docs, constructor, *fields, **kwargs):
         self.name = name
         self.docs = docs
+        if isinstance(constructor, Field):
+            fields = (constructor,) + fields
+            constructor = OrderedDict
+        elif not callable(constructor):
+            raise TypeError("constructor must be callable")
         self.constructor = constructor
         self.fields = OrderedDict()
         for f in fields:
             self.fields[f.name] = f
+        self.strict = kwargs.pop("strict", True)
+        if kwargs:
+            raise TypeError("no such arg(s): %s" % ", ".join(kwargs.keys()))
 
     @match(basestring, object, many(Field))
     def __init__(self, name, constructor, *fields):
@@ -206,16 +300,20 @@ class Class(Schema):
         loaded = {}
         for k, v in node.value:
             key = k.value
-            if key not in self.fields:
+            if key in self.fields:
+                f = self.fields[key]
+            elif self.strict:
                 raise SchemaError("no such field: %s\n%s" % (key, k.start_mark))
-            f = self.fields[key]
+            else:
+                f = Field(key, Any())
+
             loaded[f.alias or f.name] = f.type.load(v)
         for f in self.fields.values():
             key = (f.alias or f.name)
             if key not in loaded:
                 if f.default is REQUIRED:
                     raise SchemaError("required field '%s' is missing\n%s" % (f.name, node.start_mark))
-                else:
+                elif f.default is not OMIT:
                     loaded[key] = f.default
         try:
             return self.constructor(**loaded)
@@ -229,50 +327,183 @@ class Class(Schema):
             for t in f.type.traversal:
                 yield t
 
+    @property
+    def docname(self):
+        return '<a href="#%s">%s</a>' % (self.name.replace(":", "_"), self.name)
+
     def render_all(self):
         types = OrderedDict()
         for t in self.traversal:
             if isinstance(t, Class):
-                types[t.name] = t.render()
+                types[t] = t.render()
         for k, v in types.items():
-            print "## %s" % k
+            print '<div id="%s">' % k.name.replace(":", "_")
+            print '<h2>%s</h2>' % k.name
             print
             print v
             print
+            print '</div>'
 
     def render(self):
         result = []
+        result.append("<p>")
         result.extend(textwrap.wrap(self.docs.strip()))
-        result.append("")
+        result.append("</p>")
+        result.append('<table>')
+        result.append("<tr><th>Field</th><th>Type</th><th>Docs</th></tr>")
         for f in self.fields.values():
-            result.append(" - %s: %s" % (f.name, f.type.name))
-            if f.docs:
-                result.append("")
-                result.extend(textwrap.wrap(f.docs.strip(), initial_indent="    ", subsequent_indent="    "))
-            result.append("")
+            docs = "\n".join(textwrap.wrap(f.docs.strip(), initial_indent="    ", subsequent_indent="    ")) \
+                                                                               if f.docs else ""
+            result.append("<tr><td>%s</td><td>%s</td><td>%s</td></tr>" % (f.name, f.type.docname, docs))
+        result.append("</table>")
         if result[-1] == "":
             result = result[:-1]
         return "\n".join(result)
 
+@match(String)
+def _tag(scalar):
+    return "string"
+
+@match(Integer)
+def _tag(scalar):
+    return "integer"
+
+@match(Float)
+def _tag(scalar):
+    return "float"
+
+_YAML2ENGLISH={
+    "str": "string",
+    "int": "integer"
+}
+
+@match(ScalarNode)
+def _tag(nd):
+    tag = nd.tag.split(":")[-1]
+    return _YAML2ENGLISH.get(tag, tag)
+
+@match(Sequence)
+def _tag(seq):
+    return "sequence"
+
+@match(SequenceNode)
+def _tag(nd):
+    return "sequence"
+
+@match(Map)
+def _tag(map):
+    return "map"
+
+@match(MappingNode)
+def _tag(nd):
+    return "map"
+
+class _Signature(object):
+
+    def __init__(self, cls, fields):
+        self.cls = cls
+        self.fields = fields
+
+    def descriminates(self, other):
+        return not self.fields.issubset(other.fields) and not other.fields.issubset(self.fields)
+
+    def __repr__(self):
+        stub = "%s:map" % self.cls.name
+        if self.fields:
+            return "%s{%s}" % (stub, ", ".join("%s=%s" % (n, v) for n, v in sorted(self.fields)))
+        else:
+            return stub
+
+@match(Class)
+def _sig(cls):
+    fields = set()
+    for f in cls.fields.values():
+        if f.required and isinstance(f.type, Constant):
+            fields.add((f.name, f.type.value))
+    return _Signature(cls, fields)
+
 class Union(Schema):
+
+    """Unions must be able to descriminate between their schemas. The
+    means to descriminate can be somewhat flexible. A descriminator is
+    computed according to the following algorithm:
+
+    Logically the descriminator consists of the following components:
+
+    1. The type. This is sufficient for scalar values and seqences,
+       but we need more to descriminate maps into distinct types.
+
+    2. For maps, a further descriminator is computed based on a
+       signature composed of all required fields of type Constant.
+    """
 
     @match(many(Schema, min=1))
     def __init__(self, *schemas):
         self.schemas = schemas
 
+        self.tags = {}
+        for s in self.schemas:
+            if isinstance(s, Class): continue
+            t = _tag(s)
+            if t in self.tags:
+                raise ValueError("ambiguous union: %s appears multiple times" % t)
+            else:
+                self.tags[t] = s
+
+        self.signatures = []
+        self.constants = {}
+        for s in self.schemas:
+            if not isinstance(s, Class): continue
+            cls_sig = _sig(s)
+            for sig in self.signatures:
+                if not cls_sig.descriminates(sig):
+                    raise ValueError("ambiguous union: %s, %s" % (sig, cls_sig))
+            else:
+                self.signatures.append(cls_sig)
+
+            for f in s.fields.values():
+                if f.required and isinstance(f.type, Constant):
+                    if f.name not in self.constants:
+                        self.constants[f.name] = {}
+                    if f.type.value not in self.constants[f.name]:
+                        self.constants[f.name][f.type.value] = set()
+                    self.constants[f.name][f.type.value].add(s)
+
+        for s in self.schemas:
+            if not isinstance(s, Class): continue
+            for f in s.fields.values():
+                if not isinstance(f.type, Constant) and f.name in self.constants:
+                    raise ValueError("ambiguous union: '%s' both constant and unconstrained" % f.name)
+
+        if self.signatures and "map" in self.tags:
+            raise ValueError("ambiguous union: map and %s" % ", ".join(str(s) for s in self.signatures))
+
     @property
     def name(self):
         return "(%s)" % "|".join(s.name for s in self.schemas)
 
+    @property
+    def docname(self):
+        return "(%s)" % "|".join(s.docname for s in self.schemas)
+
     @match(Node)
     def load(self, node):
-        for s in self.schemas:
-            try:
+        t = _tag(node)
+        if self.signatures and t == "map":
+            candidates = set(s for s in self.schemas if isinstance(s, Class))
+            for k, v in node.value:
+                if v.tag.endswith(":map") or v.tag.endswith(":seq"): continue
+                if k.value in self.constants and v.value in self.constants[k.value]:
+                    candidates.intersection_update(self.constants[k.value][v.value])
+            if len(candidates) == 1:
+                s = candidates.pop()
                 return s.load(node)
-            except SchemaError, e:
-                pass
-        raise SchemaError("expecting one of (%s), got %s\n%s" % ("|".join((s.name for s in self.schemas)),
-                                                                 node.tag, node.start_mark))
+            else:
+                raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in self.signatures), t))
+        if t not in self.tags:
+            raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in
+                                                                          self.tags.keys() + self.signatures), t))
+        return self.tags[t].load(node)
 
     @property
     def traversal(self):

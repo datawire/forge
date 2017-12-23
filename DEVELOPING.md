@@ -1,26 +1,40 @@
 # Forge
 
-The forge command line tool depends on a functioning docker and
-kubectl. You will also need istioctl in order to test the istio
-integration.
+The dev.sh script provides a canonical testing and development
+environment for forge using docker.
 
-PLEASE NOTE: Make sure that kubectl is pointed at a disposable
-kubernetes cluster when you hack on forge since running the tests will
-perform deployments into your cluster.
+## Simple development:
 
-## Setting up a dev environment:
+Run `dev.sh shell` and you will get a development container with a
+development installation (`pip install -e`) for forge.
 
-1. `git clone` this repository then change directory into it.
+You can hack on the source as much as you like, run forge, run some
+tests (via `py.test -svv -k <test_name>`) and see the results.
 
-2. Make a Python2 virtualenv with `make virtualenv`
+## Running the full test suite:
 
-3. From your virtualenv run `pip install -e .`
+Forge tests require interacting with a number of remote systems like
+container registries and kubernetes clusters, so if you want to run
+the full test suite you will need to set up some credentials for these
+external systems:
 
-4. Hack away...
+1. Copy env.in to env and follow the directions listed in that file
+   for obtaining a kubernaut token and for supplying AWS credentials.
 
-## Running tests:
+Once you have done this, you can run `dev.sh test` and the full test
+suite will run exactly as it does in CI.
 
-You can run tests by running `py.test` from your repo. As noted above,
-the tests will perform kubectl apply operations against your cluster,
-so make sure kubectl is pointed at a cluster where this is ok to
-do. An easy way to do this is to point it at minikube.
+## Bridged development:
+
+If you are like me and you like to edit your source code outside the
+container, then you might appreciate `dev.sh bridge`. This is very
+similar to `dev.sh shell` however it additionally sets up a background
+container to live sync the source code into the development container.
+
+If you use this, please be aware that any changes to source code (or
+git metadata) that you make from inside the dev container will be
+overwritten by the files outside the container the next time you make
+a change.
+
+You can run `dev.sh clean` to remove the background container and
+volume used to sync.

@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
+import pytest, yaml
 from collections import OrderedDict
-from forge.schema import Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, SchemaError
+from forge.schema import Any, Scalar, Schema, Class, Field, String, Integer, Float, Sequence, Map, Union, Constant, \
+    SchemaError, OMIT
 from forge import util
 
 class Klass(object):
@@ -100,13 +101,118 @@ def test_union():
               Sequence(String()),
               Class("type-a", lambda **kw: Klass(a=True, **kw), Field("type", Constant("a"))),
               Class("type-b", lambda **kw: Klass(b=True, **kw), Field("type", Constant("b"))),
-              Class("foo", Klass, Field("foo", String())),
-              Class("foobar", Klass, Field("foobar", String())),
-              Map(String()))
+              Class("foo", Klass, Field("type", Constant("c")), Field("foo", String())),
+              Class("foobar", Klass, Field("type", Constant("d")), Field("foobar", String())))
     assert s.load("test", "asdf") == "asdf"
     assert s.load("test", "[a, b, c]") == ["a", "b", "c"]
     assert s.load("test", "type: a") == Klass(type="a", a=True)
     assert s.load("test", "type: b") == Klass(type="b", b=True)
-    assert s.load("test", "foo: bar") == Klass(foo="bar")
-    assert s.load("test", "foobar: bar") == Klass(foobar="bar")
-    assert s.load("test", "bar: foo") == {"bar": "foo"}
+    assert s.load("test", "type: c\nfoo: bar") == Klass(type="c", foo="bar")
+    assert s.load("test", "type: d\nfoobar: bar") == Klass(type="d", foobar="bar")
+
+def test_any():
+    s = Any()
+    assert s.load("test", "asdf") == "asdf"
+    assert s.load("test", "[]") == []
+    assert s.load("test", "[1, 2, 3]") == [1, 2, 3]
+    assert s.load("test", "[a, b, c]") == ['a', 'b', 'c']
+    assert s.load("test", "[1, two, 3.0, {four: five, 6.0: 7, ate: 8.0}]") == [1, 'two', 3.0,
+                                                                               {"four": "five",
+                                                                                "6.0": 7,
+                                                                                "ate": 8.0}]
+    assert s.load("test", "{a: b, c: 1, d: 1.0, e: [1, 2, 3]}") == {"a": "b",
+                                                                    "c": 1,
+                                                                    "d": 1.0,
+                                                                    "e": [1, 2, 3]}
+
+def test_scalar():
+    s = Scalar()
+    assert s.load("test", "pi") == "pi"
+    assert s.load("test", "3.14159") == 3.14159
+    assert s.load("test", "3") == 3
+
+SCALAR_VALIDATIONS = (
+    (String, "1", "expecting string, got int"),
+    (Integer, "a", "expecting integer, got string"),
+    (Float, "a", "expecting one of (float|integer), got string")
+)
+
+@pytest.mark.parametrize("cls,input,error", SCALAR_VALIDATIONS)
+def test_scalar_validation(cls, input, error):
+    s = cls()
+    try:
+        s.load("test", input)
+        assert False, "expecting error"
+    except SchemaError, e:
+        assert error in str(e)
+
+def test_generic_class():
+    s = Class("foo", "docs", Field("foo", String(), default=OMIT))
+    obj = s.load("test", "foo: bar")
+    assert obj == OrderedDict(foo="bar")
+    assert isinstance(obj, OrderedDict)
+
+def test_omit():
+    s = Class("foo", "docs", Field("foo", String(), default=OMIT))
+    assert s.load("test", "{}") == {}
+
+def test_lax():
+    s = Class("foo", "docs", Field("foo", String()), strict=False)
+    assert s.load("test", "{foo: bar, baz: moo}") == OrderedDict(foo="bar", baz="moo")
+
+AMBIGUOUS_UNIONS = (
+    (lambda: Union(String(), String()),
+     "ambiguous union: string appears multiple times"),
+    (lambda: Union(Class("a", "a docs", Field("type", Constant("a"))),
+                   Class("b", "b docs", Field("type", Constant("a")))),
+     "ambiguous union: a:map{type=a}, b:map{type=a}"),
+    (lambda: Union(Class("a", "a docs", Field("type", Constant("a"))),
+                   Class("b", "b docs", Field("type", String()))),
+     "ambiguous union: a:map{type=a}, b:map"),
+    (lambda: Union(Class("a", "a docs", Field("type", Constant("a"))),
+                   Class("b", "b docs", Field("c", Constant("x")), Field("type", String()))),
+     "ambiguous union: 'type' both constant and unconstrained"),
+    (lambda: Union(Class("a", "a docs", Field("type", Constant("a"))), Map(Any())),
+     "ambiguous union: map and a:map{type=a}")
+)
+
+@pytest.mark.parametrize("input,error", AMBIGUOUS_UNIONS)
+def test_ambiguous_union(input, error):
+    try:
+        input()
+        assert False, "expected error: %s" % error
+    except ValueError, e:
+        assert error in str(e), e
+
+ABC = Union(String(),
+            Class("a", "a docs", Field("type", Constant("a")), Field("a", String())),
+            Class("b", "b docs", Field("type", Constant("b")), Field("b", String())),
+            Class("c", "c docs", Field("type", Constant("c")), Field("c", String())))
+
+ABC_FIELDS = Union(Class("a", "a docs", Field("a", Constant("x")), Field("aa", String())),
+                   Class("b", "b docs", Field("b", Constant("x")), Field("bb", String())),
+                   Class("c", "c docs", Field("c", Constant("x")), Field("cc", String())))
+
+
+UNION_ERRORS = (
+    (ABC, "[]", "expecting one of (string|a:map{type=a}|b:map{type=b}|c:map{type=c}"),
+    (ABC, "{type: a, b: blah}", "no such field: b"),
+    (ABC, "{type: b, b: []}", "expecting string, got sequence"),
+    (ABC, "{}", "expecting one of (a:map{type=a}|b:map{type=b}|c:map{type=c})"),
+    (ABC_FIELDS, "[]", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
+    (ABC_FIELDS, "{a: x}", "required field 'aa' is missing"),
+    (ABC_FIELDS, "{b: x}", "required field 'bb' is missing"),
+    (ABC_FIELDS, "{c: x}", "required field 'cc' is missing"),
+    (ABC_FIELDS, "{}", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
+    (ABC_FIELDS, "{a: []}", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
+    (ABC_FIELDS, "{a: {}}", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
+    (Union(String(), Sequence(String())), "foo: bar", "expecting one of (string|sequence), got map")
+)
+
+@pytest.mark.parametrize("schema,input,error", UNION_ERRORS)
+def test_union_error(schema, input, error):
+    try:
+        schema.load("test", input)
+        assert False, "expected error: %s" % error
+    except SchemaError, e:
+        assert error in str(e)

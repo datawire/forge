@@ -6,8 +6,16 @@ IFS=$'\n\t'
 
 set -x
 
-# Build the documentation as usual
 cd "$(dirname "$0")"
+
+# First we install forge in order to generate the necessary docs
+cd ..
+pip install .
+forge schema_docs forge_yaml > docs/docs/reference/forge-config.md
+forge schema_docs service_yaml > docs/docs/reference/service-descriptor.md
+
+# Build the documentation as usual
+cd docs
 npm install
 npm run build
 
