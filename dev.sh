@@ -43,8 +43,7 @@ run() {
     else
         ARGS=""
     fi
-
-    docker run --rm $ARGS -it -v /var/run/docker.sock:/var/run/docker.sock -v forge:/work -p 4000:4000 -p 35729:35729 forge "$@"
+    docker run --rm $ARGS -it -v /var/run/docker.sock:/var/run/docker.sock ${EXTRA_MOUNTS} -p 4000:4000 -p 35729:35729 forge "$@"
 }
 
 
@@ -61,6 +60,7 @@ clean)
 bridge)
     build
     bridge
+    EXTRA_MOUNTS="-v forge:/work"
     run shell
     ;;
 
