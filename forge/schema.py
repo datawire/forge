@@ -12,6 +12,163 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Load & validate json/yaml files with quality error messages.
+
+The schema module contains a library for defining schemas that can
+perform loading and validation of json or yaml documents with high
+quality error messages.
+
+Motivation
+==========
+
+If you're wondering why this is written as part of forge as opposed to
+using an external library, there are a number of reasons:
+
+1. An important goal for forge is to provide high quality error
+   messages for schema violations. For example, including the filename
+   and line number of the cause.
+
+2. Similarly, it is important to be able to quickly extend
+   configuration input to meet new requirements while maintaining
+   backwards compatibility.
+
+3. Finally, it is also very imporant to be able to generate high
+   quality documentation from the schema.
+
+So far I have been unable to find existing tooling that meets these
+requirements in combination. My first attempt was to use the
+jsonschema package combined with docson, but jsonschema doesn't
+validate files, it validates data structures, and so it doesn't have
+access to the filename and line number where the validation occurred.
+
+Secondly, while json schema in general is quite flexible which aids in
+(2), it is actually *too* flexible. The json schema union construct
+allows for situations where it is difficult/impossible to tell which
+alternative schema the input was intended to match, and so this makes
+providing useful error messages quite difficult.
+
+This library defines a more restricted form of union which is flexible
+enough for extending schemas while retaining backwards compatibility,
+but still maintains the property of being able to unambiguously
+classify input as being intended to match just one of the options.
+
+If you know of a good quality third party library that meets these
+requirements, please let me know!
+
+Tutorial
+========
+
+.. testsetup:: *
+
+  from forge.schema import *
+
+A schema is represented as a tree of python objects, for example you
+can construct a schema for a map as follows:
+
+.. doctest::
+
+  # this schema will load an open ended map
+  >>> scm = Map(Any())
+
+Any schema object knows how to load from either a string or a file:
+
+.. doctest::
+
+  # load from a file
+  >>> scm.load("data.yaml")  # doctest: +SKIP
+
+  # load from a string
+  >>> scm.load("string-data", "{foo: bar, baz: moo}")
+  OrderedDict([(u'foo', u'bar'), (u'baz', u'moo')])
+
+  # the name is used in error messages
+  >>> scm.load("string-data", "asdf")
+  Traceback (most recent call last):
+    ...
+  SchemaError: expecting map[any], got string
+    in "string-data", line 1, column 1
+
+You can use Any() and Scalar() to construct polymorphic types, but you
+can also define monomorphic schemas:
+
+.. doctest::
+
+  # a list of strings
+  >>> scm = Sequence(String())
+  >>> scm.load("strings", "[a, b, c]")
+  [u'a', u'b', u'c']
+  >>> scm.load("strings", "[1, 2, 3]")
+  Traceback (most recent call last):
+    ...
+  SchemaError: expecting string, got integer
+    in "strings", line 1, column 2
+
+You can define structured types as well using the Class schema. The
+Class schema requires a type name and a documentation string as the
+first two arguments:
+
+.. doctest::
+
+  # define a structured type
+  >>> scm = Class("book", "A yaml type identifying a book",
+  ...             Field("title", String(), docs="The title of the book"),
+  ...             Field("isbn", String(), docs="The isbn number of the book"),
+  ...             Field("author", String(), docs="The isbn number of the book"))
+
+  >>> scm.load('potter.yaml', '''{title: "The Philosopher's Stone", isbn: "1234", author: "J.K. Rowling"}''')
+  OrderedDict([('author', u'J.K. Rowling'), ('isbn', u'1234'), ('title', u"The Philosopher's Stone")])
+
+By default, all map types will produce OrderedDicts, but if you want a
+custom class, you can pass a constructor to the Class schema when you
+construct it:
+
+.. doctest::
+
+  >>> class Book(object):
+  ...     def __init__(self, title, isbn, author):
+  ...         self.title = title
+  ...         self.isbn = isbn
+  ...         self.author = author
+  ...     def __repr__(self):
+  ...         return "Book(%r, %r, %r)" % (self.title, self.isbn, self.author)
+
+  # structured type with custom class
+  >>> scm = Class("book", "A yaml type identifying a book",
+  ...             Book,
+  ...             Field("title", String(), docs="The title of the book"),
+  ...             Field("isbn", String(), docs="The isbn number of the book"),
+  ...             Field("author", String(), docs="The isbn number of the book"))
+  >>> scm.load('potter.yaml', '''{title: "The Philosopher's Stone", isbn: "1234", author: "J.K. Rowling"}''')
+  Book(u"The Philosopher's Stone", u'1234', u'J.K. Rowling')
+
+The constructor doesn't need to be a class, you can use any
+callable. It will be invoked with the field values supplied as keyword
+arguments:
+
+.. doctest::
+
+  >>> scm = Class("coord", "A yaml type identifying a coordinate",
+  ...             lambda **kw: (kw["x"], kw["y"]),
+  ...             Field("x", Float(), docs="The X coordinate."),
+  ...             Field("y", Float(), docs="The Y coordinate."))
+  >>> scm.load("data", "{x: 1.0, y: 2.0}")
+  (1.0, 2.0)
+
+If the yaml value happens to contain dashes or conflict with a python
+keyword, you can specify an alias for a Field to be used in python
+code:
+
+.. doctest::
+
+  >>> scm = Class("coord", "A yaml type identifying a coordinate",
+  ...             lambda x_coord, y_coord: (x_coord, y_coord),
+  ...             Field("x-coord", Float(), alias="x_coord", docs="The X coordinate."),
+  ...             Field("y-coord", Float(), alias="y_coord", docs="The Y coordinate."))
+  >>> scm.load("data", "{x-coord: 1.0, y-coord: 2.0}")
+  (1.0, 2.0)
+
+"""
+
 import base64, os, StringIO, textwrap
 from collections import OrderedDict
 from yaml import ScalarNode, SequenceNode, MappingNode, CollectionNode, Node, compose_all
@@ -28,15 +185,18 @@ class Schema(object):
 
     @match(Node)
     def load(self, node):
+        "Default data loder. Reports an exception."
         raise SchemaError("expecting %s, got %s\n%s" % (self.name, _tag(node), node.start_mark))
 
     @match(basestring)
     def load(self, name):
+        "Load data from a json or yaml file."
         with open(name) as fd:
             return self.load(name, fd.read())
 
     @match(basestring, basestring)
     def load(self, name, input):
+        "Load data from json or yaml input. The supplied name will appear as the filename in error messages."
         stream = StringIO.StringIO(input)
         stream.name = name
         trees = list(compose_all(stream))
@@ -76,10 +236,17 @@ class Scalar(Schema):
     default_tags = ("string", "integer", "float")
 
     def __init__(self, *tags):
+        """Construct a schema that will load a scalar. Any supplied tags will
+        optionally limit the permitted yaml tags for this schema.
+
+        See http://yaml.org/type/index.html for the official list of yaml tags.
+        """
         self.tags = tags or self.default_tags
 
     @match(ScalarNode)
     def load(self, node):
+        """Load data from a yaml node."""
+
         if node.tag.endswith(":null"):
             return None
         else:
@@ -97,7 +264,7 @@ class Scalar(Schema):
                 expecting = self.tags[0]
             else:
                 expecting = "one of (%s)" % "|".join(self.tags)
-            raise SchemaError("expecting %s, got %s" % (expecting, actual))
+            raise SchemaError("expecting %s, got %s\n%s" % (expecting, actual, node.start_mark))
 
     @property
     def traversal(self):
@@ -267,10 +434,12 @@ class Any(Schema):
 
     @match(ScalarNode)
     def load(self, node):
+        """Load any scalar node as a python object."""
         return _scalar2py(node)
 
     @match(MappingNode)
     def load(self, node):
+        """Load any mapping node as a python OrderedDict."""
         result = OrderedDict()
         for k, v in node.value:
             result[k.value] = self.load(v)
@@ -278,6 +447,7 @@ class Any(Schema):
 
     @match(SequenceNode)
     def load(self, node):
+        """Load any sequence node as a python list."""
         return [self.load(n) for n in node.value]
 
     @property

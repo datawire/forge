@@ -116,7 +116,7 @@ class task(object):
        good error reporting and user feedback.
 
     Any python function can be marked as a task and invoked in the
-    normal way you would invoke any function, e.g.:
+    normal way you would invoke any function, e.g.::
 
         @task()
         def normpath(path):
@@ -130,7 +130,7 @@ class task(object):
         print normpath("/foo//bar/baz") -> "/foo/bar/baz"
 
     The decorator however provides several other convenient ways you
-    can invoke a task:
+    can invoke a task::
 
         # using normpath.go, I can launch subtasks in parallel
         normalized = normpath.go("asdf"), normpath.go("fdsa"), normpath.go("bleh")
@@ -141,7 +141,7 @@ class task(object):
 
     You can also run a task. This will render progress indicators,
     status, and errors to the screen as the task and any subtasks
-    proceed:
+    proceed::
 
         normpath.run("/foo//bar/baz")
 

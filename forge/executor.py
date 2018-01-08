@@ -226,8 +226,9 @@ class _Muxer(object):
 
 class executor(object):
 
-    """An executor provides some useful utilities for safely running and
-    coordinating code:
+    """
+    An executor provides some useful utilities for safely running and
+    coordinating code::
 
         # an executor can run stuff safely:
         exe = executor("my-executor")
@@ -247,7 +248,7 @@ class executor(object):
         except ZeroDivisionError, e:
             print e
 
-    An executor can also be used to run asynchronous tasks:
+    An executor can also be used to run asynchronous tasks::
 
         exe = executor("my-async-executor", async=True)
         result = exe.run(lambda x: x/0, 1)
@@ -277,7 +278,7 @@ class executor(object):
     The executor tracks all background tasks and should any errors
     occur, the executor constructs a full stack trace that includes
     not only the line of code in the background thread, but the stack
-    for the code that launched the background thread:
+    for the code that launched the background thread::
 
         print result.report() -->
 
