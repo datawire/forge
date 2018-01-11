@@ -98,6 +98,10 @@ containers:
 # istio
     VALID("""
 name: foo,
+istio: true
+    """),
+    VALID("""
+name: foo,
 istio:
  enabled: false
     """),

@@ -46,7 +46,7 @@ PROFILE = Map(Any())
 ISTIO = Class(
     "istio",
     """
-    Configures how istioctl kube-inject is called before apllying yaml.
+    Configures how istioctl kube-inject is called before applying yaml.
     """,
     Field("enabled", Boolean(), default=OMIT, docs="If true run istioctl kube-inject before applying yaml."),
     Field("includeIPRanges", Sequence(String()), default=OMIT, docs="Comma separated list of IP ranges in CIDR form passed to istioctl kube-inject.")
@@ -66,7 +66,7 @@ SERVICE = Class(
           docs="A mapping from profile name to profile-specific values."),
     Field("branches", Map(String()), default=OMIT, docs="A mapping from branch pattern to profile name."),
     Field("config", Any(), default=OMIT, docs="Arbitrary application defined configuration parameters for a service."),
-    Field("istio", ISTIO, default=OMIT, docs="Run istioctl kube-inject before applying yaml with the specified settings."),
+    Field("istio", Union(Boolean(), ISTIO), default=OMIT, docs="Run istioctl kube-inject with the specified settings before applying yaml."),
     strict=False
 )
 

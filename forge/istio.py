@@ -18,7 +18,7 @@ from .tasks import task, sh
 @task()
 def istio(directory, ipranges=None):
     for name in os.listdir(directory):
-        cmd = ["istioctl", "kube-inject", "-v", "9", "-f", os.path.join(directory, name)]
+        cmd = ["istioctl", "kube-inject", "-f", os.path.join(directory, name)]
 
         if ipranges is not None:
             cmd.extend(["--includeIPRanges", ",".join(ipranges)])
