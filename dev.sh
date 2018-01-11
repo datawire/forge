@@ -26,6 +26,7 @@ build() {
 
 clean() {
     docker kill bridge || true
+    docker rm bridge || true
     sleep 0.25
     docker volume rm forge || true
     sleep 0.25
@@ -34,7 +35,7 @@ clean() {
 bridge() {
     clean
     docker volume create forge
-    docker run --rm --name bridge -v $DIR:/input -v forge:/output -d bridge
+    docker run --name bridge -v "$DIR:/input" -v forge:/output -d bridge $(id -u)
 }
 
 run() {

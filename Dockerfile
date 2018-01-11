@@ -6,6 +6,7 @@ COPY requirements.txt dev-requirements.txt ./
 RUN pip install -r dev-requirements.txt
 RUN pip install -r requirements.txt
 
+# Bleh, this is really only necessary to make versioneer work
 COPY .git .git
 COPY scripts scripts
 COPY forge forge

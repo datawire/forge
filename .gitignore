@@ -12,10 +12,10 @@ virtualenv
 build
 dist
 env
+.unison.*
 
 # --- Docs ---
 =======
 docs/_book
 docs/node_modules
 .netlify
-
