@@ -222,9 +222,12 @@ class Forge(object):
     @task()
     def manifest(self, service):
         k8s_dir, resources = self.template(service)
-        istioify = service.info().get("istio", False)
+        istio_config = service.info().get("istio", {})
+        istioify = istio_config.get("enabled", False)
+        ipranges = istio_config.get("includeIPRanges", None)
+
         if istioify:
-            istio(k8s_dir)
+            istio(k8s_dir, ipranges)
         task.sync()
         self.rendered.append((service, k8s_dir, resources))
         return k8s_dir

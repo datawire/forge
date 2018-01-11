@@ -554,6 +554,10 @@ def _tag(scalar):
 def _tag(scalar):
     return "float"
 
+@match(Boolean)
+def _tag(scalar):
+    return "bool"
+
 _YAML2ENGLISH={
     "str": "string",
     "int": "integer"

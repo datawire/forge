@@ -95,6 +95,24 @@ containers:
    args:
      foo: bar
     """),
+# istio
+    VALID("""
+name: foo,
+istio: true
+    """),
+    VALID("""
+name: foo,
+istio:
+ enabled: false
+    """),
+    VALID("""
+name: foo,
+istio:
+ enabled: true
+ includeIPRanges:
+  - 10.0.0.0/8
+  - 172.32.0.0/16
+    """)
 )
 
 @pytest.mark.parametrize("error,content", YAML)

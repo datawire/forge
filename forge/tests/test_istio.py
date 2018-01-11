@@ -69,4 +69,17 @@ spec:
 def test_isto():
     directory = mktree(YAML)
     istio(directory)
-    print open(os.path.join(directory, "kube.yaml")).read()
+
+    with open(os.path.join(directory, "kube.yaml")) as file:
+        data = file.read()
+
+    assert "sidecar.istio.io/status" in data
+
+def test_include_ip_ranges():
+    directory = mktree(YAML)
+    istio(directory, ["10.0.0.0/8", "172.32.0.0/16"])
+
+    with open(os.path.join(directory, "kube.yaml")) as file:
+        data = file.read()
+
+    assert "- 10.0.0.0/8,172.32.0.0/16" in data

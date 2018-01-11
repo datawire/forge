@@ -314,6 +314,9 @@ class Service(object):
     def info(self):
         if self._info is None:
             self._info = load_service_yaml(self.descriptor, branch=self.branch)
+            v = self._info.get("istio", None)
+            if v in (True, False):
+                self._info["istio"] = OrderedDict(enabled=v)
         return self._info
 
     @property
