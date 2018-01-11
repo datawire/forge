@@ -11,7 +11,11 @@ Once Istio is installed, you can use the Istio property in
 
 ```
 name: hello-forge  # name of the service
-istio: true        # when true, apply istioctl kube-inject to all manifests
+istio:
+  enabled: true        # when true, apply istioctl kube-inject to all manifests
+  includeIPRanges:     # optional list of IP ranges in CIDR form to be passed to istioctl kube-inject
+    - 10.0.0.0/8
+    - 172.32.0.0/16
 ...
 ```
 

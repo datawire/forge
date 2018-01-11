@@ -16,8 +16,13 @@ import os
 from .tasks import task, sh
 
 @task()
-def istio(directory):
+def istio(directory, ipranges=None):
     for name in os.listdir(directory):
-        munged = sh("istioctl", "kube-inject", "-f", os.path.join(directory, name)).output
+        cmd = ["istioctl", "kube-inject", "-f", os.path.join(directory, name)]
+
+        if ipranges is not None:
+            cmd.extend(["--includeIPRanges", ",".join(ipranges)])
+
+        munged = sh(*cmd).output
         with open(os.path.join(directory, name), 'write') as f:
             f.write(munged)
