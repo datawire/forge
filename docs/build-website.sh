@@ -32,5 +32,7 @@ perl -pi \
 # Replace index.html with our hand-crafted landing page
 cp index.html _book/
 
-# Copy YAML into _book/ as well.
-# cp -prv yaml _book/
+# Build apidocs
+cd api
+make html
+cp -r _build/html ../_book/api
