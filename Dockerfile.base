@@ -7,7 +7,8 @@ RUN apt-get -y install python python-pip # gcc python-dev musl-dev
 # test deps
 RUN apt-get -y install python3 docker.io git
 # doc deps
-RUN apt-get -y install nodejs perl
+RUN apt-get -y install nodejs npm perl
+RUN ln -s /usr/bin/nodejs /usr/bin/node
 
 # kubectl
 RUN curl -L https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl

@@ -1,4 +1,4 @@
-FROM datawire/forge-base:1
+FROM datawire/forge-base:2
 
 WORKDIR /work
 
