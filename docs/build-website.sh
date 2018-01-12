@@ -33,6 +33,8 @@ perl -pi \
 cp index.html _book/
 
 # Build apidocs
-cd api
+cd ..
+pip install -r dev-requirements.txt
+cd docs/api
 make html
 cp -r _build/html ../_book/api
