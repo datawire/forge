@@ -1,5 +1,12 @@
 # Changelog
 
+#### 0.3.24 (Jan 16th, 2018)
+
+* Allow container names to be customized: #46
+* Allow --includeIPRanges to be passed to Istio: #121
+* Publish internal API docs
+* Better schema documentation
+
 #### 0.3.23 (Dec 1st, 2017)
 
 * Prevent concurrent git pulls for monorepo style usage: [#109](https://github.com/datawire/forge/issues/109)
