@@ -35,7 +35,8 @@ CONTAINER = Class(
     """
     Defines and describes the build inputs for a container.
     """,
-    Field("dockerfile", String(), default=OMIT, docs="The path to the dockerfile."),
+    Field("dockerfile", String(), docs="The path to the dockerfile."),
+    Field("name", String(), default=OMIT, docs="The name to use for the container."),
     Field("context", String(), default=OMIT, docs="The build context."),
     Field("args", Map(String("string", "integer", "float")), default=OMIT, docs="Build arguments."),
     Field("rebuild", REBUILD, default=OMIT)

@@ -1,0 +1,5 @@
+name: container-name
+
+containers:
+- name: custom-container-name
+  dockerfile: Dockerfile
