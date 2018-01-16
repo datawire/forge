@@ -1,6 +1,7 @@
 # Table of Contents
 
 * [Forge](INDEX.md)
+* [Forge Api Docs](https://forge.sh/docs/api/)
 
 ----
 

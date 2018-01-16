@@ -36,4 +36,4 @@ cp index.html _book/
 pip install sphinx==1.6.5
 cd api
 make html
-cp -r _build/html ../_book/api
+cp -r _build/html ../_book/docs/api
