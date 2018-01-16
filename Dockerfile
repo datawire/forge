@@ -8,6 +8,9 @@ RUN pip install -r requirements.txt
 
 # Bleh, this is really only necessary to make versioneer work
 COPY .git .git
+COPY bridge bridge
+COPY .gitattributes .gitignore .travis.yml DEVELOPING.md Dockerfile Dockerfile.base README.md dev.sh devcurl.sh entrypoint.sh env.in ./
+
 COPY scripts scripts
 COPY forge forge
 COPY examples examples
