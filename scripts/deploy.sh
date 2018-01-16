@@ -29,6 +29,6 @@ export AWS_ACCESS_KEY_ID=$DEPLOY_KEY_ID
 export AWS_SECRET_ACCESS_KEY=$DEPLOY_KEY
 
 aws s3 cp --acl public-read dist/forge s3://datawire-static-files/forge/$FORGE_VERSION/forge
-aws s3 cp --acl public-read dist/latest.txt s3://datawire-static-files/forge/clatest.txt
-aws s3 cp --acl public-read dist/latest.url s3://datawire-static-files/forge/clatest.url
+aws s3 cp --acl public-read dist/latest.txt s3://datawire-static-files/forge/latest.txt
+aws s3 cp --acl public-read dist/latest.url s3://datawire-static-files/forge/latest.url
 echo "Uploaded dist/forge to $(cat dist/latest.txt)/forge"
