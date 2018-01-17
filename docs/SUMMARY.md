@@ -20,6 +20,7 @@
 
 ## Reference
 
+* [Forge API Documentation](https://forge.sh/docs/api/)
 * [Forge Configuration](docs/reference/forge-config.md)
 * [Service Descriptor](docs/reference/service-descriptor.md)
 * [Customizing Container Builds](docs/reference/customize-container-builds.md)
