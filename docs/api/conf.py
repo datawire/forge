@@ -48,9 +48,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'forge'
-copyright = u'2018, Author'
-author = u'Author'
+project = u'Forge'
+copyright = u'2018, Datawire'
+author = u'Datawire'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -166,8 +166,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'forge', u'forge Documentation',
-     author, 'forge', 'One line description of project.',
+    (master_doc, 'Forge', u'Forge Documentation',
+     author, 'Forge', 'One line description of project.',
      'Miscellaneous'),
 ]
 
@@ -192,5 +192,3 @@ epub_copyright = copyright
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
-
-
