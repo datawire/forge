@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.3.25 (Jan 22nd, 2018)
+
+* Make namespace required and improve the documentation: #125
+
 #### 0.3.24 (Jan 16th, 2018)
 
 * Allow container names to be customized: #46
