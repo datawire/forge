@@ -31,7 +31,7 @@ DOCKER = Class(
     Field("url", String(), docs="The url of the docker registry."),
     Field("user", String(), docs="The docker user."),
     Field("password", Base64(), docs="The docker password, base64 encoded."),
-    Field("namespace", String(), default=None)
+    Field("namespace", String(), docs="The namespace for the docker registry. For docker hub this is a user or an organization. This is used as the first path component of the registry URL, for example: registry.hub.docker.com/<namespace>")
 )
 
 class GCRRegistry(object):
