@@ -336,7 +336,7 @@ class Service(object):
                 yield Container(self, c, index=idx)
             else:
                 yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None),
-                                c.get("rebuild", None), c.get("name", None), index=idx)
+                                c.get("rebuild", None), c.get("name", None), index=idx, image_builder=c.get("image_builder"))
 
     def json(self):
         return {'name': self.name,
@@ -350,7 +350,7 @@ class Service(object):
 
 class Container(object):
 
-    def __init__(self, service, dockerfile, context=None, args=None, rebuild=None, name=None, index=None):
+    def __init__(self, service, dockerfile, context=None, args=None, rebuild=None, name=None, index=None, image_builder=None):
         self.service = service
         self.dockerfile = dockerfile
         self.context = context or os.path.dirname(self.dockerfile)
@@ -358,6 +358,7 @@ class Container(object):
         self.rebuild_root = rebuild.get("root", "/") if rebuild else None
         self.rebuild_sources = rebuild.get("sources", ()) if rebuild else ()
         self.rebuild_command = rebuild.get("command") if rebuild else None
+        self.image_builder = image_builder
         self.name = name
         self.index = index
 
@@ -387,7 +388,7 @@ class Container(object):
     @task()
     def build(self, forge):
         if self.rebuild:
-            builder = forge.docker.builder(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args)
+            builder = forge.docker.builder(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args, image_builder=self.image_builder)
             builder.run("mkdir", "-p", self.rebuild_root)
             for src in self.rebuild_sources:
                 abs_src = os.path.join(self.service.root, src)
@@ -399,4 +400,4 @@ class Container(object):
                 builder.run("/bin/sh", "-c", self.rebuild_command)
             builder.commit(self.image, self.version)
         else:
-            forge.docker.build(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args)
+            forge.docker.build(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args, image_builder=self.image_builder)
