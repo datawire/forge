@@ -37,7 +37,7 @@ class DockerImageBuilder(object):
                 return ["imagebuilder", "-f", dockerfile, "-t", img] + buildargs + [directory]
             return imagebuilder_build
 
-        raise DockerImageBuilderError("No build method named %s exists. Available method names are: %s" % (str, ", ".join(methods)))
+        raise DockerImageBuilderError("No image builder named %s exists. Available builders are: %s" % (str, ", ".join([self.DOCKER, self.IMAGEBUILDER])))
 
 def image(registry, namespace, name, version):
     parts = (registry, namespace, "%s:%s" % (name, version))
