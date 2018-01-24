@@ -16,7 +16,7 @@ import base64, boto3, os, urllib2, hashlib
 from tasks import task, TaskError, get, sh, Secret
 
 
-class DockerImageBuilderError(Exception):
+class DockerImageBuilderError(TaskError):
 
     report_traceback = False
     pass
