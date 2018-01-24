@@ -336,7 +336,7 @@ class Service(object):
                 yield Container(self, c, index=idx)
             else:
                 yield Container(self, c["dockerfile"], c.get("context", None), c.get("args", None),
-                                c.get("rebuild", None), c.get("name", None), index=idx, image_builder=c.get("image_builder"))
+                                c.get("rebuild", None), c.get("name", None), index=idx, image=c.get("image"))
 
     def json(self):
         return {'name': self.name,
@@ -350,7 +350,7 @@ class Service(object):
 
 class Container(object):
 
-    def __init__(self, service, dockerfile, context=None, args=None, rebuild=None, name=None, index=None, image_builder=None):
+    def __init__(self, service, dockerfile, context=None, args=None, rebuild=None, name=None, index=None, image=None):
         self.service = service
         self.dockerfile = dockerfile
         self.context = context or os.path.dirname(self.dockerfile)
@@ -358,7 +358,7 @@ class Container(object):
         self.rebuild_root = rebuild.get("root", "/") if rebuild else None
         self.rebuild_sources = rebuild.get("sources", ()) if rebuild else ()
         self.rebuild_command = rebuild.get("command") if rebuild else None
-        self.image_builder = image_builder
+        self.image_builder = image.get("builder") if image else None
         self.name = name
         self.index = index
 

@@ -95,6 +95,26 @@ containers:
    args:
      foo: bar
     """),
+# containers.item.image.builder
+    ERROR("No image builder named %s exists. Available builders are: docker, imagebuilder",
+    """
+name: foo,
+containers:
+ - image:
+     builder: docker
+    """),
+    VALID("""
+name: foo,
+containers:
+ - image:
+     builder: docker
+    """),
+    VALID("""
+name: foo,
+containers:
+ - image:
+     builder: imagebuilder
+    """),
 # istio
     VALID("""
 name: foo,
