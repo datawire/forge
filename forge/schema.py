@@ -584,6 +584,10 @@ def _tag(map):
 def _tag(nd):
     return "map"
 
+@match(Constant)
+def _tag(c):
+    return c.value
+
 class _Signature(object):
 
     def __init__(self, cls, fields):
@@ -687,8 +691,12 @@ class Union(Schema):
             else:
                 raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in self.signatures), t))
         if t not in self.tags:
-            raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in
-                                                                          self.tags.keys() + self.signatures), t))
+            v = node.value
+            if v not in self.tags:
+                raise SchemaError("expecting one of (%s), got %s(%s)" % ("|".join(str(s) for s in
+                                                                          self.tags.keys() + self.signatures), t, v))
+            return self.tags[v].load(node)
+
         return self.tags[t].load(node)
 
     @property
