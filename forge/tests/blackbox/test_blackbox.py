@@ -1,9 +1,11 @@
-import glob, os, pexpect, pytest, sys
+import glob, os, pexpect, pytest, sys, time
 from forge.tests.common import mktree
 
 DIR = os.path.dirname(__file__)
 
 SPECS = [os.path.relpath(n, DIR) for n in glob.glob(os.path.join(DIR, "*/*.spec"))]
+
+TEST_ID = ("test_id_%s" % time.time()).replace(".", "_")
 
 @pytest.mark.parametrize("spec", SPECS)
 def test(spec):
@@ -33,7 +35,7 @@ password: >
             with open(os.path.join(path, name), "r") as fd:
                 tree[key] = fd.read()
 
-    root = mktree(tree)
+    root = mktree(tree, TEST_ID=TEST_ID)
     print "TEST_BASE: %s" % root
 
     with open(test_spec) as fd:
