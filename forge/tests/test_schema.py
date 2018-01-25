@@ -195,6 +195,12 @@ ABC_FIELDS = Union(Class("a", "a docs", Field("a", Constant("x")), Field("aa", S
                    Class("b", "b docs", Field("b", Constant("x")), Field("bb", String())),
                    Class("c", "c docs", Field("c", Constant("x")), Field("cc", String())))
 
+ABC_STR_CONSTANTS = Union(Integer(),
+                          Float(),
+                          Boolean(),
+                          Class("a", "a docs", Field("a", Constant("y"))),
+                          Constant("b"),
+                          Constant("c"))
 
 UNION_ERRORS = (
     (ABC, "[]", "expecting one of (string|a:map{type=a}|b:map{type=b}|c:map{type=c}"),
@@ -208,6 +214,8 @@ UNION_ERRORS = (
     (ABC_FIELDS, "{}", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
     (ABC_FIELDS, "{a: []}", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
     (ABC_FIELDS, "{a: {}}", "expecting one of (a:map{a=x}|b:map{b=x}|c:map{c=x})"),
+    (ABC_STR_CONSTANTS, "{}", "required field 'a' is missing"),
+    (ABC_STR_CONSTANTS, "a", "expecting one of (integer|b|float|bool|c|a:map{a=y}), got string(a)"),
     (Union(String(), Sequence(String())), "foo: bar", "expecting one of (string|sequence), got map")
 )
 
