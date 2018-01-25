@@ -101,22 +101,19 @@ containers:
 name: foo,
 containers:
  - dockerfile: bar
-   image:
-     builder: foo
+   builder: foo
     """),
     VALID("""
 name: foo,
 containers:
  - dockerfile: bar
-   image:
-     builder: docker
+   builder: docker
     """),
     VALID("""
 name: foo,
 containers:
  - dockerfile: bar
-   image:
-     builder: imagebuilder
+   builder: imagebuilder
     """),
 # istio
     VALID("""

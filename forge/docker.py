@@ -89,10 +89,10 @@ class DockerBase(object):
         return img
 
     @task()
-    def build(self, directory, dockerfile, name, version, args, image_builder=None):
+    def build(self, directory, dockerfile, name, version, args, builder=None):
         args = args or {}
 
-        image_builder = image_builder or DockerImageBuilder.DOCKER
+        builder = builder or DockerImageBuilder.DOCKER
 
         buildargs = []
         for k, v in args.items():
@@ -101,7 +101,7 @@ class DockerBase(object):
 
         img = self.image(name, version)
 
-        cmd = DockerImageBuilder.get_cmd_from_name(image_builder)
+        cmd = DockerImageBuilder.get_cmd_from_name(builder)
         sh(*cmd(directory, dockerfile, img, buildargs))
 
         return img
@@ -141,7 +141,7 @@ class DockerBase(object):
             yield id, builder_name
 
     @task()
-    def builder(self, directory, dockerfile, name, version, args, image_builder=None):
+    def builder(self, directory, dockerfile, name, version, args, builder=None):
         # We hash the buildargs and Dockerfile so that we reconstruct
         # the builder container if anything changes. This might want
         # to be extended to cover other files the Dockerfile
@@ -156,7 +156,7 @@ class DockerBase(object):
             else:
                 Builder(self, id).kill()
         if not cid:
-            image = self.build(directory, dockerfile, name, version, args, image_builder=None)
+            image = self.build(directory, dockerfile, name, version, args, builder=None)
             cid = sh("docker", "run", "--rm", "--name", builder_name, "-dit", "--entrypoint", "/bin/sh",
                      image).output.strip()
         return Builder(self, cid, self.get_changes(dockerfile))
