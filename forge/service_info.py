@@ -30,6 +30,14 @@ REBUILD = Class(
           docs="An array of files or directories that will be copied into the container prior to performing a build.")
 )
 
+IMAGE = Class(
+    "image",
+    """
+    Configures how the container image used to run containers is created.
+    """,
+    Field("builder", Union(Constant("docker"), Constant("imagebuilder")), default=OMIT, docs="The docker image builder to be used: `docker` for `docker build`, `imagebuilder` for `openshift/imagebuilder`."),
+)
+
 CONTAINER = Class(
     "container",
     """
@@ -39,6 +47,7 @@ CONTAINER = Class(
     Field("name", String(), default=OMIT, docs="The name to use for the container."),
     Field("context", String(), default=OMIT, docs="The build context."),
     Field("args", Map(String("string", "integer", "float")), default=OMIT, docs="Build arguments."),
+    Field("image", IMAGE, default=OMIT, docs="Configures how the container image used to run this container is created."),
     Field("rebuild", REBUILD, default=OMIT)
 )
 
