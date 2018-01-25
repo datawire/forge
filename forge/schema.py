@@ -584,6 +584,10 @@ def _tag(map):
 def _tag(nd):
     return "map"
 
+@match(Constant)
+def _tag(c):
+    return c.value
+
 class _Signature(object):
 
     def __init__(self, cls, fields):
@@ -686,9 +690,20 @@ class Union(Schema):
                 return s.load(node)
             else:
                 raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in self.signatures), t))
+        # in case this is an union contains constant(s), and t is a 'string' of the value "foo" from the yaml,
+        # the user might have intended a constant named "foo".
         if t not in self.tags:
+            v = node.value
+            # `v` could have an unhashable type (like 'list') which results in a type error while the `in` check
+            if (isinstance(v, str) or isinstance(v, unicode)):
+                if v not in self.tags:
+                    raise SchemaError("expecting one of (%s), got %s(%s)" % ("|".join(str(s) for s in
+                                                                          self.tags.keys() + self.signatures), t, v))
+                return self.tags[v].load(node)
+            # it doesn't seem like a constant hence not fit within the union
             raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in
-                                                                          self.tags.keys() + self.signatures), t))
+            self.tags.keys() + self.signatures), t))
+
         return self.tags[t].load(node)
 
     @property

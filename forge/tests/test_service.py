@@ -95,6 +95,26 @@ containers:
    args:
      foo: bar
     """),
+# containers.item.image.builder
+    ERROR("expecting one of (docker|imagebuilder), got string(foo)",
+    """
+name: foo,
+containers:
+ - dockerfile: bar
+   builder: foo
+    """),
+    VALID("""
+name: foo,
+containers:
+ - dockerfile: bar
+   builder: docker
+    """),
+    VALID("""
+name: foo,
+containers:
+ - dockerfile: bar
+   builder: imagebuilder
+    """),
 # istio
     VALID("""
 name: foo,

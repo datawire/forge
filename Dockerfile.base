@@ -2,12 +2,14 @@ FROM ubuntu:xenial
 
 # base
 RUN apt-get update && apt-get -y install curl
+# go
+RUN curl -L https://dl.google.com/go/go1.9.3.linux-amd64.tar.gz -o /tmp/go.tgz && tar -C /usr/local --strip-components=1 -xzf /tmp/go.tgz && rm /tmp/go.tgz
 # forge deps
-RUN apt-get -y install python python-pip # gcc python-dev musl-dev
+RUN apt-get update && apt-get -y install python python-pip # gcc python-dev musl-dev
 # test deps
-RUN apt-get -y install python3 docker.io git
+RUN apt-get update && apt-get -y install python3 docker.io git
 # doc deps
-RUN apt-get -y install nodejs npm perl
+RUN apt-get update && apt-get -y install nodejs npm perl
 RUN ln -s /usr/bin/nodejs /usr/bin/node
 
 # kubectl
@@ -17,10 +19,14 @@ RUN chmod +x /usr/local/bin/kubectl
 # istio
 ENV ISTIO_VERSION 0.4.0
 ENV ISTIO "istio-${ISTIO_VERSION}"
-RUN curl -L https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${ISTIO}-linux.tar.gz -o /tmp/istio.tar.gz
-RUN tar -C /tmp -xzf /tmp/istio.tar.gz
-RUN mv /tmp/${ISTIO}/bin/istioctl /usr/local/bin
-RUN chmod +x /usr/local/bin/istioctl
+RUN curl -L https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${ISTIO}-linux.tar.gz -o /tmp/istio.tar.gz && \
+    tar -C /tmp -xzf /tmp/istio.tar.gz && \
+    mv /tmp/${ISTIO}/bin/istioctl /usr/local/bin && \
+    chmod +x /usr/local/bin/istioctl && \
+    rm -rf /tmp/istio.tar.gz /tmp/${ISTIO}
+
+# imagebuilder
+RUN GOPATH=/tmp/gp go get -u github.com/openshift/imagebuilder/cmd/imagebuilder && mv /tmp/gp/bin/imagebuilder /usr/local/bin && rm -rf /tmp/gp
 
 # kubernaut
 RUN curl -L https://s3.amazonaws.com/datawire-static-files/kubernaut/$(curl -s https://s3.amazonaws.com/datawire-static-files/kubernaut/stable.txt)/kubernaut -o /usr/local/bin/kubernaut

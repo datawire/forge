@@ -1,0 +1,5 @@
+name: imagebuilder-TEST_ID
+
+containers:
+- dockerfile: Dockerfile
+  builder: imagebuilder
