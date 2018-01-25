@@ -96,23 +96,26 @@ containers:
      foo: bar
     """),
 # containers.item.image.builder
-    ERROR("No image builder named %s exists. Available builders are: docker, imagebuilder",
+    ERROR("expecting one of (docker|imagebuilder), got string(foo)",
     """
 name: foo,
 containers:
- - image:
+ - dockerfile: bar
+   image:
+     builder: foo
+    """),
+    VALID("""
+name: foo,
+containers:
+ - dockerfile: bar
+   image:
      builder: docker
     """),
     VALID("""
 name: foo,
 containers:
- - image:
-     builder: docker
-    """),
-    VALID("""
-name: foo,
-containers:
- - image:
+ - dockerfile: bar
+   image:
      builder: imagebuilder
     """),
 # istio
