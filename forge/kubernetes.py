@@ -14,6 +14,28 @@
 
 import os, glob
 from tasks import task, TaskError, get, sh, SHResult
+from forge.match import match
+from forge.yamlutil import MappingNode, Node, as_node, compose, compose_all, serialize_all, view
+
+@match(MappingNode, basestring, dict)
+def fixup(node, key, pairs):
+    node = view(node)
+    if node.get("kind"):
+        md = node.get("metadata")
+        if md is None:
+            md = view(compose("{}"))
+            node["metadata"] = md
+
+        orig = md.get(key)
+        if orig is None:
+            orig = view(compose("{}"))
+            md[key] = orig
+        for k, v in pairs.items():
+            orig[k] = as_node(v)
+
+@match(Node, basestring, dict)
+def fixup(*args):
+    pass
 
 def is_yaml_empty(dir):
     for name in glob.glob("%s/*.yaml" % dir):
@@ -37,6 +59,35 @@ class Kubernetes(object):
         if self.namespace:
             cmd += "--namespace", self.namespace
         return sh(*cmd).output.split()
+
+    def _labeltate(self, yaml_dir, labels, annotate):
+        if is_yaml_empty(yaml_dir):
+            return SHResult("", 0, "")
+        key = "annotations" if annotate else "labels"
+
+        for name in os.listdir(yaml_dir):
+            fixed = []
+            with open(os.path.join(yaml_dir, name), 'read') as f:
+                for nd in compose_all(f):
+                    fixup(nd, key, labels)
+                    # we filter out null nodes because istioctl sticks
+                    # them in for some reason, and then we end up
+                    # serializing them in a way that kubectl doesn't
+                    # understand
+                    if nd.tag == u'tag:yaml.org,2002:null':
+                        continue
+                    fixed.append(nd)
+            munged = serialize_all(fixed)
+            with open(os.path.join(yaml_dir, name), 'write') as f:
+                f.write(munged)
+
+    @task()
+    def annotate(self, yaml_dir, labels):
+        self._labeltate(yaml_dir, labels, annotate=True)
+
+    @task()
+    def label(self, yaml_dir, labels):
+        self._labeltate(yaml_dir, labels, annotate=False)
 
     @task()
     def apply(self, yaml_dir):

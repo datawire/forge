@@ -228,6 +228,17 @@ class Forge(object):
 
         if istioify:
             istio(k8s_dir, ipranges)
+
+        labels = OrderedDict()
+        labels["forge.service"] = service.name
+        labels["forge.profile"] = service.profile
+        self.kube.label(k8s_dir, labels)
+        anns = OrderedDict()
+        anns["forge.repo"] = service.repo or ""
+        anns["forge.descriptor"] = service.rel_descriptor
+        anns["forge.version"] = service.version
+        self.kube.annotate(k8s_dir, anns)
+
         task.sync()
         self.rendered.append((service, k8s_dir, resources))
         return k8s_dir

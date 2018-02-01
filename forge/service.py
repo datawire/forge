@@ -248,6 +248,18 @@ class Service(object):
             self._version = get_version(self.root, "%s.sha" % shafiles(self.root, self.files))
         return self._version
 
+    @property
+    def repo(self):
+        gh = Github(None)
+        return gh.remote(self.root)
+
+    @property
+    def rel_descriptor(self):
+        if self.is_git:
+            return os.path.relpath(self.descriptor, self.gitroot)
+        else:
+            return os.path.relpath(self.descriptor, self.forgeroot)
+
     def image(self, container):
         pfx = os.path.dirname(container)
         name = os.path.join(self.name, pfx) if pfx else self.name
@@ -261,6 +273,20 @@ class Service(object):
             if self.gitroot not in pulled:
                 pulled[self.gitroot] = True
                 sh("git", "pull", "--update-shallow", cwd=self.gitroot)
+
+    @property
+    def profile(self):
+        svc = self.info()
+        if self.forge.profile is None:
+            profile = "default"
+            if self.branch:
+                for k, v in svc.get("branches", {}).items():
+                    if fnmatch.fnmatch(self.branch, k):
+                        profile = v
+                        break
+        else:
+            profile = self.forge.profile
+        return profile
 
     def metadata(self, registry, repo):
         metadata = OrderedDict()
@@ -277,21 +303,12 @@ class Service(object):
 
         build["branch"] = self.branch
 
-        if self.forge.profile is None:
-            profile = "default"
-            if self.branch:
-                for k, v in svc.get("branches", {}).items():
-                    if fnmatch.fnmatch(self.branch, k):
-                        profile = v
-                        break
-        else:
-            profile = self.forge.profile
 
         build["version"] = self.version
-        prof = copy.deepcopy(svc.get("profiles", {}).get(profile, {}))
+        prof = copy.deepcopy(svc.get("profiles", {}).get(self.profile, {}))
         build["profile"] = prof
         if "name" not in prof:
-            prof["name"] = profile
+            prof["name"] = self.profile
 
         build["name"] = "%s-%s" % (svc["name"], prof["name"])
 

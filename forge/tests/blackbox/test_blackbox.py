@@ -54,6 +54,7 @@ class Runner(object):
 
     def run(self):
         for line in self.spec.splitlines():
+            if not line.strip(): continue
             for stmt in line.split(";"):
                 parts = stmt.split(None, 1)
                 op = parts.pop(0)
