@@ -17,7 +17,7 @@ from forge.yamlutil import *
 
 def test_map_view_getitem():
     v = view(compose("foo: bar"))
-    assert v["foo"].value == "bar"
+    assert v["foo"] == "bar"
 
 def test_map_view_setitem_string():
     v = view(compose("{}"))
@@ -41,7 +41,7 @@ def test_map_view_setitem_none():
 
 def test_sequence_view_getitem():
     v = view(compose("[item]"))
-    assert v[0].value == "item"
+    assert v[0] == "item"
 
 def test_sequence_view_setitem_string():
     v = view(compose("[dummy]"))
@@ -66,7 +66,7 @@ def test_sequence_view_setitem_none():
 def test_sequence_view_append():
     v = view(compose("[]"))
     v.append("item")
-    assert v[0].value == "item"
+    assert v[0] == "item"
 
 def test_traversal():
     expected = [("map", None), ("str", "key"), ("str", "value"), ("str", "list"), ("seq", None), ("str", "item1"),
@@ -90,3 +90,22 @@ def test_as_node():
                    (view(compose("{}")), "map")):
         nd = as_node(v)
         assert nd.tag.split(":")[-1] == tag
+
+def test_str_view():
+    v = view(compose("{key: value, list: [item1, item2]}")).str_view
+    assert v["key"] == "value"
+
+def test_node_view():
+    v = view(compose("{key: value, list: [item1, item2]}")).node_view
+    assert v["key"].value == "value"
+
+def test_py_view():
+    v = view(compose("{key: 3, list: [item1, item2]}")).py_view
+    assert v["key"] == 3
+
+def test_load_filename():
+    assert load("/dev/null") == []
+
+def test_load_content():
+    v = load("foo", "a: b")
+    assert v[0]["a"] == "b"
