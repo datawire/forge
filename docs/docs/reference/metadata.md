@@ -34,4 +34,21 @@ you've deployed with forge:
     # delete the dev profile
     kubectl delete all -l forge.service=myservice -l forge.profile=foo
 
+You can also use the `forge list` command to show a human readable
+summary of the forge resources deployed into a cluster, e.g.:
+
+    $ forge list
+    myservice[default]: https://github.com/myorg/myservice.git | service.yaml | 729b401e7c515144bbaf0962b6a207f591f291ca.git
+      deployment default.myservice-default:
+        Deployment has minimum availability.
+      service default.myservice-default:
+        READY(192.168.187.194:80, 192.168.187.195:80, 192.168.187.196:80)
+
+    myservice[foo]: https://github.com/myorg/myservice.git | service.yaml | 62334241058f806e1fc26a246f10e78ec1d7abbb.git
+      deployment default.myservice-foo:
+        Deployment has minimum availability.
+      service default.myservice-foo:
+        READY(192.168.187.197:80, 192.168.187.198:80, 192.168.187.199:80)
+
+
 **Still have questions? Ask in our [Gitter chatroom](https://gitter.im/datawire/forge) or [file an issue on GitHub](https://github.com/datawire/forge/issues/new).**

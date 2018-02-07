@@ -253,8 +253,9 @@ def list(forge):
                 else:
                     print
 
-                print "{0}[{1}]: {2} :: {3} :: {4}".format(bold(service), bold(profile), repo or "(none)", descriptor,
-                                                           version)
+                header = "{0}[{1}]: {2} | {3} | {4}".format(bold(service), bold(profile), repo or "(none)", descriptor,
+                                                             version)
+                print header
 
                 for resource in sorted(resources):
                     ver = resource["version"]
