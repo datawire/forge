@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import eventlet, sys
+import eventlet, functools, sys
 from contextlib import contextmanager
 from eventlet.corolocal import local
 from eventlet.green import time
@@ -187,7 +187,9 @@ class task(object):
         self.function = function
         if self.name is None:
             self.name = self.function.__name__
-        return decorator(self)
+        result = decorator(self)
+        functools.update_wrapper(result, function)
+        return result
 
     @staticmethod
     def sync():
