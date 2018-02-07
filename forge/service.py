@@ -222,7 +222,7 @@ class Service(object):
             self.gitroot = None
             self.is_git = False
         if forge.branch:
-            self.branch = branch
+            self.branch = forge.branch
         elif self.is_git:
             output = sh("git", "rev-parse", "--abbrev-ref", "HEAD", cwd=self.root).output.strip()
             self.branch = None if output == "HEAD" else output
