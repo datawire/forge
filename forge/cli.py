@@ -234,7 +234,13 @@ def primary_version(resources):
 @task()
 def list(forge):
     """
-    List all the kubernetes resources associated with the discovered services.
+    List deployed forge services.
+
+    The list command will query all k8s resources in all namespaces
+    within a cluster and display a summary of useful information about
+    those services. This includes the source repo where the service
+    originates, the descriptor within the repo, and the status of any
+    deployed k8s resources.
     """
     bold = forge.terminal.bold
     red = forge.terminal.bold_red
