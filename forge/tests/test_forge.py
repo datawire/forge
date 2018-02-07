@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os, pexpect, sys, time, yaml
-from .common import mktree
+from .common import mktree, defuzz
 from forge.tasks import sh
 
 START_TIME = time.time()
@@ -176,21 +176,12 @@ password: >
 def test_deploy():
     directory = mktree(FORGE_YAML + APP, MANGLE=MANGLE)
     os.environ["FORGE_PROFILE"] = "dev"
-    forge = launch(directory, "forge deploy")
-    forge.expect('built')
-    forge.expect('forgetest/Dockerfile')
-    forge.expect('pushed')
-    forge.expect('forgetest-[0-9-]+:')
-    forge.expect('rendered')
-    forge.expect('service/forgetest-[0-9-]+')
-    forge.expect('deployment/forgetest-[0-9-]+')
-    forge.expect('deployed')
-    forge.expect('forgetest-[0-9-]+')
-    forge.expect(pexpect.EOF)
-    assert forge.wait() == 0
-
-    for sub in ("forgetest", "forgetest/subdir"):
-        forge = launch(os.path.join(directory, "forgetest/subdir"), "forge deploy")
+    try:
+        forge = launch(directory, "forge deploy")
+        forge.expect('built')
+        forge.expect('forgetest/Dockerfile')
+        forge.expect('pushed')
+        forge.expect('forgetest-[0-9-]+:')
         forge.expect('rendered')
         forge.expect('service/forgetest-[0-9-]+')
         forge.expect('deployment/forgetest-[0-9-]+')
@@ -198,6 +189,18 @@ def test_deploy():
         forge.expect('forgetest-[0-9-]+')
         forge.expect(pexpect.EOF)
         assert forge.wait() == 0
+
+        for sub in ("forgetest", "forgetest/subdir"):
+            forge = launch(os.path.join(directory, "forgetest/subdir"), "forge deploy")
+            forge.expect('rendered')
+            forge.expect('service/forgetest-[0-9-]+')
+            forge.expect('deployment/forgetest-[0-9-]+')
+            forge.expect('deployed')
+            forge.expect('forgetest-[0-9-]+')
+            forge.expect(pexpect.EOF)
+            assert forge.wait() == 0
+    finally:
+        del os.environ["FORGE_PROFILE"]
 
 DOCKERFILES = """
 @@svc/service.yaml
@@ -389,34 +392,40 @@ def do_test_profile(command, result):
     forge.expect(pexpect.EOF)
     assert forge.wait() == 0
     with open(os.path.join(directory, ".forge", "k8s", "profile-test", "profile.yaml")) as fd:
-        assert fd.read() == result
+        assert defuzz(fd.read()) == result
 
 def test_profile_default():
-    do_test_profile("forge --profile default build manifests", """---
-apiVersion: v1
+    do_test_profile("forge --profile default build manifests", """apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dummy
+  labels: {forge.service: profile-test, forge.profile: default}
+  annotations: {forge.repo: '', forge.descriptor: service.yaml, forge.version: VERSION_1}
 data:
   myval: default-value
-  name: default""")
+  name: default
+""")
 
 def test_profile_stable():
-    do_test_profile("forge --profile stable build manifests", """---
-apiVersion: v1
+    do_test_profile("forge --profile stable build manifests", """apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dummy
+  labels: {forge.service: profile-test, forge.profile: stable}
+  annotations: {forge.repo: '', forge.descriptor: service.yaml, forge.version: VERSION_1}
 data:
   myval: stable-value
-  name: stable""")
+  name: stable
+""")
 
 def test_profile_canary():
-    do_test_profile("forge --profile canary build manifests", """---
-apiVersion: v1
+    do_test_profile("forge --profile canary build manifests", """apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dummy
+  labels: {forge.service: profile-test, forge.profile: canary}
+  annotations: {forge.repo: '', forge.descriptor: service.yaml, forge.version: VERSION_1}
 data:
   myval: canary-value
-  name: canary""")
+  name: canary
+""")

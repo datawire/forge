@@ -217,6 +217,60 @@ def service_yaml():
     import service_info
     service_info.SERVICE.render_all()
 
+from .kubernetes import Kubernetes
+from collections import OrderedDict
+
+def primary_version(resources):
+    counts = OrderedDict()
+    for r in resources:
+        v = r["version"]
+        if v not in counts:
+            counts[v] = 0
+        counts[v] += 1
+    return sorted(counts.items(), cmp=lambda x, y: cmp(x[1], y[1]))[-1][0]
+
+@forge.command()
+@click.pass_obj
+@task()
+def list(forge):
+    """
+    List deployed forge services.
+
+    The list command will query all k8s resources in all namespaces
+    within a cluster and display a summary of useful information about
+    those services. This includes the source repo where the service
+    originates, the descriptor within the repo, and the status of any
+    deployed k8s resources.
+    """
+    bold = forge.terminal.bold
+    red = forge.terminal.bold_red
+
+    kube = Kubernetes()
+    repos = kube.list()
+    first = True
+    for repo, services in sorted(repos.items()):
+        for service, profiles in sorted(services.items()):
+            for profile, resources in sorted(profiles.items()):
+                descriptor = resources[0]["descriptor"]
+                version = primary_version(resources)
+
+                if first:
+                    first = False
+                else:
+                    print
+
+                header = "{0}[{1}]: {2} | {3} | {4}".format(bold(service), bold(profile), repo or "(none)", descriptor,
+                                                             version)
+                print header
+
+                for resource in sorted(resources):
+                    ver = resource["version"]
+                    if ver != version:
+                        red_ver = red(ver)
+                        print "  {kind} {namespace}.{name} {0}:\n    {status}".format(red_ver, **resource)
+                    else:
+                        print "  {kind} {namespace}.{name}:\n    {status}".format(**resource)
+
 def call_main():
     util.setup_yaml()
     try:

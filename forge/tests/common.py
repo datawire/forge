@@ -58,3 +58,44 @@ def parse_treespec(treespec, **substitutions):
     if filename:
         raise ValueError("unterminated file: %s" % filename)
     return result
+
+import re
+
+TOKENS = (
+    ("VERSION", r'\b[0-9a-fA-F]{40}\.(sha|git)'),
+    ("TEST_ID", r'test_id_[0-9]+(_[0-9]+)?')
+)
+
+def tokenize(s):
+    while s:
+        matches = [re.search(t, s) for n, t in TOKENS]
+        nearest = None
+        for m in matches:
+            if not m: continue
+            if nearest:
+                if m.start() < nearest.start():
+                    nearest = m
+            else:
+                 nearest = m
+        if nearest:
+            yield "LITERAL", s[:nearest.start()]
+            yield TOKENS[matches.index(nearest)][0], nearest.group()
+            s = s[nearest.end():]
+        else:
+            yield "LITERAL", s
+            break
+
+def defuzz(s):
+    result = ""
+    counters = {}
+    names = {}
+    for ttype, value in tokenize(s):
+        if ttype == "LITERAL":
+            result += value
+        else:
+            if value not in names:
+                idx = counters.get(ttype, 0) + 1
+                names[value] = "%s_%s" % (ttype, idx)
+                counters[ttype] = idx
+            result += str(names[value])
+    return result

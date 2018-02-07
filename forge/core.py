@@ -215,7 +215,7 @@ class Forge(object):
         self.pushed.extend(pushed)
 
     def template(self, svc):
-        k8s_dir = os.path.join(svc.root, ".forge", "k8s", svc.name)
+        k8s_dir = svc.manifest_target_dir
         svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
         return k8s_dir, self.kube.resources(k8s_dir)
 
@@ -228,6 +228,17 @@ class Forge(object):
 
         if istioify:
             istio(k8s_dir, ipranges)
+
+        labels = OrderedDict()
+        labels["forge.service"] = service.name
+        labels["forge.profile"] = service.profile
+        self.kube.label(k8s_dir, labels)
+        anns = OrderedDict()
+        anns["forge.repo"] = service.repo or ""
+        anns["forge.descriptor"] = service.rel_descriptor
+        anns["forge.version"] = service.version
+        self.kube.annotate(k8s_dir, anns)
+
         task.sync()
         self.rendered.append((service, k8s_dir, resources))
         return k8s_dir
