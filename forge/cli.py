@@ -164,8 +164,9 @@ def manifests(forge):
 @forge.command()
 @click.pass_obj
 @click.option('-n', '--namespace', envvar='K8S_NAMESPACE', type=click.STRING)
-@click.option('--dry-run', is_flag=True)
-def deploy(forge, namespace, dry_run):
+@click.option('--dry-run', is_flag=True, help="Run through the deploy steps without making changes.")
+@click.option('--prune', is_flag=True, help="Prune any resources not in the manifests.")
+def deploy(forge, namespace, dry_run, prune):
     """
     Build and deploy a service.
 
@@ -174,7 +175,17 @@ def deploy(forge, namespace, dry_run):
     """
     forge.namespace = namespace
     forge.dry_run = dry_run
-    forge.execute(lambda svc: forge.deploy(*forge.build(svc)))
+    forge.execute(lambda svc: forge.deploy(*forge.build(svc), prune=prune))
+
+@forge.command()
+@click.pass_obj
+def delete(forge):
+    """
+    Delete (undeploy) a service.
+
+    They delete command removes all kubernetes resources for the current profile of the given service.
+    """
+    forge.execute(forge.delete)
 
 @forge.command()
 @click.pass_obj

@@ -41,10 +41,8 @@ def fixup(*args):
 ALL = ('csr',
        'clusterrolebindings',
        'clusterroles',
-       'cs',
        'cm',
        'controllerrevisions',
-       'cronjobs',
        'crd',
        'ds',
        'deploy',
@@ -157,7 +155,7 @@ class Kubernetes(object):
         self._labeltate(yaml_dir, labels, annotate=False)
 
     @task()
-    def apply(self, yaml_dir):
+    def apply(self, yaml_dir, prune=None):
         if is_yaml_empty(yaml_dir):
             return SHResult("", 0, "")
         cmd = "kubectl", "apply", "-f", yaml_dir
@@ -165,6 +163,9 @@ class Kubernetes(object):
             cmd += "--namespace", self.namespace
         if self.dry_run:
             cmd += "--dry-run",
+        if prune:
+            cmd += "--prune",
+            cmd += tuple("-l%s=%s" % (k, v) for k, v in prune.items())
         result = sh(*cmd)
         return result
 
@@ -173,8 +174,7 @@ class Kubernetes(object):
         """
         Return a structured view of all forge deployed resources in a kubernetes cluster.
         """
-        all = (x for x in ALL if x not in ('cronjobs', 'cs'))
-        output = sh("kubectl", "get", "--all-namespaces", ",".join(all), "-oyaml", "-lforge.service").output
+        output = sh("kubectl", "get", "--all-namespaces", ",".join(ALL), "-oyaml", "-lforge.service").output
 
         repos = {}
         endpoints = {}
@@ -231,3 +231,11 @@ class Kubernetes(object):
                         resource["status"] = status
 
         return repos
+
+    @task()
+    def delete(self, labels):
+        lines = sh("kubectl", "get", "ns", "-oname").output.splitlines()
+        namespaces = (l.strip().split("/")[-1] for l in lines)
+        for ns in namespaces:
+            selector = tuple("-l%s=%s" % (k, v) for k, v in labels.items())
+            sh("kubectl", "delete", "-n", ns, ",".join(ALL), *selector)

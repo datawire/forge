@@ -250,10 +250,15 @@ class Forge(object):
         return service, self.manifest(service)
 
     @task()
-    def deploy(self, service, k8s_dir):
-        self.kube.apply(k8s_dir)
+    def deploy(self, service, k8s_dir, prune=False):
+        self.kube.apply(k8s_dir, prune={"forge.service": service.name, "forge.profile": service.profile})
         task.sync()
         self.deployed.append((service, k8s_dir))
+
+    @task()
+    def delete(self, service):
+        with task.verbose(True):
+            self.kube.delete({"forge.service": service.name, "forge.profile": service.profile})
 
     @task()
     def pull(self, service, pulled):
