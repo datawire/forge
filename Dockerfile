@@ -20,6 +20,4 @@ COPY entrypoint.sh /
 
 RUN pip install -e .
 
-COPY rhs-kluster /root/.kube/kubernaut
-
 ENTRYPOINT ["/entrypoint.sh"]

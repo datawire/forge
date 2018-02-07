@@ -13,12 +13,12 @@ SRC_DIR=${DIR}/..
 
 export PATH=${SRC_DIR}/dist:${PATH}
 forge --version
-kubectl delete all --all && echo "DISABLED:" kubernaut claim
+kubernaut claim
 {
     $DIR/istio.sh && py.test -svv
     RESULT=$?
 } || true
-kubectl delete all --all && echo "DISABLED:" kubernaut discard
+kubernaut discard
 $DIR/scout.sh
 echo RESULT=$RESULT
 exit $RESULT
