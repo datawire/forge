@@ -323,6 +323,10 @@ class Service(object):
     def manifest_dir(self):
         return os.path.join(self.root, "k8s")
 
+    @property
+    def manifest_target_dir(self):
+        return os.path.join(self.root, ".forge", "k8s", self.name)
+
     def deployment(self, registry, repo, target):
         k8s_dir = self.manifest_dir
         metadata = self.metadata(registry, repo)

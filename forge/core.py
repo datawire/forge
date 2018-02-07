@@ -215,7 +215,7 @@ class Forge(object):
         self.pushed.extend(pushed)
 
     def template(self, svc):
-        k8s_dir = os.path.join(svc.root, ".forge", "k8s", svc.name)
+        k8s_dir = svc.manifest_target_dir
         svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
         return k8s_dir, self.kube.resources(k8s_dir)
 
