@@ -110,7 +110,7 @@ def is_yaml_empty(dir):
     return True
 
 def selector(labels):
-    return "-l%s" % (",".join("%s=%s" % (k, v) for k, v in labels.items()))
+    return "-l%s" % (",".join(("%s=%s" % (k, v)) if v else k for k, v in labels.items()))
 
 class Kubernetes(object):
 

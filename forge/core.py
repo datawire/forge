@@ -257,11 +257,6 @@ class Forge(object):
         self.deployed.append((service, k8s_dir))
 
     @task()
-    def delete(self, service):
-        with task.verbose(True):
-            self.kube.delete({"forge.service": service.name, "forge.profile": service.profile})
-
-    @task()
     def pull(self, service, pulled):
         with task.verbose(True):
             service.pull(pulled)

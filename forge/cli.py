@@ -30,6 +30,8 @@ from dotenv import find_dotenv, load_dotenv
 import util
 from . import __version__
 from .core import Forge
+from .kubernetes import Kubernetes
+from collections import OrderedDict
 
 ENV = find_dotenv(usecwd=True)
 if ENV: load_dotenv(ENV)
@@ -179,16 +181,6 @@ def deploy(forge, namespace, dry_run, prune):
 
 @forge.command()
 @click.pass_obj
-def delete(forge):
-    """
-    Delete (undeploy) a service.
-
-    They delete command removes all kubernetes resources for the current profile of the given service.
-    """
-    forge.execute(forge.delete)
-
-@forge.command()
-@click.pass_obj
 def pull(forge):
     """
     Do a git pull on all services.
@@ -228,9 +220,6 @@ def service_yaml():
     import service_info
     service_info.SERVICE.render_all()
 
-from .kubernetes import Kubernetes
-from collections import OrderedDict
-
 def primary_version(resources):
     counts = OrderedDict()
     for r in resources:
@@ -239,6 +228,12 @@ def primary_version(resources):
             counts[v] = 0
         counts[v] += 1
     return sorted(counts.items(), cmp=lambda x, y: cmp(x[1], y[1]))[-1][0]
+
+def unfurl(repos):
+    for repo, services in sorted(repos.items()):
+        for service, profiles in sorted(services.items()):
+            for profile, resources in sorted(profiles.items()):
+                yield repo, service, profile, resources
 
 @forge.command()
 @click.pass_obj
@@ -259,28 +254,78 @@ def list(forge):
     kube = Kubernetes()
     repos = kube.list()
     first = True
-    for repo, services in sorted(repos.items()):
-        for service, profiles in sorted(services.items()):
-            for profile, resources in sorted(profiles.items()):
-                descriptor = resources[0]["descriptor"]
-                version = primary_version(resources)
+    for repo, service, profile, resources in unfurl(repos):
+        descriptor = resources[0]["descriptor"]
+        version = primary_version(resources)
 
-                if first:
-                    first = False
-                else:
-                    print
+        if first:
+            first = False
+        else:
+            print
 
-                header = "{0}[{1}]: {2} | {3} | {4}".format(bold(service), bold(profile), repo or "(none)", descriptor,
-                                                             version)
-                print header
+        header = "{0}[{1}]: {2} | {3} | {4}".format(bold(service), bold(profile), repo or "(none)", descriptor,
+                                                     version)
+        print header
 
-                for resource in sorted(resources):
-                    ver = resource["version"]
-                    if ver != version:
-                        red_ver = red(ver)
-                        print "  {kind} {namespace}.{name} {0}:\n    {status}".format(red_ver, **resource)
-                    else:
-                        print "  {kind} {namespace}.{name}:\n    {status}".format(**resource)
+        for resource in sorted(resources):
+            ver = resource["version"]
+            if ver != version:
+                red_ver = red(ver)
+                print "  {kind} {namespace}.{name} {0}:\n    {status}".format(red_ver, **resource)
+            else:
+                print "  {kind} {namespace}.{name}:\n    {status}".format(**resource)
+
+@forge.command()
+@click.pass_obj
+@click.argument("service", required=False)
+@click.argument("profile", required=False)
+@click.option("--all", is_flag=True, help="Delete all services.")
+@task()
+def delete(forge, service, profile, all):
+    """
+    Delete (undeploy) k8s resources associated with a given profile or service.
+
+
+    The delete command removes all forge deployed kubernetes
+    resources for the specified service. If the profile is supplied
+    then only the resources for that profile are removed. If the
+    `--all` option is supplied then all forge deployed resources are
+    removed from the entire cluster.
+
+    """
+
+    if all and (service or profile):
+        raise TaskError("cannot specify an argument with the --all option")
+
+    if not all and not service:
+        raise TaskError("either supply a service or the --all option")
+
+    labels = {
+        "forge.service": service
+    }
+
+    kube = Kubernetes()
+
+    if not all:
+        repos = kube.list()
+        services = set()
+        profiles = set()
+        for r, svc, prof, _ in unfurl(repos):
+            services.add(svc)
+            profiles.add((svc, prof))
+
+        if service not in services:
+            raise TaskError("service has no resources: %s" % service)
+
+        if profile:
+            if (service, profile) not in profiles:
+                raise TaskError("profile has no resources: %s" % profile)
+
+    if profile:
+        labels["forge.profile"] = profile
+
+    with task.verbose(True):
+        kube.delete(labels)
 
 def call_main():
     util.setup_yaml()
