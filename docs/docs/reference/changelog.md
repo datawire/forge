@@ -1,5 +1,12 @@
 # Changelog
 
+#### 0.4.0 (Feb 8th, 2018)
+
+* Added list, delete, and deploy --prune for [managing services](managing-services.md): [#139](https://github.com/datawire/forge/issues/139)
+* Added [service metadata](metadata.md) to forge resources: [#139](https://github.com/datawire/forge/issues/139)
+* Added support for gcloud auth: [#143](https://github.com/datawire/forge/issues/143)
+* Added support for imagebuilder: [#138](https://github.com/datawire/forge/issues/138)
+
 #### 0.3.25 (Jan 22nd, 2018)
 
 * Make namespace required and improve the documentation: #125
