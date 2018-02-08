@@ -38,14 +38,14 @@ For example:
 ## Deleting deployed services
 
 You can use the `forge delete` command to remove kubernetes resources
-that have been deployed by forge. Use the `forge delete &lt;service&gt; &lt;profile&gt;`
+that have been deployed by forge. Use the `forge delete <service> <profile>`
 form to remove just the resources associated with a single profile,
 e.g.:
 
     $ forge delete hello-forge dev
     
 Or if you want to remove all the profiles for a given service, use
-`forge delete &lt;service&gt;`, e.g.:
+`forge delete <service>`, e.g.:
 
     $ forge delete hello-forge
 
