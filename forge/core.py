@@ -107,7 +107,7 @@ class Forge(object):
                 ("generic", "user"): ("Docker user", None),
                 ("generic", "namespace"): ("Docker namespace/organization (enter username again for standard accounts)", None),
                 ("generic", "password"): ("Docker password", None),
-                ("gcr", "key"): ["Path to json key (leave blank to use gcloud auth instead)", None]
+                ("gcr", "key"): ["Path to json key, leave unspecified to use gcloud auth", None]
             }
 
             @task()
