@@ -11,6 +11,8 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 SRC_DIR=${DIR}/..
 
+source /root/google-cloud-sdk/path.bash.inc
+
 export PATH=${SRC_DIR}/dist:${PATH}
 forge --version
 kubernaut claim

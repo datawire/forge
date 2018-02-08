@@ -351,6 +351,7 @@ import os
 
 @task("CMD")
 def sh(*args, **kwargs):
+    output_transform = kwargs.pop("output_transform", lambda l: l)
     expected = kwargs.pop("expected", (0,))
     output_buffer = kwargs.pop("output_buffer", 10)
     cmd = tuple(str(a) for a in args)
@@ -379,7 +380,7 @@ def sh(*args, **kwargs):
         start = time.time()
         for line in p.stdout:
             output += line
-            line_buffer.append(line[:-1])
+            line_buffer.append(output_transform(line[:-1]))
             elapsed = time.time() - start
             if (len(line_buffer) > output_buffer) or (elapsed > 1.0):
                 while line_buffer:

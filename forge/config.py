@@ -36,7 +36,7 @@ DOCKER = Class(
 
 class GCRRegistry(object):
 
-    def __init__(self, type, url, project, key):
+    def __init__(self, type, url, project, key=None):
         self.type = type
         self.url = url
         self.project = project
@@ -49,7 +49,7 @@ GCR = Class(
     Field("type", Constant('gcr'), docs="The type of the registry, this will be 'gcr' for google registries"),
     Field("url", String(), docs="The url of the registry, e.g. `gcr.io`."),
     Field("project", String(), docs="The google project name."),
-    Field("key", Base64(), docs="The base64 encoded json key used for authentication.")
+    Field("key", Base64(), default=None, docs="The base64 encoded json key used for authentication.")
 )
 
 class ECRRegistry(object):

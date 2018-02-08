@@ -24,7 +24,7 @@ from .tasks import (
     TaskError
 )
 
-from .docker import Docker, ECRDocker
+from .docker import Docker, GCRDocker, ECRDocker
 from .kubernetes import Kubernetes
 from .service import Discovery, Service
 
@@ -69,7 +69,8 @@ class Forge(object):
             if value is None: continue
             if value == "-" and optional:
                 value = None
-            if loader is not None:
+                loaded = None
+            elif loader is not None:
                 loaded = loader(value)
                 if loaded is None:
                     continue
@@ -104,9 +105,9 @@ class Forge(object):
             prompts = {
                 ("generic", "url"): ("Docker registry url", "registry.hub.docker.com"),
                 ("generic", "user"): ("Docker user", None),
-                ("generic", "namespace"): ("Docker namespace/organization", None),
+                ("generic", "namespace"): ("Docker namespace/organization (enter username again for standard accounts)", None),
                 ("generic", "password"): ("Docker password", None),
-                ("gcr", "key"): ["Path to json key", None]
+                ("gcr", "key"): ["Path to json key, leave unspecified to use gcloud auth", None]
             }
 
             @task()
@@ -142,7 +143,7 @@ class Forge(object):
                     if f.name == "type": continue
                     prompt, default = prompts.get((regtype, f.name), (f.name, None))
                     if (regtype, f.name) == ("gcr", "key"):
-                        key, value = self.prompt(prompt, default, loader=file_contents)
+                        key, value = self.prompt(prompt, default, optional=True, loader=file_contents)
                         prompts[(regtype, f.name)][1] = key
                     else:
                         if f.name in ("password",):
@@ -150,7 +151,8 @@ class Forge(object):
                         else:
                             value = self.prompt(prompt, default, optional=not f.required)
                     if f.name in ("password", "key"):
-                        regvalues[f.name] = base64.encodestring(value)
+                        if value:
+                            regvalues[f.name] = base64.encodestring(value)
                     else:
                         regvalues[f.name] = value
 
@@ -351,11 +353,10 @@ def get_docker(registry):
             aws_secret_access_key=registry.aws_secret_access_key
         )
     elif registry.type == "gcr":
-        return Docker(
-            registry=registry.url,
-            namespace=registry.project,
-            user="_json_key",
-            password=registry.key
+        return GCRDocker(
+            url=registry.url,
+            project=registry.project,
+            key = registry.key
         )
     else:
         return Docker(

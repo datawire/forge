@@ -73,6 +73,7 @@ class Runner(object):
 
     def do_RUN(self, arg):
         self.wait()
+        print "PATH=%s" % os.environ["PATH"]
         print "RUN", arg
         self.child = pexpect.spawn(arg, cwd=self.cwd)
         self.child.logfile = sys.stdout
