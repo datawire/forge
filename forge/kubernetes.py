@@ -109,6 +109,9 @@ def is_yaml_empty(dir):
                 return False
     return True
 
+def selector(labels):
+    return "-l%s" % (",".join("%s=%s" % (k, v) for k, v in labels.items()))
+
 class Kubernetes(object):
 
     def __init__(self, namespace=None, context=None, dry_run=False):
@@ -164,8 +167,7 @@ class Kubernetes(object):
         if self.dry_run:
             cmd += "--dry-run",
         if prune:
-            cmd += "--prune",
-            cmd += tuple("-l%s=%s" % (k, v) for k, v in prune.items())
+            cmd += "--prune", selector(prune)
         result = sh(*cmd)
         return result
 
@@ -237,5 +239,4 @@ class Kubernetes(object):
         lines = sh("kubectl", "get", "ns", "-oname").output.splitlines()
         namespaces = (l.strip().split("/")[-1] for l in lines)
         for ns in namespaces:
-            selector = tuple("-l%s=%s" % (k, v) for k, v in labels.items())
-            sh("kubectl", "delete", "-n", ns, ",".join(ALL), *selector)
+            sh("kubectl", "delete", "-n", ns, ",".join(ALL), selector(labels))

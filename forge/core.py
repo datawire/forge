@@ -251,7 +251,8 @@ class Forge(object):
 
     @task()
     def deploy(self, service, k8s_dir, prune=False):
-        self.kube.apply(k8s_dir, prune={"forge.service": service.name, "forge.profile": service.profile})
+        self.kube.apply(k8s_dir, prune=({"forge.service": service.name, "forge.profile": service.profile}
+                                        if prune else False))
         task.sync()
         self.deployed.append((service, k8s_dir))
 
