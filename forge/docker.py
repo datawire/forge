@@ -248,6 +248,7 @@ class Docker(DockerBase):
 
     @task()
     def remote_exists(self, name, version):
+        self._login()
         img = self.image(name, version)
         if img in self.image_cache:
             return self.image_cache[img]
@@ -263,6 +264,17 @@ class Docker(DockerBase):
                 self.image_cache[img] = False
                 return False
         raise TaskError(response.content)
+
+class GCRDocker(Docker):
+
+    def __init__(self, url, project, key):
+        Docker.__init__(self, url, project, "_json_key" if key else "_token", key)
+
+    def _do_login(self):
+        if self.user == "_token":
+            self.password = sh("gcloud", "auth", "print-access-token",
+                               output_transform = lambda x: "<OUTPUT_ELIDED>").output.strip()
+        Docker._do_login(self)
 
 def _get_account():
     sts = boto3.client('sts')
