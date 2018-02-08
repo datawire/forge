@@ -35,7 +35,7 @@ def test_remote_exists_auth_failed():
     try:
         dr.remote_exists("nonexistent", "nosuchversion")
     except TaskError, e:
-        assert "problem authenticating" in str(e)
+        assert ("problem authenticating" in str(e)) or ("unauthorized" in str(e))
 
 def test_validate():
     dr = Docker(registry, namespace, user, password)
