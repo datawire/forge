@@ -24,6 +24,7 @@
 * [Forge Configuration](docs/reference/forge-config.md)
 * [Service Descriptor](docs/reference/service-descriptor.md)
 * [Profiles](docs/reference/profiles.md)
+* [Managing Services](docs/reference/managing-services.md)
 * [Service Metadata](docs/reference/metadata.md)
 * [Customizing Container Builds](docs/reference/customize-container-builds.md)
 * [Environment Customization](docs/reference/environments.md)
