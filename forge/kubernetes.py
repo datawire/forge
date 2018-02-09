@@ -21,7 +21,8 @@ from forge import yamlutil
 @match(MappingNode, basestring, dict)
 def fixup(node, key, pairs):
     node = view(node)
-    if node.get("kind"):
+    kind = node.get("kind")
+    if kind and kind.lower() not in ('ns', 'namespace'):
         md = node.get("metadata")
         if md is None:
             md = view(compose("{}"))
@@ -239,4 +240,5 @@ class Kubernetes(object):
         lines = sh("kubectl", "get", "ns", "-oname").output.splitlines()
         namespaces = (l.strip().split("/")[-1] for l in lines)
         for ns in namespaces:
-            sh("kubectl", "delete", "-n", ns, ",".join(ALL), selector(labels))
+            # never try to delete namespaces because they are shared resources
+            sh("kubectl", "delete", "-n", ns, ",".join(r for r in ALL if r != 'ns'), selector(labels))

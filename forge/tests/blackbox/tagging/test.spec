@@ -12,6 +12,9 @@ OUT forge.descriptor: service.yaml
 OUT forge.repo: https://github.com/datawire/forge.git
 OUT forge.version:
 
+RUN kubectl get ns -lforge.service
+OUT No resources found.
+
 RUN forge --profile foo -v deploy
 
 RUN kubectl get svc,deploy -l forge.service=tagging -l forge.profile=default -o name
@@ -27,3 +30,6 @@ OUT services/tagging-default
 OUT services/tagging-foo
 OUT deployments/tagging-default
 OUT deployments/tagging-foo
+
+RUN kubectl get ns -lforge.service
+OUT No resources found.
