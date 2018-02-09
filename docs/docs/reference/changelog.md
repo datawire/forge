@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.1 (Feb 9th, 2018)
+
+* Don't tag or delete namespaces: [#149](https://github.com/datawire/forge/issues/139)
+
 #### 0.4.0 (Feb 8th, 2018)
 
 * Added list, delete, and deploy --prune for [managing services](managing-services.md): [#139](https://github.com/datawire/forge/issues/139)
