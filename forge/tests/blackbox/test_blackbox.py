@@ -1,5 +1,5 @@
 import glob, os, pexpect, pytest, sys, time
-from forge.tests.common import mktree
+from forge.tests.common import mktree, defuzz, match
 
 DIR = os.path.dirname(__file__)
 
@@ -44,7 +44,12 @@ password: >
     runner = Runner(root, ops)
     runner.run()
 
+MULTILINE = "MULTILINE"
+DEFAULT = "DEFAULT"
+
 class Runner(object):
+
+    multiline = ('MATCH', 'FILE')
 
     def __init__(self, base, spec):
         self.base = base
@@ -53,18 +58,43 @@ class Runner(object):
         self.child = None
 
     def run(self):
+        mode = DEFAULT
+
         for line in self.spec.splitlines():
-            if not line.strip(): continue
-            for stmt in line.split(";"):
-                parts = stmt.split(None, 1)
-                op = parts.pop(0)
-                arg = parts.pop(0) if parts else None
-                attr = getattr(self, "do_%s" % op, None)
-                if attr is None:
-                    assert False, "unrecognized op: %s" % op
+            if mode == DEFAULT:
+                if not line.strip(): continue
+                for stmt in line.split(";"):
+                    if mode == MULTILINE:
+                        raise Exception("multiline op must be last in line")
+                    parts = stmt.split(None, 1)
+                    op = parts.pop(0)
+                    arg = parts.pop(0) if parts else None
+                    if op in self.multiline:
+                        mode = MULTILINE
+                        body = ""
+                        continue
+                    else:
+                        self.dispatch(op, arg)
+            elif mode == MULTILINE:
+                if line.rstrip() == "END":
+                    mode = DEFAULT
+                    self.dispatch(op, arg, body)
                 else:
-                    attr(arg)
+                    body += line + "\n"
+
+        if mode == MULTILINE:
+            raise Exception("unterminated multiline op")
+
         self.wait()
+
+    def dispatch(self, op, arg, body=None):
+        attr = getattr(self, "do_%s" % op, None)
+        if attr is None:
+            assert False, "unrecognized op: %s" % op
+        elif op in self.multiline:
+            attr(arg, body)
+        else:
+            attr(arg)
 
     def wait(self):
         if self.child is not None:
@@ -103,3 +133,25 @@ class Runner(object):
         self.child.expect(pexpect.EOF)
         assert self.child.wait() != 0
         self.child = None
+
+    def do_MATCH(self, _, pattern):
+        pattern = pattern.strip()
+        self.child.expect(pexpect.EOF)
+        output = self.child.before.strip()
+        defuzzed = defuzz(output)
+        if not match(defuzzed, pattern.strip()):
+            print "OUTPUT:"
+            print output
+            print "DEFUZZED OUTPUT:"
+            print defuzzed
+            print "PATTERN:"
+            print pattern
+            assert False
+
+    def do_FILE(self, name, body):
+        path = os.path.join(self.cwd, name)
+        directory = os.path.dirname(path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open(path, "write") as fd:
+            fd.write(body.replace("TEST_ID", TEST_ID))

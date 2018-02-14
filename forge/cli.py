@@ -235,10 +235,20 @@ def unfurl(repos):
             for profile, resources in sorted(profiles.items()):
                 yield repo, service, profile, resources
 
+from fnmatch import fnmatch
+
+def match(name, pattern):
+    if not pattern:
+        return True
+    else:
+        return fnmatch(name, pattern)
+
 @forge.command()
 @click.pass_obj
+@click.argument("service_pattern", required=False)
+@click.argument("profile_pattern", required=False)
 @task()
-def list(forge):
+def list(forge, service_pattern, profile_pattern):
     """
     List deployed forge services.
 
@@ -247,6 +257,9 @@ def list(forge):
     those services. This includes the source repo where the service
     originates, the descriptor within the repo, and the status of any
     deployed k8s resources.
+
+    You can use shell-style pattern matching for either the service or
+    the profile in order to filter what is printed.
     """
     bold = forge.terminal.bold
     red = forge.terminal.bold_red
@@ -255,6 +268,10 @@ def list(forge):
     repos = kube.list()
     first = True
     for repo, service, profile, resources in unfurl(repos):
+
+        if not (match(service, service_pattern) and match(profile, profile_pattern)):
+            continue
+
         descriptor = resources[0]["descriptor"]
         version = primary_version(resources)
 
