@@ -60,6 +60,7 @@ def parse_treespec(treespec, **substitutions):
     return result
 
 import re
+from forge.output import Terminal
 
 TOKENS = (
     ("VERSION", r'\b[0-9a-fA-F]{40}\.(sha|git)'),
@@ -85,7 +86,12 @@ def tokenize(s):
             yield "LITERAL", s
             break
 
+
+TERM = Terminal()
+
 def defuzz(s):
+    # remove ansii escape sequences
+    s = "\n".join(TERM.strip_seqs(l) for l in s.splitlines())
     result = ""
     counters = {}
     names = {}
@@ -99,3 +105,31 @@ def defuzz(s):
                 counters[ttype] = idx
             result += str(names[value])
     return result
+
+def tokenize_braces(s):
+    while s:
+        try:
+            start = s.index('{{')
+            try:
+                end = s.index('}}', start)
+                if start > 0:
+                    yield "LITERAL", s[:start]
+                yield "BRACES", s[start:end+2]
+                s = s[end+2:]
+            except ValueError:
+                raise Exception("unterminated braces")
+        except ValueError:
+            yield "LITERAL", s
+            break
+
+def match(s, pattern):
+    expr = "^"
+    for t, v in tokenize_braces(pattern):
+        if t == "LITERAL":
+            expr += re.escape(v)
+        elif t == "BRACES":
+            expr += v[2:-2]
+        else:
+            assert False
+    expr += "$"
+    return re.match(expr, s)
