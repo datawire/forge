@@ -29,8 +29,8 @@ DOCKER = Class(
     Registry,
     Field("type", Constant('docker'), docs="This must be 'docker' for docker registries"),
     Field("url", String(), docs="The url of the docker registry."),
-    Field("user", String(), docs="The docker user."),
-    Field("password", Base64(), docs="The docker password, base64 encoded."),
+    Field("user", String(), default=None, docs="The docker user."),
+    Field("password", Base64(), default=None, docs="The docker password, base64 encoded."),
     Field("namespace", String(), docs="The namespace for the docker registry. For docker hub this is a user or an organization. This is used as the first path component of the registry URL, for example: registry.hub.docker.com/<namespace>")
 )
 

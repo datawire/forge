@@ -147,7 +147,10 @@ class Forge(object):
                         prompts[(regtype, f.name)][1] = key
                     else:
                         if f.name in ("password",):
-                            value = self.prompt(prompt, default, echo=False)
+                            if regvalues["user"] is not None:
+                                value = self.prompt(prompt, default, echo=False)
+                            else:
+                                value = None
                         else:
                             value = self.prompt(prompt, default, optional=not f.required)
                     if f.name in ("password", "key"):
