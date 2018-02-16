@@ -207,6 +207,8 @@ class Builder(object):
         sh("docker", "kill", self.cid, expected=(0, 1))
 
 
+import json, base64
+
 class Docker(DockerBase):
 
     def __init__(self, registry, namespace, user, password):
@@ -216,12 +218,25 @@ class Docker(DockerBase):
         self.user = user
         self.password = password
 
+        self._run_login = bool(self.user)
+
+        if not self.user:
+            docker_config = os.path.join(os.environ.get("HOME"), ".docker/config.json")
+            if os.path.exists(docker_config):
+                with open(docker_config) as fd:
+                    cfg = json.load(fd)
+                    auths = cfg.get("auths", {})
+                    auth = auths.get(self.registry, {}).get("auth")
+                    if auth:
+                        self.user, self.password = base64.decodestring(auth).split(":")
+
     @task()
     def image(self, name, version):
         return image(self.registry, self.namespace, name, version)
 
     def _do_login(self):
-        sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
+        if self._run_login:
+            sh("docker", "login", "-u", self.user, "-p", Secret(self.password), self.registry)
 
     @task()
     def registry_get(self, api):

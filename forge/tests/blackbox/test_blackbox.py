@@ -149,6 +149,7 @@ class Runner(object):
             assert False
 
     def do_FILE(self, name, body):
+        self.wait()
         path = os.path.join(self.cwd, name)
         directory = os.path.dirname(path)
         if not os.path.exists(directory):
