@@ -1,5 +1,11 @@
 # Changelog
 
+#### 0.4.2 (Feb 16th, 2018)
+
+* Make docker user and password optional in forge.yaml
+* Make `forge delete` faster
+* Add service and profile arguments to `forge list`
+
 #### 0.4.1 (Feb 9th, 2018)
 
 * Don't tag or delete namespaces: [#149](https://github.com/datawire/forge/issues/139)
