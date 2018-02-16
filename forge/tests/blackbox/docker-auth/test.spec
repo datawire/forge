@@ -20,7 +20,9 @@ END
 
 RUN docker logout registry.hub.docker.com/forgeorg
 RUN forge build
-OUT problem authenticating
+MATCH
+unable to locate docker credentials, please run `docker login registry.hub.docker.com`
+END
 ERR
 
 RUN docker login registry.hub.docker.com/forgeorg -u forgetest -p forgetest

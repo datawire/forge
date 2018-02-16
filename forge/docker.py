@@ -230,6 +230,9 @@ class Docker(DockerBase):
                     if auth:
                         self.user, self.password = base64.decodestring(auth).split(":")
 
+        if not self._run_login and not self.user:
+            raise TaskError("unable to locate docker credentials, please run `docker login %s`" % self.registry)
+
     @task()
     def image(self, name, version):
         return image(self.registry, self.namespace, name, version)
