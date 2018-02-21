@@ -689,7 +689,8 @@ class Union(Schema):
                 s = candidates.pop()
                 return s.load(node)
             else:
-                raise SchemaError("expecting one of (%s), got %s" % ("|".join(str(s) for s in self.signatures), t))
+                raise SchemaError("expecting one of (%s), got %s\n%s" % ("|".join(str(s) for s in self.signatures), t,
+                                                                           node.start_mark))
         # in case this is an union contains constant(s), and t is a 'string' of the value "foo" from the yaml,
         # the user might have intended a constant named "foo".
         if t not in self.tags:

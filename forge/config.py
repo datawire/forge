@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .schema import Class, Field, Union, Constant, Sequence, String, Base64, SchemaError
+from .schema import Class, Field, Union, Constant, Map, Sequence, String, Base64, SchemaError
 
 class Registry(object):
 
@@ -72,9 +72,26 @@ ECR = Class(
     Field("aws_secret_access_key", String(), default=None, docs="The aws secrete access key.")
 )
 
+class Profile(object):
+
+    def __init__(self, search_path = None, registry = None):
+        self.search_path = search_path or ()
+        self.registry = registry
+
+PROFILE = Class(
+    "profile",
+    """
+    Profile-specific settings.
+    """,
+    Profile,
+    Field("search-path", Sequence(String()), "search_path", default=None, docs="Search path for service dependencies."),
+    Field("registry", Union(DOCKER, GCR, ECR), default=None)
+)
+
 class Config(object):
 
-    def __init__(self, search_path=None, registry=None, docker_repo=None, user=None, password=None, workdir=None):
+    def __init__(self, search_path=None, registry=None, docker_repo=None, user=None, password=None, workdir=None,
+                 profiles=None):
         self.search_path = search_path or ()
 
         if registry:
@@ -95,6 +112,14 @@ class Config(object):
                                 password=password)
 
         self.registry = registry
+        self.profiles = profiles or {}
+        if "default" not in self.profiles:
+            self.profiles["default"] = Profile(search_path=self.search_path, registry=self.registry)
+        for p in self.profiles.values():
+            if p.search_path is None:
+                p.search_path = self.search_path
+            if p.registry is None:
+                p.registry = self.registry
 
 CONFIG = Class(
     "forge.yaml",
@@ -103,12 +128,13 @@ CONFIG = Class(
     registry configuration and credentials.
     """,
     Config,
-    Field("search-path", Sequence(String()), "search_path", default=None, docs="Search path for service dependencies."),
-    Field("registry", Union(DOCKER, GCR, ECR), default=None),
-    Field("docker-repo", String(), "docker_repo", default=None, docs="Deprecated, use registry instead."),
-    Field("user", String(), default=None, docs="Deprecated, use registry instead."),
-    Field("password", Base64(), default=None, docs="Deprecated, use registry instead."),
-    Field("workdir", String(), default=None, docs="deprecated")
+    *(tuple(PROFILE.fields.values()) +
+      (Field("docker-repo", String(), "docker_repo", default=None, docs="Deprecated, use registry instead."),
+       Field("user", String(), default=None, docs="Deprecated, use registry instead."),
+       Field("password", Base64(), default=None, docs="Deprecated, use registry instead."),
+       Field("workdir", String(), default=None, docs="deprecated"),
+       Field("profiles", Map(PROFILE), default=None, docs="A map keyed by profile-name of profile-specific settings.")
+      ))
 )
 
 def load(*args, **kwargs):

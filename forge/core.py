@@ -195,13 +195,13 @@ class Forge(object):
 
     @task()
     def bake(self, service):
-        raw = list(cull(lambda c: not self.docker.exists(c.image, c.version), service.containers))
+        raw = list(cull(lambda c: not service.docker.exists(c.image, c.version), service.containers))
         baked = []
 
         for container in raw:
             ctx = service.name if len(raw) == 1 else "%s[%s]" % (service.name, (container.index + 1))
             with task.context(ctx), task.verbose(True):
-                container.build.go(self)
+                container.build.go()
             baked.append(container)
 
         task.sync()
@@ -209,19 +209,19 @@ class Forge(object):
 
     @task()
     def push(self, service):
-        unpushed = list(cull(lambda c: self.docker.needs_push(c.image, c.version), service.containers))
+        unpushed = list(cull(lambda c: service.docker.needs_push(c.image, c.version), service.containers))
 
         pushed = []
         for container in unpushed:
             with task.verbose(True):
-                pushed.append((container, self.docker.push(container.image, container.version)))
+                pushed.append((container, service.docker.push(container.image, container.version)))
 
         task.sync()
         self.pushed.extend(pushed)
 
     def template(self, svc):
         k8s_dir = svc.manifest_target_dir
-        svc.deployment(self.docker.registry, self.docker.namespace, k8s_dir)
+        svc.deployment(svc.docker.registry, svc.docker.namespace, k8s_dir)
         return k8s_dir, self.kube.resources(k8s_dir)
 
     @task()
@@ -276,8 +276,9 @@ class Forge(object):
             raise TaskError(str(e))
 
         self.base = os.path.dirname(os.path.abspath(self.config))
-        self.search_path = conf.search_path
-        self.docker = get_docker(conf.registry)
+        self.profiles = conf.profiles
+        for name, profile in self.profiles.items():
+            profile.docker = get_docker(profile.registry)
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
 
@@ -302,13 +303,13 @@ class Forge(object):
             raise TaskError("no service found")
         else:
             svc = self.discovery.services[services[0]]
-            print yaml.dump(svc.metadata(self.docker.registry, self.docker.namespace))
+            print yaml.dump(svc.metadata(svc.docker.registry, svc.docker.namespace))
 
     @task()
     def clean(self, service):
         with task.verbose(True):
             for container in service.containers:
-                self.docker.clean(container.image)
+                service.docker.clean(container.image)
 
     def execute(self, goal):
         self.load_config()
