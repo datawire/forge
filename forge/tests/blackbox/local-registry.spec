@@ -30,9 +30,7 @@ MATCH
 ║ Successfully built {{HEX}}
 ║ Successfully tagged registry.hub.docker.com/forgeorg/local-registry-TEST_ID:VERSION_1
 ║ docker push registry.hub.docker.com/forgeorg/local-registry-TEST_ID:VERSION_1
-║ The push refers to repository [registry.hub.docker.com/forgeorg/local-registry-TEST_ID]
-║ {{HEX}}: Preparing
-║ {{HEX}}: Mounted from forgeorg/local-registry-{{TEST_ID}}
+║ {{.*}}
 ║ VERSION_1: digest: sha256:{{HEX}} size: {{NUMBER}}
 ║ {{NUMBER}} tasks run, 0 errors
 ║ 
