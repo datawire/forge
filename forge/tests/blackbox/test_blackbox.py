@@ -40,6 +40,7 @@ password: >
         tree = {}
 
     root = mktree(tree, TEST_ID=TEST_ID)
+    print "TEST_ID: %s" % TEST_ID
     print "TEST_BASE: %s" % root
 
     with open(test_spec) as fd:
@@ -107,7 +108,6 @@ class Runner(object):
 
     def do_RUN(self, arg):
         self.wait()
-        print "PATH=%s" % os.environ["PATH"]
         print "RUN", arg
         self.child = pexpect.spawn(arg, cwd=self.cwd)
         self.child.logfile = sys.stdout
@@ -139,10 +139,10 @@ class Runner(object):
         self.child = None
 
     def do_MATCH(self, _, pattern):
-        pattern = pattern.strip()
+        pattern = unicode(pattern).strip()
         self.child.expect(pexpect.EOF)
         output = self.child.before.strip()
-        defuzzed = defuzz(output)
+        defuzzed = defuzz(output.replace(TEST_ID, "TEST_ID").replace(self.base, "TEST_BASE"))
         if not match(defuzzed, pattern.strip()):
             print "OUTPUT:"
             print output

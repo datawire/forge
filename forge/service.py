@@ -16,7 +16,6 @@ import copy, errno, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from forge import service_info
 from .jinja2 import render, renders
-from .docker import image
 from .schema import SchemaError
 from .tasks import sh, task, TaskError
 from .github import Github
@@ -303,7 +302,7 @@ class Service(object):
     def search_path(self):
         return self.forge_profile.search_path
 
-    def metadata(self, registry, repo):
+    def metadata(self):
         metadata = OrderedDict()
 
         metadata["env"] = os.environ
@@ -329,7 +328,7 @@ class Service(object):
 
         build["images"] = OrderedDict()
         for container in self.dockerfiles:
-            img = image(registry, repo, self.image(container), self.version)
+            img = self.docker.image(self.image(container), self.version)
             build["images"][container] = img
 
         return metadata
@@ -342,10 +341,9 @@ class Service(object):
     def manifest_target_dir(self):
         return os.path.join(self.root, ".forge", "k8s", self.name)
 
-    def deployment(self, registry, repo, target):
-        k8s_dir = self.manifest_dir
-        metadata = self.metadata(registry, repo)
-        render(k8s_dir, target, **metadata)
+    def deployment(self):
+        metadata = self.metadata()
+        render(self.manifest_dir, self.manifest_target_dir, **metadata)
 
     def info(self):
         if self._info is None:

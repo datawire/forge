@@ -24,7 +24,7 @@ from .tasks import (
     TaskError
 )
 
-from .docker import Docker, GCRDocker, ECRDocker
+from .docker import Docker, GCRDocker, ECRDocker, LocalDocker
 from .kubernetes import Kubernetes
 from .service import Discovery, Service
 
@@ -220,8 +220,8 @@ class Forge(object):
         self.pushed.extend(pushed)
 
     def template(self, svc):
+        svc.deployment()
         k8s_dir = svc.manifest_target_dir
-        svc.deployment(svc.docker.registry, svc.docker.namespace, k8s_dir)
         return k8s_dir, self.kube.resources(k8s_dir)
 
     @task()
@@ -303,7 +303,7 @@ class Forge(object):
             raise TaskError("no service found")
         else:
             svc = self.discovery.services[services[0]]
-            print yaml.dump(svc.metadata(svc.docker.registry, svc.docker.namespace))
+            print yaml.dump(svc.metadata())
 
     @task()
     def clean(self, service):
@@ -362,6 +362,8 @@ def get_docker(registry):
             project=registry.project,
             key = registry.key
         )
+    elif registry.type == "local":
+        return LocalDocker()
     else:
         return Docker(
             registry=registry.url,

@@ -354,3 +354,14 @@ class ECRDocker(DockerBase):
             return False
         except self.ecr.exceptions.RepositoryNotFoundException, e:
             return False
+
+class LocalDocker(DockerBase):
+
+    def image(self, name, version):
+        return "{}:{}".format(name, version)
+
+    def remote_exists(self, name, version):
+        return False
+
+    def needs_push(self, name, version):
+        return False

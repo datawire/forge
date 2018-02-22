@@ -65,11 +65,23 @@ ECR = Class(
     "registry:ecr",
     """An amazon ECR registry.""",
     ECRRegistry,
-    Field("type", Constant('ecr'), docs="The type of the registry, this will be 'ecr' for amazon registires"),
+    Field("type", Constant('ecr'), docs="The type of the registry, this will be 'ecr' for amazon registries"),
     Field("account", String("string", "integer"), default=None, docs="The amazon account id to use."),
     Field("region", String(), default=None, docs="The amazon region to use."),
     Field("aws_access_key_id", String(), default=None, docs="The id of the aws access key to use."),
     Field("aws_secret_access_key", String(), default=None, docs="The aws secrete access key.")
+)
+
+class LocalRegistry(object):
+
+    def __init__(self, type):
+        self.type = type
+
+LOCAL = Class(
+    "registry:local",
+    """A local registry.""",
+    LocalRegistry,
+    Field("type", Constant('local'), docs="THe type of the registry, this will be 'local' for local registries")
 )
 
 class Profile(object):
@@ -85,7 +97,7 @@ PROFILE = Class(
     """,
     Profile,
     Field("search-path", Sequence(String()), "search_path", default=None, docs="Search path for service dependencies."),
-    Field("registry", Union(DOCKER, GCR, ECR), default=None)
+    Field("registry", Union(DOCKER, GCR, ECR, LOCAL), default=None)
 )
 
 class Config(object):

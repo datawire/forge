@@ -63,8 +63,7 @@ import re
 from forge.output import Terminal
 
 TOKENS = (
-    ("VERSION", r'\b[0-9a-fA-F]{40}\.(sha|git)'),
-    ("TEST_ID", r'test_id_[0-9]+(_[0-9]+)?')
+    ("VERSION", ur'\b[0-9a-fA-F]{40}\.(sha|git)'),
 )
 
 def tokenize(s):
@@ -91,7 +90,8 @@ TERM = Terminal()
 
 def defuzz(s):
     # remove ansii escape sequences
-    s = "\n".join(TERM.strip_seqs(l) for l in s.splitlines())
+    s = s.replace(u"\r", "")
+    s = u"\n".join(TERM.strip_seqs(l) for l in s.splitlines())
     result = ""
     counters = {}
     names = {}
@@ -101,17 +101,17 @@ def defuzz(s):
         else:
             if value not in names:
                 idx = counters.get(ttype, 0) + 1
-                names[value] = "%s_%s" % (ttype, idx)
+                names[value] = u"%s_%s" % (ttype, idx)
                 counters[ttype] = idx
-            result += str(names[value])
+            result += unicode(names[value])
     return result
 
 def tokenize_braces(s):
     while s:
         try:
-            start = s.index('{{')
+            start = s.index(u'{{')
             try:
-                end = s.index('}}', start)
+                end = s.index(u'}}', start)
                 if start > 0:
                     yield "LITERAL", s[:start]
                 yield "BRACES", s[start:end+2]
@@ -122,14 +122,21 @@ def tokenize_braces(s):
             yield "LITERAL", s
             break
 
+PREDEFINED = {
+    "HEX": ur'(\b|\s+)[0-9a-fA-F]+\s*',
+    "NUMBER": ur'(\b|\s+)[0-9]*(.[0-9]+)?\s*',
+    "TEST_ID": ur'test_id_[0-9]+(_[0-9]+)?'
+}
+
 def match(s, pattern):
-    expr = "^"
+    expr = u"^"
     for t, v in tokenize_braces(pattern):
         if t == "LITERAL":
             expr += re.escape(v)
         elif t == "BRACES":
-            expr += v[2:-2]
+            val = v[2:-2]
+            expr += PREDEFINED.get(val, val)
         else:
             assert False
-    expr += "$"
-    return re.match(expr, s)
+    expr += u"$"
+    return re.match(expr, s, re.MULTILINE | re.DOTALL | re.UNICODE)
