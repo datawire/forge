@@ -16,7 +16,6 @@ import copy, errno, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from forge import service_info
 from .jinja2 import render, renders
-from .docker import image
 from .schema import SchemaError
 from .tasks import sh, task, TaskError
 from .github import Github
@@ -67,8 +66,8 @@ def get_ancestors(path, stop="/"):
             yield d
         yield parent
 
-def get_search_path(forge):
-    for p in forge.search_path:
+def get_search_path(forge, svc):
+    for p in svc.search_path:
         yield os.path.join(forge.base, p)
 
 class Discovery(object):
@@ -126,7 +125,7 @@ class Discovery(object):
         return found
 
     def resolve(self, svc, dep):
-        for path in get_search_path(self.forge):
+        for path in get_search_path(self.forge, svc):
             found = self.search(path)
             if dep in [svc.name for svc in found]:
                 return True
@@ -288,7 +287,22 @@ class Service(object):
             profile = self.forge.profile
         return profile
 
-    def metadata(self, registry, repo):
+    @property
+    def forge_profile(self):
+        if self.profile in self.forge.profiles:
+            return self.forge.profiles[self.profile]
+        else:
+            return self.forge.profiles["default"]
+
+    @property
+    def docker(self):
+        return self.forge_profile.docker
+
+    @property
+    def search_path(self):
+        return self.forge_profile.search_path
+
+    def metadata(self):
         metadata = OrderedDict()
 
         metadata["env"] = os.environ
@@ -314,7 +328,7 @@ class Service(object):
 
         build["images"] = OrderedDict()
         for container in self.dockerfiles:
-            img = image(registry, repo, self.image(container), self.version)
+            img = self.docker.image(self.image(container), self.version)
             build["images"][container] = img
 
         return metadata
@@ -327,10 +341,9 @@ class Service(object):
     def manifest_target_dir(self):
         return os.path.join(self.root, ".forge", "k8s", self.name)
 
-    def deployment(self, registry, repo, target):
-        k8s_dir = self.manifest_dir
-        metadata = self.metadata(registry, repo)
-        render(k8s_dir, target, **metadata)
+    def deployment(self):
+        metadata = self.metadata()
+        render(self.manifest_dir, self.manifest_target_dir, **metadata)
 
     def info(self):
         if self._info is None:
@@ -408,9 +421,9 @@ class Container(object):
         return self.rebuild_sources or self.rebuild_command
 
     @task()
-    def build(self, forge):
+    def build(self):
         if self.rebuild:
-            builder = forge.docker.builder(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args, builder=self.builder)
+            builder = self.service.docker.builder(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args, builder=self.builder)
             builder.run("mkdir", "-p", self.rebuild_root)
             for src in self.rebuild_sources:
                 abs_src = os.path.join(self.service.root, src)
@@ -422,4 +435,4 @@ class Container(object):
                 builder.run("/bin/sh", "-c", self.rebuild_command)
             builder.commit(self.image, self.version)
         else:
-            forge.docker.build(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args, builder=self.builder)
+            self.service.docker.build(self.abs_context, self.abs_dockerfile, self.image, self.version, self.args, builder=self.builder)

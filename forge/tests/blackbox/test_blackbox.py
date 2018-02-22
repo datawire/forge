@@ -3,7 +3,8 @@ from forge.tests.common import mktree, defuzz, match
 
 DIR = os.path.dirname(__file__)
 
-SPECS = [os.path.relpath(n, DIR) for n in glob.glob(os.path.join(DIR, "*/*.spec"))]
+SPECS = [os.path.relpath(n, DIR) for n in glob.glob(os.path.join(DIR, "*/*.spec"))] + \
+        [os.path.relpath(n, DIR) for n in glob.glob(os.path.join(DIR, "*.spec"))]
 
 TEST_ID = ("test_id_%s" % time.time()).replace(".", "_")
 
@@ -14,8 +15,9 @@ def test(spec):
     test_spec = os.path.join(DIR, spec)
     test_dir = os.path.dirname(test_spec)
 
-    tree = {
-        "forge.yaml": """
+    if not os.path.samefile(DIR, test_dir):
+        tree = {
+            "forge.yaml": """
 # Global forge configuration
 # Normally you would not want to check this into git, but this is here
 # for testing purposes.
@@ -24,18 +26,21 @@ docker-repo: registry.hub.docker.com/forgeorg
 user: forgetest
 password: >
   Zm9yZ2V0ZXN0
-    """
-    }
+        """
+        }
 
-    for path, dirs, files in os.walk(test_dir):
-        for name in files:
-            key = os.path.join(os.path.relpath(path, test_dir), name)
-            if key.startswith("./"):
-                key = key[2:]
-            with open(os.path.join(path, name), "r") as fd:
-                tree[key] = fd.read()
+        for path, dirs, files in os.walk(test_dir):
+            for name in files:
+                key = os.path.join(os.path.relpath(path, test_dir), name)
+                if key.startswith("./"):
+                    key = key[2:]
+                with open(os.path.join(path, name), "r") as fd:
+                    tree[key] = fd.read()
+    else:
+        tree = {}
 
     root = mktree(tree, TEST_ID=TEST_ID)
+    print "TEST_ID: %s" % TEST_ID
     print "TEST_BASE: %s" % root
 
     with open(test_spec) as fd:
@@ -103,7 +108,6 @@ class Runner(object):
 
     def do_RUN(self, arg):
         self.wait()
-        print "PATH=%s" % os.environ["PATH"]
         print "RUN", arg
         self.child = pexpect.spawn(arg, cwd=self.cwd)
         self.child.logfile = sys.stdout
@@ -135,10 +139,10 @@ class Runner(object):
         self.child = None
 
     def do_MATCH(self, _, pattern):
-        pattern = pattern.strip()
+        pattern = unicode(pattern).strip()
         self.child.expect(pexpect.EOF)
         output = self.child.before.strip()
-        defuzzed = defuzz(output)
+        defuzzed = defuzz(output.replace(TEST_ID, "TEST_ID").replace(self.base, "TEST_BASE"))
         if not match(defuzzed, pattern.strip()):
             print "OUTPUT:"
             print output
