@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.4.3 (Feb 22nd, 2018)
+
+* Add profiles to forge.yaml: [#146](https://github.com/datawire/forge/issues/146)
+* Add a local docker registry: [#145](https://github.com/datawire/forge/issues/145)
+
 #### 0.4.2 (Feb 16th, 2018)
 
 * Make docker user and password optional in forge.yaml
@@ -8,7 +13,7 @@
 
 #### 0.4.1 (Feb 9th, 2018)
 
-* Don't tag or delete namespaces: [#149](https://github.com/datawire/forge/issues/139)
+* Don't tag or delete namespaces: [#139](https://github.com/datawire/forge/issues/139)
 
 #### 0.4.0 (Feb 8th, 2018)
 
