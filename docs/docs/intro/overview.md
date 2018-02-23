@@ -13,8 +13,16 @@ Forge is a tool that lets you define and run containerized applications in Kuber
    - products
    ...
    ```
-   
+
 4. Run `forge deploy` to build and deploy your services to Kubernetes.
+
+## Forge principles
+
+Forge is built on the following core principles:
+
+* A developer should be able to `forge deploy` from anywhere in their source repository, and the right thing will happen, safely.
+* Nothing special happens in CI/CD. CI just does what any developer does by hand.
+* Deploys should be as fast as possible, even when deploying hundreds of services.
 
 ## Why Forge?
 
