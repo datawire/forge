@@ -59,6 +59,7 @@ class Runner(object):
     def __init__(self, base, spec):
         self.base = base
         self.cwd = base
+        self.timeout = 30
         self.spec = spec
         self.child = None
 
@@ -103,7 +104,7 @@ class Runner(object):
 
     def wait(self):
         if self.child is not None:
-            self.child.expect(pexpect.EOF)
+            self.child.expect(pexpect.EOF, timeout=self.timeout)
             assert self.child.wait() == 0
 
     def do_RUN(self, arg):
@@ -115,11 +116,14 @@ class Runner(object):
     def do_CWD(self, arg):
         self.cwd = os.path.join(self.base, arg)
 
+    def do_TIMEOUT(self, arg):
+        self.timeout = float(arg)
+
     def do_OUT(self, arg):
-        self.child.expect_exact(arg.strip())
+        self.child.expect_exact(arg.strip(), timeout=self.timeout)
 
     def do_NOT(self, arg):
-        self.child.expect(pexpect.EOF)
+        self.child.expect(pexpect.EOF, timeout=self.timeout)
         assert arg not in self.child.before
 
     def do_TYPE(self, arg):
@@ -134,13 +138,13 @@ class Runner(object):
         self.child.sendeof()
 
     def do_ERR(self, arg):
-        self.child.expect(pexpect.EOF)
+        self.child.expect(pexpect.EOF, timeout=self.timeout)
         assert self.child.wait() != 0
         self.child = None
 
     def do_MATCH(self, _, pattern):
         pattern = unicode(pattern).strip()
-        self.child.expect(pexpect.EOF)
+        self.child.expect(pexpect.EOF, timeout=self.timeout)
         output = self.child.before.strip()
         defuzzed = defuzz(output.replace(TEST_ID, "TEST_ID").replace(self.base, "TEST_BASE"))
         if not match(defuzzed, pattern.strip()):
