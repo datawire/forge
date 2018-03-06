@@ -31,6 +31,8 @@ RUN kubectl get svc,deploy -oname -lforge.service=delete,forge.profile=default
 OUT services/delete-default
 OUT deployments/delete-default
 
+TIMEOUT 60
+
 RUN forge delete --all
 RUN kubectl get svc,deploy -lforge.service=delete
 OUT No resources found.

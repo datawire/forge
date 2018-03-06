@@ -278,11 +278,15 @@ class Service(object):
         svc = self.info()
         if self.forge.profile is None:
             profile = "default"
+            branches = svc.get("branches", {})
             if self.branch:
-                for k, v in svc.get("branches", {}).items():
+                for k, v in branches.items():
                     if fnmatch.fnmatch(self.branch, k):
                         profile = v
                         break
+            else:
+                if "*" in branches:
+                    profile = branches["*"]
         else:
             profile = self.forge.profile
         return profile
@@ -327,9 +331,10 @@ class Service(object):
         build["name"] = "%s-%s" % (svc["name"], prof["name"])
 
         build["images"] = OrderedDict()
-        for container in self.dockerfiles:
-            img = self.docker.image(self.image(container), self.version)
-            build["images"][container] = img
+        for container in self.containers:
+            img = self.docker.image(container.image, self.version)
+            build["images"][container.dockerfile] = img
+            build["images"][container.name] = img
 
         return metadata
 
