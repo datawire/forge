@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.4.4 (March 6th, 2018)
+
+* Make the branch * pattern match when there is no branch: [#157](https://github.com/datawire/forge/issues/157)
+* Make build.images include containers by name as well as filename: [#158](https://github.com/datawire/forge/issues/158)
+
 #### 0.4.3 (Feb 22nd, 2018)
 
 * Add profiles to forge.yaml: [#146](https://github.com/datawire/forge/issues/146)
