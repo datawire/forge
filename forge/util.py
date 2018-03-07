@@ -17,6 +17,10 @@ import collections, errno, logging, os, socket, yaml
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.iteritems())
 
+def unicode_representer(dumper, uni):
+    node = yaml.ScalarNode(tag=u'tag:yaml.org,2002:str', value=uni)
+    return node
+
 def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
 
@@ -24,6 +28,7 @@ def setup_yaml():
     _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
     yaml.add_representer(collections.OrderedDict, dict_representer)
     yaml.add_representer(os._Environ, dict_representer)
+    yaml.add_representer(unicode, unicode_representer)
     yaml.add_constructor(_mapping_tag, dict_constructor)
 
 def setup_logging():

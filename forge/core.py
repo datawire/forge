@@ -303,7 +303,7 @@ class Forge(object):
             raise TaskError("no service found")
         else:
             svc = self.discovery.services[services[0]]
-            print yaml.dump(svc.metadata())
+            print yaml.dump(svc.metadata(), encoding='utf-8')
 
     @task()
     def clean(self, service):
