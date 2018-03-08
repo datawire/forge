@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.5 (March 8th, 2018)
+
+* Fix delete of resources in namespaces: [#160](https://github.com/datawire/forge/issues/160)
+
 #### 0.4.4 (March 6th, 2018)
 
 * Make the branch * pattern match when there is no branch: [#157](https://github.com/datawire/forge/issues/157)
