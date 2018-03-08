@@ -239,7 +239,7 @@ class Kubernetes(object):
     def delete(self, labels):
         # never try to delete namespaces because they are shared resources
         all = ",".join(r for r in ALL if r != 'ns')
-        lines = sh("kubectl", "get", all, selector(labels), '-ogo-template={{range .items}}{{.kind}} {{.metadata.namespace}} {{.metadata.name}}{{"\\n"}}{{end}}').output.splitlines()
+        lines = sh("kubectl", "get", all, '--all-namespaces', selector(labels), '-ogo-template={{range .items}}{{.kind}} {{.metadata.namespace}} {{.metadata.name}}{{"\\n"}}{{end}}').output.splitlines()
 
         byns = {}
         for line in lines:
