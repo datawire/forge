@@ -20,7 +20,7 @@ It adds the following kubernetes `annotations` to each resource:
 It adds the following kubernetes `labels` to each resource:
 
 - `forge.service` contains the name of the service as specified in the
-  forge service descriptor (`service.xml`)
+  forge service descriptor (`service.yaml`)
 
 - `forge.profile` contains the name of the
   [profile](docs/reference/profiles.md) to which the resource belongs.
@@ -32,7 +32,7 @@ you've deployed with forge:
     kubectl get all -o name -l forge.service=myservice
 
     # delete the dev profile
-    kubectl delete all -l forge.service=myservice -l forge.profile=foo
+    kubectl delete all -l forge.service=myservice -l forge.profile=dev
 
 You can also use the `forge list` command to show a human readable
 summary of the forge resources deployed into a cluster, e.g.:
