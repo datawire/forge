@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.4.6 (March 13th, 2018)
+
+* Exclude storage classes from forge delete: [#162](https://github.com/datawire/forge/issues/162)
+* Fix forge delete for clusterrole and cluseterrolebinding:: [#163](https://github.com/datawire/forge/issues/163)
+
 #### 0.4.5 (March 8th, 2018)
 
 * Fix delete of resources in namespaces: [#160](https://github.com/datawire/forge/issues/160)
