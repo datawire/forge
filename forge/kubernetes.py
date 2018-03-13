@@ -237,15 +237,24 @@ class Kubernetes(object):
 
     @task()
     def delete(self, labels):
-        # never try to delete namespaces because they are shared resources
-        all = ",".join(r for r in ALL if r != 'ns')
+        # never try to delete namespaces or storage classes because they are shared resources
+        all = ",".join(r for r in ALL if r not in ('ns', 'sc'))
         lines = sh("kubectl", "get", all, '--all-namespaces', selector(labels), '-ogo-template={{range .items}}{{.kind}} {{.metadata.namespace}} {{.metadata.name}}{{"\\n"}}{{end}}').output.splitlines()
 
         byns = {}
         for line in lines:
-            kind, namespace, name = line.split()
+            parts = line.split()
+            if len(parts) == 2:
+                kind, name = parts
+                namespace = None
+            else:
+                kind, namespace, name = parts
             if namespace not in byns:
                 byns[namespace] = []
             byns[namespace].append((kind, name))
         for ns in sorted(byns.keys()):
-            sh("kubectl", "delete", "-n", ns, *sorted("%s/%s" % (k, n) for k, n in byns[ns]))
+            names = sorted("%s/%s" % (k, n) for k, n in byns[ns])
+            if ns is None:
+                sh("kubectl", "delete", *names)
+            else:
+                sh("kubectl", "delete", "-n", ns, *names)
