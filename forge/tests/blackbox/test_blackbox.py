@@ -109,6 +109,7 @@ class Runner(object):
 
     def do_RUN(self, arg):
         self.wait()
+        arg = arg.replace("TEST_ID", TEST_ID).replace("TEST_BASE", self.base)
         print "RUN", arg
         self.child = pexpect.spawn(arg, cwd=self.cwd)
         self.child.logfile = sys.stdout

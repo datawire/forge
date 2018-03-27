@@ -140,7 +140,7 @@ class Forge(object):
                 reg = types[regtype]
                 regvalues = OrderedDict((("type", reg.fields["type"].type.value),))
                 for f in reg.fields.values():
-                    if f.name == "type": continue
+                    if f.name in ("type", "verify"): continue
                     prompt, default = prompts.get((regtype, f.name), (f.name, None))
                     if (regtype, f.name) == ("gcr", "key"):
                         key, value = self.prompt(prompt, default, optional=True, loader=file_contents)
@@ -367,6 +367,7 @@ def get_docker(registry):
     else:
         return Docker(
             registry=registry.url,
+            verify=registry.verify,
             namespace=registry.namespace,
             user=registry.user,
             password=registry.password

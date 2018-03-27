@@ -3,7 +3,7 @@ eventlet==0.20.0
 flask==0.12.1
 flask-cors==3.0.2
 flask-socketio==2.8.6
-requests==2.14.2
+requests==2.18.4
 pyyaml==3.12
 jinja2==2.9.6
 pytest==3.1.2

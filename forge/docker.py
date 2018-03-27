@@ -211,12 +211,13 @@ import json, base64
 
 class Docker(DockerBase):
 
-    def __init__(self, registry, namespace, user, password):
+    def __init__(self, registry, namespace, user, password, verify=True):
         DockerBase.__init__(self)
         self.registry = registry
         self.namespace = namespace
         self.user = user
         self.password = password
+        self.verify = verify
 
         self._run_login = bool(self.user)
 
@@ -245,16 +246,19 @@ class Docker(DockerBase):
     def registry_get(self, api):
         url = "https://%s/v2/%s" % (self.registry, api)
         response = get(url, auth=(self.user, self.password),
-                       headers={"Accept": 'application/vnd.docker.distribution.manifest.v2+json'})
+                       headers={"Accept": 'application/vnd.docker.distribution.manifest.v2+json'},
+                       verify=self.verify)
         if response.status_code == 401:
             challenge = response.headers['Www-Authenticate']
             if challenge.startswith("Bearer "):
                 challenge = challenge[7:]
             opts = urllib2.parse_keqv_list(urllib2.parse_http_list(challenge))
-            authresp = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(self.user, self.password))
+            authresp = get("{realm}?service={service}&scope={scope}".format(**opts), auth=(self.user, self.password),
+                           verify=self.verify)
             if authresp.ok:
                 token = authresp.json()['token']
-                response = get(url, headers={'Authorization': 'Bearer %s' % token})
+                response = get(url, headers={'Authorization': 'Bearer %s' % token},
+                               verify=self.verify)
             else:
                 raise TaskError("problem authenticating with docker registry: [%s] %s" % (authresp.status_code,
                                                                                           authresp.content))
