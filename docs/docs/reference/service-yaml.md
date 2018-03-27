@@ -12,7 +12,9 @@ The `service.yaml` contains information about:
 Below is an example `service.yaml`:
 
 ```
+{% raw %}
 {% set sanitized_branch = (branch or "dev").replace('/', '-') %}
+{% endraw %}
 
 name: python-api
 namespace: datawire
