@@ -31,6 +31,7 @@
 * [Service Dependencies](docs/reference/dependencies.md)
 * [Canary deploys with Kubernetes](docs/reference/canary.md)
 * [Using Forge with Istio](docs/reference/istio.md)
+* [Self Signed Registries](docs/reference/self-signed-registries.md)
 * [Changelog](docs/reference/changelog.md)
 
 ## Need Help?
