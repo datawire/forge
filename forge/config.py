@@ -122,6 +122,7 @@ class Config(object):
             url, namespace = docker_repo.split("/", 1)
             registry = Registry(type="docker",
                                 url=url,
+                                verify=True,
                                 namespace=namespace,
                                 user=user,
                                 password=password)
