@@ -367,6 +367,7 @@ def get_docker(registry):
     else:
         return Docker(
             registry=registry.url,
+            verify=registry.verify,
             namespace=registry.namespace,
             user=registry.user,
             password=registry.password

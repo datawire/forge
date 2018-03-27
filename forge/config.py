@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .schema import Class, Field, Union, Constant, Map, Sequence, String, Base64, SchemaError
+from .schema import Class, Field, Union, Constant, Map, Sequence, Boolean, String, Base64, SchemaError
 
 class Registry(object):
 
-    def __init__(self, type, url, user, password, namespace=None):
+    def __init__(self, type, url, verify, user, password, namespace=None):
         self.type = type
         self.url = url
+        self.verify = verify
         self.user = user
         self.password = password
         self.namespace = namespace
@@ -29,6 +30,8 @@ DOCKER = Class(
     Registry,
     Field("type", Constant('docker'), docs="This must be 'docker' for docker registries"),
     Field("url", String(), docs="The url of the docker registry."),
+    Field("verify", Boolean(), default=True,
+          docs="A boolean that indicates whether or not to verify the ssl connection to the registry. This defaults to true. Set this to false if you are using a registry with self-signed certs."),
     Field("user", String(), default=None, docs="The docker user."),
     Field("password", Base64(), default=None, docs="The docker password, base64 encoded."),
     Field("namespace", String(), docs="The namespace for the docker registry. For docker hub this is a user or an organization. This is used as the first path component of the registry URL, for example: registry.hub.docker.com/<namespace>")
