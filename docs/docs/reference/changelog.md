@@ -1,9 +1,13 @@
 # Changelog
 
+#### 0.4.7 (March 27th, 2018)
+
+* Add a `verify: false` option for use with self-signed docker registries: [#141](https://github.com/datawire/forge/issues/141)
+
 #### 0.4.6 (March 13th, 2018)
 
 * Exclude storage classes from forge delete: [#162](https://github.com/datawire/forge/issues/162)
-* Fix forge delete for clusterrole and cluseterrolebinding:: [#163](https://github.com/datawire/forge/issues/163)
+* Fix forge delete for clusterrole and cluseterrolebinding: [#163](https://github.com/datawire/forge/issues/163)
 
 #### 0.4.5 (March 8th, 2018)
 
