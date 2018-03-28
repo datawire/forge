@@ -53,6 +53,12 @@ Forge includes the following features:
 
 * **Plug-in support** Forge includes support for additional plug-ins that run as part of the build/deploy process. An example plug-in is Forge's support for Istio.
 
+* **100% client-side** Forge is installed as a single binary that runs client-side. There are no additional components to add to your cluster.
+
+* **Image tag management** Forge automatically manages your image tags, and provides full traceability from source to production.
+
+* **No lock-in** Forge's core abstractions are Dockerfiles and Kubernetes manifests, so it's easy for you to adopt Forge into your existing workflow and tools.
+
 ## Use cases
 
 Some of the common use cases for Forge include:
