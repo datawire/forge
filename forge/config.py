@@ -140,8 +140,7 @@ class Config(object):
 CONFIG = Class(
     "forge.yaml",
     """
-    Global Forge configuration. Currently this consists of Docker
-    Registry configuration and credentials.
+    The forge.yaml file contains the global Forge configuration information. Currently this consists of Docker Registry configuration and credentials.
     """,
     Config,
     *(tuple(PROFILE.fields.values()) +
