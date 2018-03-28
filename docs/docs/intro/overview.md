@@ -37,6 +37,8 @@ Kubernetes is great for running containerized applications -- from binaries. But
 
 You then need to repeat this for every service of your application, which also means you need a way to manage dependencies. You also want this to run quickly, which means support for incremental builds, caching, and the like.
 
+Forge has been designed from the get go to support networks of services (i.e., microservices applications). It has extensive support for multiple users, multiple languages, and multiple services.
+
 ## Features
 
 Forge includes the following features:
@@ -46,6 +48,8 @@ Forge includes the following features:
 * **Templating** Use Jinja2 templates with your Kubernetes manifest files. A typical model is for your operations team to write standard Kubernetes manifest files for use by development, while developers fill in the service-specific information in the `service.yaml` file.
 
 * **Fast** Forge includes a number of features to accelerate deployment, including parallel builds, incremental builds, and request caching.
+
+* **Profiles** Forge lets you create and define custom profiles, which let you customize how you deploy your service(s) to a given environment (e.g., QA, staging, production).
 
 * **Plug-in support** Forge includes support for additional plug-ins that run as part of the build/deploy process. An example plug-in is Forge's support for Istio.
 
@@ -60,7 +64,6 @@ If you're a developer, you need to run *and update* your application in an isola
 ### Automated testing environments
 
 Automated, end-to-end testing can be an important part of a continuous deployment strategy. With Forge, you can easily and repeatably create an isolated test environment containing your application.
-
 
 ## Forge development
 
