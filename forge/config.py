@@ -26,12 +26,12 @@ class Registry(object):
 
 DOCKER = Class(
     "registry:docker",
-    """A generic docker registry.""",
+    """A generic Docker registry.""",
     Registry,
     Field("type", Constant('docker'), docs="This must be 'docker' for docker registries"),
     Field("url", String(), docs="The url of the docker registry."),
     Field("verify", Boolean(), default=True,
-          docs="A boolean that indicates whether or not to verify the ssl connection to the registry. This defaults to true. Set this to false if you are using a registry with self-signed certs."),
+          docs="A boolean that indicates whether or not to verify the SSL connection to the registry. This defaults to true. Set this to false if you are using a registry with self-signed certs."),
     Field("user", String(), default=None, docs="The docker user."),
     Field("password", Base64(), default=None, docs="The docker password, base64 encoded."),
     Field("namespace", String(), docs="The namespace for the docker registry. For docker hub this is a user or an organization. This is used as the first path component of the registry URL, for example: registry.hub.docker.com/<namespace>")
@@ -47,12 +47,12 @@ class GCRRegistry(object):
 
 GCR = Class(
     "registry:gcr",
-    """A google cloud registry.""",
+    """A Google Cloud registry.""",
     GCRRegistry,
-    Field("type", Constant('gcr'), docs="The type of the registry, this will be 'gcr' for google registries"),
+    Field("type", Constant('gcr'), docs="The type of the registry; this will be 'gcr' for Google registries"),
     Field("url", String(), docs="The url of the registry, e.g. `gcr.io`."),
-    Field("project", String(), docs="The google project name."),
-    Field("key", Base64(), default=None, docs="The base64 encoded json key used for authentication.")
+    Field("project", String(), docs="The Google project name."),
+    Field("key", Base64(), default=None, docs="The base64 encoded JSON key used for authentication.")
 )
 
 class ECRRegistry(object):
@@ -66,13 +66,13 @@ class ECRRegistry(object):
 
 ECR = Class(
     "registry:ecr",
-    """An amazon ECR registry.""",
+    """An Amazon ECR registry.""",
     ECRRegistry,
-    Field("type", Constant('ecr'), docs="The type of the registry, this will be 'ecr' for amazon registries"),
+    Field("type", Constant('ecr'), docs="The type of the registry; this will be 'ecr' for amazon registries"),
     Field("account", String("string", "integer"), default=None, docs="The amazon account id to use."),
-    Field("region", String(), default=None, docs="The amazon region to use."),
-    Field("aws_access_key_id", String(), default=None, docs="The id of the aws access key to use."),
-    Field("aws_secret_access_key", String(), default=None, docs="The aws secrete access key.")
+    Field("region", String(), default=None, docs="The Amazon region to use."),
+    Field("aws_access_key_id", String(), default=None, docs="The id of the AWS access key to use."),
+    Field("aws_secret_access_key", String(), default=None, docs="The AWS secret access key.")
 )
 
 class LocalRegistry(object):
@@ -84,7 +84,7 @@ LOCAL = Class(
     "registry:local",
     """A local registry.""",
     LocalRegistry,
-    Field("type", Constant('local'), docs="THe type of the registry, this will be 'local' for local registries")
+    Field("type", Constant('local'), docs="The type of the registry; this will be 'local' for local registries")
 )
 
 class Profile(object):
@@ -141,6 +141,7 @@ CONFIG = Class(
     "forge.yaml",
     """
     The forge.yaml file contains the global Forge configuration information. Currently this consists of Docker Registry configuration and credentials.
+    A forge.yaml is automatically created as part of the forge setup process; it can also be created by hand.
     """,
     Config,
     *(tuple(PROFILE.fields.values()) +
