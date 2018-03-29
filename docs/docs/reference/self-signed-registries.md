@@ -1,10 +1,10 @@
 # Forge Metadata
 
-In order to use forge with a self-signed registry, you need to disable
-verification. In order to do this, you need to create a forge.yaml by
+In order to use Forge with a self-signed registry, you need to disable
+verification. In order to do this, you need to create a `forge.yaml` by
 hand rather than using the `forge setup` command. Put the following
 yaml into a file named `forge.yaml` in the directory (or a parent of
-the directory) where you would like to use forge:
+the directory) where you would like to use Forge:
 
 ```
 registry:

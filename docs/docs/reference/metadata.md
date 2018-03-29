@@ -1,9 +1,7 @@
 # Forge Metadata
 
-Forge automatically adds metadata to every kubernetes resource it
-creates.
-
-It adds the following kubernetes `annotations` to each resource:
+Forge automatically adds metadata to every Kubernetes resource it
+creates. It adds the following Kubernetes `annotations` to each resource:
 
 - `forge.repo` contains the git repo from which the resource was
   deployed. This is computed from the url for the git remote named
@@ -17,7 +15,7 @@ It adds the following kubernetes `annotations` to each resource:
   resource. For resources deployed from a clean git checkout, this
   will be `<commitish>.git`.
 
-It adds the following kubernetes `labels` to each resource:
+It adds the following Kubernetes `labels` to each resource:
 
 - `forge.service` contains the name of the service as specified in the
   forge service descriptor (`service.yaml`)
@@ -26,7 +24,7 @@ It adds the following kubernetes `labels` to each resource:
   [profile](docs/reference/profiles.md) to which the resource belongs.
 
 By using these labels you can easily query and/or cleanup services
-you've deployed with forge:
+you've deployed with Forge:
 
     # list all the k8s resources belonging to myservice
     kubectl get all -o name -l forge.service=myservice
@@ -35,7 +33,7 @@ you've deployed with forge:
     kubectl delete all -l forge.service=myservice -l forge.profile=dev
 
 You can also use the `forge list` command to show a human readable
-summary of the forge resources deployed into a cluster, e.g.:
+summary of the Forge resources deployed into a cluster, e.g.:
 
     $ forge list
     myservice[default]: https://github.com/myorg/myservice.git | service.yaml | 729b401e7c515144bbaf0962b6a207f591f291ca.git
