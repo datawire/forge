@@ -20,6 +20,7 @@
   * [Profiles](docs/reference/profiles.md)
   * [Environment Customization](docs/reference/environments.md)
   * [Service Dependencies](docs/reference/dependencies.md)
+  * [Customizing Container Builds](docs/reference/customize-container-builds.md)
   * [Schema reference](docs/reference/service-descriptor.md)
 * [Service Metadata](docs/reference/metadata.md)
 
@@ -27,7 +28,6 @@
 
 * [Forge API Documentation](https://forge.sh/docs/api/)
 * [Managing Services](docs/reference/managing-services.md)
-* [Customizing Container Builds](docs/reference/customize-container-builds.md)
 * [Canary deploys with Kubernetes](docs/reference/canary.md)
 * [Using Forge with Istio](docs/reference/istio.md)
 * [Changelog](docs/reference/changelog.md)

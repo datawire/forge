@@ -1,6 +1,6 @@
 # Customizing Container Builds
 
-By default forge will automatically discover and build containers in
+By default Forge will automatically discover and build containers in
 the source tree of your service. You can customize several aspects of
 this by using the `containers` property of your service descriptor.
 
@@ -20,14 +20,14 @@ layout:
   +---src/...
 ```
 
-Given the above service, forge will (by default) automatically build a
+Given the above service, Forge will (by default) automatically build a
 container as follows:
 
 ```sh
 docker build <root> -f <root>/Dockerfile
 ```
 
-If you have multiple Dockerfiles in your service, then forge will
+If you have multiple Dockerfiles in your service, then Forge will
 build multiple containers:
 
 ```
@@ -44,7 +44,7 @@ build multiple containers:
   +---module/src/...
 ```
 
-For example, given the service illustrated above, forge will (by
+For example, given the service illustrated above, Forge will (by
 default) build two containers with the following docker commands:
 
 ```sh
@@ -73,8 +73,8 @@ consider the following service:
   +---module/src/...
 ```
 
-Normally forge would build two containers for the above service, but
-if we specify the following in our service descriptor, then forge will
+Normally Forge would build two containers for the above service, but
+if we specify the following in our service descriptor, then Forge will
 only build the root container:
 
 ```yaml
@@ -148,7 +148,7 @@ this sort of service thereby letting you enjoy significantly faster
 build times in a development context.
 
 For example, consider the following simple spark service that is built
-by gradle:
+by Gradle:
 
 ```
 <root>
