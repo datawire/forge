@@ -27,10 +27,10 @@
 ## Guides
 
 * [Using Forge with Istio](docs/reference/istio.md)
-* [An introductory workflow for Kubernetes with Forge](https://www.datawire.io/faster/dev-workflow-intro/)
-* [Canary deployments with Kubernetes](https://www.datawire.io/faster/canary-workflow/)
-* [Shared development models with Forge](https://www.datawire.io/faster/shared-dev/)
 * [Managing Services](docs/reference/managing-services.md)
+* [Basic Workflow Tutorial](https://www.datawire.io/faster/dev-workflow-intro/)
+* [Canary deployments](https://www.datawire.io/faster/canary-workflow/)
+* [Shared development models with Forge](https://www.datawire.io/faster/shared-dev/)
 
 ## Reference
 
