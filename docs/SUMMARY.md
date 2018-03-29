@@ -24,12 +24,17 @@
   * [Schema reference](docs/reference/service-descriptor.md)
 * [Service Metadata](docs/reference/metadata.md)
 
+## Guides
+
+* [Using Forge with Istio](docs/reference/istio.md)
+* [An introductory workflow for Kubernetes with Forge](https://www.datawire.io/faster/dev-workflow-intro/)
+* [Canary deployments with Kubernetes](https://www.datawire.io/faster/canary-workflow/)
+* [Shared development models with Forge](https://www.datawire.io/faster/shared-dev/)
+* [Managing Services](docs/reference/managing-services.md)
+
 ## Reference
 
 * [Forge API Documentation](https://forge.sh/docs/api/)
-* [Managing Services](docs/reference/managing-services.md)
-* [Canary deploys with Kubernetes](docs/reference/canary.md)
-* [Using Forge with Istio](docs/reference/istio.md)
 * [Changelog](docs/reference/changelog.md)
 
 ## Need Help?
