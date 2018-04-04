@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import eventlet, functools, sys
+import eventlet, functools, sys, os
 from contextlib import contextmanager
 from eventlet.corolocal import local
 from eventlet.green import time
@@ -20,16 +20,21 @@ from .sentinel import Sentinel
 
 logging = eventlet.import_patched('logging')
 traceback = eventlet.import_patched('traceback')
+datetime = eventlet.import_patched('datetime')
 output = eventlet.import_patched('forge.output')
 emod = eventlet.import_patched('forge.executor')
 executor = emod.executor
 Result = emod.Result
 
 # XXX: need better default for logfile
-def setup(logfile='/tmp/forge.log'):
+def setup(logfile=None):
     """
     Setup the task system. This will perform eventlet monkey patching as well as set up logging.
     """
+
+    if not logfile:
+        logfile = "/tmp/forge-{}-{}.log".format(os.environ.get("USER", os.getuid()),
+                                                datetime.date.today().isoformat())
 
     logging.getLogger("tasks").addFilter(TaskFilter())
     logging.basicConfig(filename=logfile,
@@ -346,8 +351,6 @@ class SHResult(object):
                 return code
         else:
             return self.output
-
-import os
 
 @task("CMD")
 def sh(*args, **kwargs):
