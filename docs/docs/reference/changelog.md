@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.8 (April 4th, 2018)
+
+* Change the forge log file to includ the user and date: [#171](https://github.com/datawire/forge/issues/171)
+
 #### 0.4.7 (March 27th, 2018)
 
 * Add a `verify: false` option for use with self-signed docker registries: [#141](https://github.com/datawire/forge/issues/141)
