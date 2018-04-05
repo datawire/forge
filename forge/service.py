@@ -19,6 +19,7 @@ from .jinja2 import render, renders
 from .schema import SchemaError
 from .tasks import sh, task, TaskError
 from .github import Github
+from forge import yamlutil
 
 def load_service_yaml(path, **vars):
     with open(path, "read") as f:
@@ -70,6 +71,19 @@ def get_search_path(forge, svc):
     for p in svc.search_path:
         yield os.path.join(forge.base, p)
 
+def is_service_descriptor(path):
+    try:
+        objs = yamlutil.load(path)
+    except yaml.parser.ParserError, e:
+        return True
+    except yaml.scanner.ScannerError, e:
+        return True
+    if objs:
+        first = objs[0]
+        if "apiVersion" in first and "kind" in first and "metadata" in first:
+            return False
+    return True
+
 class Discovery(object):
 
     def __init__(self, forge):
@@ -105,11 +119,13 @@ class Discovery(object):
                                                                                         directory))]
 
             if "service.yaml" in names:
-                svc = Service(self.forge, os.path.join(path, "service.yaml"), shallow=shallow)
-                if svc.name not in self.services:
-                    self.services[svc.name] = svc
-                found.append(svc)
-                parent = svc
+                candidate = os.path.join(path, "service.yaml")
+                if is_service_descriptor(candidate):
+                    svc = Service(self.forge, candidate, shallow=shallow)
+                    if svc.name not in self.services:
+                        self.services[svc.name] = svc
+                    found.append(svc)
+                    parent = svc
 
             if "Dockerfile" in names and parent:
                 parent.dockerfiles.append(os.path.relpath(os.path.join(path, "Dockerfile"), parent.root))
