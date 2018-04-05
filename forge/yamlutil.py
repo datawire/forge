@@ -131,6 +131,12 @@ class MapView(View):
                 return view(v, self.mode)
         return default
 
+    def __contains__(self, key):
+        for k, v in self.node.value:
+            if k.value == key:
+                return True
+        return False
+
     def __getitem__(self, key):
         for k, v in self.node.value:
             if k.value == key:
