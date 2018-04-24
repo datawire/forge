@@ -31,6 +31,7 @@ import util
 from . import __version__
 from .core import Forge
 from .kubernetes import Kubernetes
+from .sops import edit_secret, view_secret
 from collections import OrderedDict
 
 ENV = find_dotenv(usecwd=True)
@@ -162,6 +163,22 @@ def manifests(forge):
     See `forge build --help` for details on how manifests are built.
     """
     forge.execute(forge.manifest)
+
+@forge.command()
+@click.argument("file_path", required=True, type=click.Path(exists=True))
+def edit(file_path):
+    """
+    Edit a secret file.
+    """
+    edit_secret(file_path) 
+
+@forge.command()
+@click.argument("file_path", required=True, type=click.Path(exists=True))
+def view(file_path):
+    """
+    View a secret file.
+    """
+    view_secret(file_path) 
 
 @forge.command()
 @click.pass_obj
