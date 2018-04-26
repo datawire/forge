@@ -124,7 +124,7 @@ class Kubernetes(object):
     def resources(self, yaml_dir):
         if is_yaml_empty(yaml_dir):
             return []
-        cmd = "kubectl", "apply", "--dry-run", "-f", yaml_dir, "-o", "name"
+        cmd = "kubectl", "apply", "--dry-run", "-R", "-f", yaml_dir, "-o", "name"
         if self.namespace:
             cmd += "--namespace", self.namespace
         return sh(*cmd).output.split()
@@ -134,21 +134,23 @@ class Kubernetes(object):
             return SHResult("", 0, "")
         key = "annotations" if annotate else "labels"
 
-        for name in os.listdir(yaml_dir):
-            fixed = []
-            with open(os.path.join(yaml_dir, name), 'read') as f:
-                for nd in compose_all(f):
-                    fixup(nd, key, labels)
-                    # we filter out null nodes because istioctl sticks
-                    # them in for some reason, and then we end up
-                    # serializing them in a way that kubectl doesn't
-                    # understand
-                    if nd.tag == u'tag:yaml.org,2002:null':
-                        continue
-                    fixed.append(nd)
-            munged = serialize_all(fixed)
-            with open(os.path.join(yaml_dir, name), 'write') as f:
-                f.write(munged)
+        for path, dirs, files in os.walk(yaml_dir):
+            for name in files:
+                fixed = []
+                filename = os.path.join(path, name)
+                with open(filename, 'read') as f:
+                    for nd in compose_all(f):
+                        fixup(nd, key, labels)
+                        # we filter out null nodes because istioctl sticks
+                        # them in for some reason, and then we end up
+                        # serializing them in a way that kubectl doesn't
+                        # understand
+                        if nd.tag == u'tag:yaml.org,2002:null':
+                            continue
+                        fixed.append(nd)
+                munged = serialize_all(fixed)
+                with open(filename, 'write') as f:
+                    f.write(munged)
 
     @task()
     def annotate(self, yaml_dir, labels):
@@ -162,7 +164,7 @@ class Kubernetes(object):
     def apply(self, yaml_dir, prune=None):
         if is_yaml_empty(yaml_dir):
             return SHResult("", 0, "")
-        cmd = "kubectl", "apply", "-f", yaml_dir
+        cmd = "kubectl", "apply", "-R", "-f", yaml_dir
         if self.namespace:
             cmd += "--namespace", self.namespace
         if self.dry_run:
