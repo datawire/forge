@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.10 (April 26th, 2018)
+
+* Properly handle sub-directories of the k8s manifest dir: [#183](https://github.com/datawire/forge/issues/183)
+
 #### 0.4.9 (April 5th, 2018)
 
 * Use a heuristic to ignore kubernetes service.yaml files during discovery: [#61](https://github.com/datawire/forge/issues/61)
