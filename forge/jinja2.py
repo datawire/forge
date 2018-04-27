@@ -73,7 +73,7 @@ def _do_render(env, root, name, variables):
         raise TaskError("%s/%s: %s" % (root, name, e))
 
 @task()
-def render(source, target, **variables):
+def render(source, target, predicate, **variables):
     """Renders a file or directory as a jinja template using the supplied
     variables.
 
@@ -98,6 +98,7 @@ def render(source, target, **variables):
 
         for path, dirs, files in os.walk(source):
             for name in files:
+                if not predicate(name): continue
                 relpath = os.path.join(os.path.relpath(path, start=source), name)
                 rendered = _do_render(env, root, relpath, variables)
                 outfile = os.path.join(target, relpath)

@@ -43,7 +43,7 @@ def test_render_dir():
     root = mktree(TEMPLATE_TREE)
     source = os.path.join(root, "template_dir")
     target = os.path.join(root, "template_out")
-    render(source, target, hello="Hello", world="World")
+    render(source, target, lambda x: True, hello="Hello", world="World")
     for path in ("file1", "file2", "sub/file3"):
         assert open(os.path.join(target, path)).read() == "Hello World!"
 
@@ -51,14 +51,14 @@ def test_render_file():
     root = mktree(TEMPLATE_TREE)
     source = os.path.join(root, "template_file.in")
     target = os.path.join(root, "template_file")
-    render(source, target, hello="Hello", world="World")
+    render(source, target, lambda x: True, hello="Hello", world="World")
     assert open(target).read() == "Hello World!"
 
 def test_render_error():
     root = mktree(TEMPLATE_TREE)
     source = os.path.join(root, "template_err.in")
     try:
-        render(source, os.path.join(root, "template_err"), hello="Hello", world="World")
+        render(source, os.path.join(root, "template_err"), lambda x: True, hello="Hello", world="World")
         assert False, "should error"
     except TaskError, e:
         assert "template_err.in: 'foo' is undefined" in str(e)

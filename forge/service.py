@@ -16,6 +16,7 @@ import copy, errno, fnmatch, hashlib, jsonschema, os, pathspec, util, yaml
 from collections import OrderedDict
 from forge import service_info
 from .jinja2 import render, renders
+from .kubernetes import is_yaml_file
 from .schema import SchemaError
 from .tasks import sh, task, TaskError
 from .github import Github
@@ -364,7 +365,7 @@ class Service(object):
 
     def deployment(self):
         metadata = self.metadata()
-        render(self.manifest_dir, self.manifest_target_dir, **metadata)
+        render(self.manifest_dir, self.manifest_target_dir, is_yaml_file, **metadata)
 
     def info(self):
         if self._info is None:

@@ -113,6 +113,9 @@ def is_yaml_empty(dir):
 def selector(labels):
     return "-l%s" % (",".join(("%s=%s" % (k, v)) if v else k for k, v in labels.items()))
 
+def is_yaml_file(name):
+    return name.endswith(".yml") or name.endswith(".yaml")
+
 class Kubernetes(object):
 
     def __init__(self, namespace=None, context=None, dry_run=False):
@@ -136,6 +139,7 @@ class Kubernetes(object):
 
         for path, dirs, files in os.walk(yaml_dir):
             for name in files:
+                if not is_yaml_file(name): continue
                 fixed = []
                 filename = os.path.join(path, name)
                 with open(filename, 'read') as f:
