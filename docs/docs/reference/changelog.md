@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.11 (April 27th, 2018)
+
+* Only process .yml and .yaml files underneath the k8s dir: [#186](https://github.com/datawire/forge/issues/186)
+
 #### 0.4.10 (April 26th, 2018)
 
 * Properly handle sub-directories of the k8s manifest dir: [#183](https://github.com/datawire/forge/issues/183)
