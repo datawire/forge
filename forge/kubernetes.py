@@ -236,7 +236,7 @@ class Kubernetes(object):
                     for resource in resources:
                         kind = resource["kind"]
                         if kind == "service":
-                            status = status_summary(kind, endpoints[(resource["namespace"], resource["name"])])
+                            status = status_summary(kind, endpoints.get((resource["namespace"], resource["name"])))
                         else:
                             status = status_summary(kind, resource["status"])
                         resource["status"] = status
