@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.12 (May 8th, 2018)
+
+* Fix processing of k8s directories that only contain subdirectories: [#193](https://github.com/datawire/forge/issues/193)
+
 #### 0.4.11 (April 27th, 2018)
 
 * Only process .yml and .yaml files underneath the k8s dir: [#186](https://github.com/datawire/forge/issues/186)
