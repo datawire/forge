@@ -7,10 +7,7 @@ END
 
 RUN docker login registry.hub.docker.com -u forgetest -p forgetest
 
-FILE k8s/subdir/DUMMY
-END
-
-FILE k8s/blah.yaml
+FILE k8s/subdir/blah.yaml
 ---
 apiVersion: v1
 kind: Service
@@ -23,8 +20,8 @@ spec:
 END
 
 FILE service.yaml
-name: manifest-subdir
+name: manifest-empty-subdir
 END
 
 RUN forge deploy
-RUN kubectl get svc manifest-subdir-default
+RUN kubectl get svc manifest-empty-subdir-default
