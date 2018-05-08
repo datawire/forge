@@ -104,10 +104,12 @@ def status_summary(kind, status):
     return str(status)
 
 def is_yaml_empty(dir):
-    for name in glob.glob("%s/*.yaml" % dir):
-        with open(name) as f:
-            if f.read().strip():
-                return False
+    for path, dirs, files in os.walk(dir):
+        for name in files:
+            if is_yaml_file(name):
+                with open(os.path.join(path, name)) as f:
+                    if f.read().strip():
+                        return False
     return True
 
 def selector(labels):
@@ -234,7 +236,7 @@ class Kubernetes(object):
                     for resource in resources:
                         kind = resource["kind"]
                         if kind == "service":
-                            status = status_summary(kind, endpoints[(resource["namespace"], resource["name"])])
+                            status = status_summary(kind, endpoints.get((resource["namespace"], resource["name"])))
                         else:
                             status = status_summary(kind, resource["status"])
                         resource["status"] = status
