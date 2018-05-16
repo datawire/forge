@@ -41,11 +41,12 @@ SETUP_TEMPLATE = """# Global forge configuration
 
 class Forge(object):
 
-    def __init__(self, verbose=0, config=None, profile=None, branch=None):
+    def __init__(self, verbose=0, config=None, profile=None, branch=None, scan_base=True):
         self.verbose = verbose
         self.config = config or util.search_parents("forge.yaml")
         self.profile = profile
         self.branch = branch
+        self.scan_base = scan_base
         self.namespace = None
         self.dry_run = False
         self.terminal = Terminal()
@@ -289,7 +290,7 @@ class Forge(object):
         else:
             path = os.getcwd()
         services = self.scan(path)
-        if not os.path.samefile(path, self.base):
+        if not os.path.samefile(path, self.base) and self.scan_base:
             self.scan(self.base)
         if services:
             services.extend(self.discovery.dependencies(services))
