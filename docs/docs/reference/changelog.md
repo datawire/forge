@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.13 (May 16th, 2018)
+
+* Add a --no-scan-base option: [#174](https://github.com/datawire/forge/issues/174)
+
 #### 0.4.12 (May 8th, 2018)
 
 * Fix processing of k8s directories that only contain subdirectories: [#193](https://github.com/datawire/forge/issues/193)
