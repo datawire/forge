@@ -42,7 +42,7 @@ if ENV: load_dotenv(ENV)
 @click.option('--config', envvar='FORGE_CONFIG', type=click.Path(exists=True))
 @click.option('--profile', envvar='FORGE_PROFILE')
 @click.option('--branch', envvar='FORGE_BRANCH')
-@click.option('--no-scan-base', is_flag=True)
+@click.option('--no-scan-base', is_flag=True, help="Do not scan for services in directory containing forge.yaml")
 @click.pass_context
 def forge(context, verbose, config, profile, branch, no_scan_base):
     context.obj = Forge(verbose=verbose, config=config,
