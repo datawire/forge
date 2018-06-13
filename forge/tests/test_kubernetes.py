@@ -68,7 +68,7 @@ def test_resources():
     kube = Kubernetes()
     resources = kube.resources(os.path.join(directory, "k8s"))
     assert mangle('service/kube-test-service-MANGLE') in resources
-    assert mangle('deployment/kube-test-deployment-MANGLE') in resources
+    assert mangle('deployment.extensions/kube-test-deployment-MANGLE') in resources
 
 def kget(namespace, type, name):
     cmd = "kubectl", "get", "-o", "name", type, name
@@ -83,8 +83,8 @@ def test_apply(namespace=None):
     directory = mktree(K8S_TREE, MANGLE=MANGLE)
     kube = Kubernetes(namespace=namespace)
     kube.apply(os.path.join(directory, "k8s"))
-    kcheck(namespace, "services", "kube-test-service-MANGLE")
-    kcheck(namespace, "deployments", "kube-test-deployment-MANGLE")
+    kcheck(namespace, "service", "kube-test-service-MANGLE")
+    kcheck(namespace, "deployment.extensions", "kube-test-deployment-MANGLE")
 
 def test_apply_namespace():
     sh("kubectl", "create", "namespace", mangle("dev-MANGLE"))
