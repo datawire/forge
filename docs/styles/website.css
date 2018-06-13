@@ -1,0 +1,10 @@
+.logo {
+    height: 75px;
+    max-width: 100%;
+    margin: 15px;
+}
+
+/** Removes the "Introduction" link from the table of contents **/
+.book-summary ul.summary > li:first-child {
+    display: none;
+}
