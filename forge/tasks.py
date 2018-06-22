@@ -41,6 +41,7 @@ def setup(logfile=None):
                         level=logging.INFO,
                         format='%(levelname)s %(task_id)s: %(message)s')
     executor.setup()
+    executor.resize(5)
 
 class TaskError(Exception):
 

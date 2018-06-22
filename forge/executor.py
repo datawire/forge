@@ -224,6 +224,9 @@ class _Muxer(object):
     def isatty(self):
         return self.stream.isatty()
 
+_POOL = eventlet.greenpool.GreenPool()
+
+
 class executor(object):
 
     """
@@ -337,6 +340,10 @@ class executor(object):
 
         sys.stdout = cls.MUXER
 
+    @classmethod
+    def resize(cls, size):
+        _POOL.resize(size)
+
     def __init__(self, name = None, async=False):
         self.name = name
         self.results = []
@@ -411,7 +418,7 @@ class executor(object):
         result._capture_stack()
         self.results.append(result)
         if self.async:
-            result.thread = eventlet.spawn(self.do_run, result, fun, args, kwargs)
+            result.thread = _POOL.spawn(self.do_run, result, fun, args, kwargs)
         else:
             self.do_run(result, fun, args, kwargs)
         return result

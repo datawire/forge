@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .schema import Class, Field, Union, Constant, Map, Sequence, Boolean, String, Base64, SchemaError
+from .schema import Class, Field, Union, Constant, Map, Sequence, Boolean, Integer, String, Base64, SchemaError
 
 class Registry(object):
 
@@ -106,7 +106,7 @@ PROFILE = Class(
 class Config(object):
 
     def __init__(self, search_path=None, registry=None, docker_repo=None, user=None, password=None, workdir=None,
-                 profiles=None):
+                 profiles=None, concurrency=None):
         self.search_path = search_path or ()
 
         if registry:
@@ -136,6 +136,7 @@ class Config(object):
                 p.search_path = self.search_path
             if p.registry is None:
                 p.registry = self.registry
+        self.concurrency = concurrency
 
 CONFIG = Class(
     "forge.yaml",
@@ -149,7 +150,8 @@ CONFIG = Class(
        Field("user", String(), default=None, docs="Deprecated, use registry instead."),
        Field("password", Base64(), default=None, docs="Deprecated, use registry instead."),
        Field("workdir", String(), default=None, docs="deprecated"),
-       Field("profiles", Map(PROFILE), default=None, docs="A map keyed by profile-name of profile-specific settings.")
+       Field("profiles", Map(PROFILE), default=None, docs="A map keyed by profile-name of profile-specific settings."),
+       Field("concurrency", Integer(), default=5, docs="This controls the maximum number of parallel builds."),
       ))
 )
 
