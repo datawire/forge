@@ -167,12 +167,13 @@ def manifests(forge):
     forge.execute(forge.manifest)
 
 @forge.command()
-@click.argument("file_path", required=True, type=click.Path(exists=True))
-def edit(file_path):
+@click.argument("file_path", required=True, type=click.Path())
+@click.option('-c', '--create', is_flag=True, help="Create an empty file if it does not exist.")
+def edit(file_path, create):
     """
     Edit a secret file.
     """
-    edit_secret(file_path) 
+    edit_secret(file_path, create)
 
 @forge.command()
 @click.argument("file_path", required=True, type=click.Path(exists=True))

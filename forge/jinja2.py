@@ -113,13 +113,13 @@ def render(source, target, predicate, **variables):
                 if name.endswith("-enc.yaml"):
                     decrypt_cleanup(path, name)
     else:
-        if name.endswith("-enc.yaml"):
-            decrypt(path, name)
+        if source.endswith("-enc.yaml"):
+            decrypt(path, source)
         rendered = _do_render(env, root, os.path.basename(source), variables)
         with open(target, "write") as f:
             f.write(rendered)
-        if name.endswith("-enc.yaml"):
-            decrypt_cleanup(path, name)
+        if source.endswith("-enc.yaml"):
+            decrypt_cleanup(path, source)
 
 @task()
 def renders(name, source, **variables):
