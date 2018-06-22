@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import
 
+from .sops import decrypt, decrypt_cleanup
 from .tasks import task, TaskError
 from jinja2 import Environment, FileSystemLoader, Template, TemplateError, TemplateNotFound, Undefined, UndefinedError
 import os, shutil
@@ -99,6 +100,8 @@ def render(source, target, predicate, **variables):
         for path, dirs, files in os.walk(source):
             for name in files:
                 if not predicate(name): continue
+                if name.endswith("-enc.yaml"):
+                    decrypt(path, name)
                 relpath = os.path.join(os.path.relpath(path, start=source), name)
                 rendered = _do_render(env, root, relpath, variables)
                 outfile = os.path.join(target, relpath)
@@ -107,10 +110,16 @@ def render(source, target, predicate, **variables):
                     os.makedirs(outdir)
                 with open(outfile, "write") as f:
                     f.write(rendered)
+                if name.endswith("-enc.yaml"):
+                    decrypt_cleanup(path, name)
     else:
+        if source.endswith("-enc.yaml"):
+            decrypt(path, source)
         rendered = _do_render(env, root, os.path.basename(source), variables)
         with open(target, "write") as f:
             f.write(rendered)
+        if source.endswith("-enc.yaml"):
+            decrypt_cleanup(path, source)
 
 @task()
 def renders(name, source, **variables):

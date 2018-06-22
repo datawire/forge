@@ -1,5 +1,6 @@
 import glob, os, pexpect, pytest, sys, time
 from forge.tests.common import mktree, defuzz, match
+from forge.tasks import sh
 
 DIR = os.path.dirname(__file__)
 
@@ -59,6 +60,7 @@ class Runner(object):
     def __init__(self, base, spec):
         self.base = base
         self.cwd = base
+        self.environ = os.environ.copy()
         self.timeout = 30
         self.spec = spec
         self.child = None
@@ -111,11 +113,22 @@ class Runner(object):
         self.wait()
         arg = arg.replace("TEST_ID", TEST_ID).replace("TEST_BASE", self.base)
         print "RUN", arg
-        self.child = pexpect.spawn(arg, cwd=self.cwd)
+        self.child = pexpect.spawn("sh", ["-c", arg], cwd=self.cwd, env=self.environ)
         self.child.logfile = sys.stdout
 
     def do_CWD(self, arg):
         self.cwd = os.path.join(self.base, arg)
+
+    def do_ENV(self, arg):
+        parts = arg.split(None, 1)
+        if len(parts) > 1:
+            key, value = parts
+            value = sh("sh", "-c", "echo -n " + value, env=self.environ).output
+        else:
+            key = parts[0]
+            value = ""
+
+        self.environ[key] = value
 
     def do_TIMEOUT(self, arg):
         self.timeout = float(arg)

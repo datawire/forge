@@ -4,5 +4,5 @@
 
 registry:
   type: ecr
-  account: 914373874199
+  account: 020846367509
   region: us-east-1

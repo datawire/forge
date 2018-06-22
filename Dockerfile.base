@@ -31,6 +31,9 @@ RUN curl -L https://github.com/istio/istio/releases/download/${ISTIO_VERSION}/${
 # imagebuilder
 RUN GOPATH=/tmp/gp go get -u github.com/openshift/imagebuilder/cmd/imagebuilder && mv /tmp/gp/bin/imagebuilder /usr/local/bin && rm -rf /tmp/gp
 
+# sops
+RUN curl -L https://github.com/mozilla/sops/releases/download/3.0.3/sops-3.0.3.linux -o /usr/local/bin/sops && chmod a+x /usr/local/bin/sops
+
 # kubernaut
 RUN curl -L https://s3.amazonaws.com/datawire-static-files/kubernaut/$(curl -s https://s3.amazonaws.com/datawire-static-files/kubernaut/stable.txt)/kubernaut -o /usr/local/bin/kubernaut
 RUN chmod +x /usr/local/bin/kubernaut
