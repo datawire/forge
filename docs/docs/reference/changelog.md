@@ -1,5 +1,10 @@
 # Changelog
 
+#### 0.4.14 (June 22, 2018)
+
+* Add a concurrency limit and default it to 5: [#208](https://github.com/datawire/forge/issues/208)
+* Support secrets via sops: [#127](https://github.com/datawire/forge/issues/127), [#181](https://github.com/datawire/forge/issues/181)
+
 #### 0.4.13 (May 16th, 2018)
 
 * Add a --no-scan-base option: [#174](https://github.com/datawire/forge/issues/174)
