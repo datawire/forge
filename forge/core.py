@@ -23,6 +23,7 @@ from .tasks import (
     ERROR,
     TaskError
 )
+import tasks
 
 from .docker import Docker, GCRDocker, ECRDocker, LocalDocker
 from .kubernetes import Kubernetes
@@ -282,6 +283,7 @@ class Forge(object):
             profile.docker = get_docker(profile.registry)
 
         self.kube = Kubernetes(namespace=self.namespace, dry_run=self.dry_run)
+        tasks.executor.resize(conf.concurrency)
 
     def load_services(self):
         start = util.search_parents("service.yaml")
