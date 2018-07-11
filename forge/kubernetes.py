@@ -209,7 +209,7 @@ class Kubernetes(object):
                 profile = labels["forge.profile"]
 
                 if kind == "endpoints":
-                    endpoints[(namespace, name)] = i["subsets"]
+                    endpoints[(namespace, name)] = i.get("subsets", ())
                     continue
 
                 if repo not in repos:
