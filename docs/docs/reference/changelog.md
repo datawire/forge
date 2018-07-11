@@ -1,5 +1,9 @@
 # Changelog
 
+#### 0.4.15 (Jul 11, 2018)
+
+* Fix transient failure on delete: [#210](https://github.com/datawire/forge/issues/210)
+
 #### 0.4.14 (June 22, 2018)
 
 * Add a concurrency limit and default it to 5: [#208](https://github.com/datawire/forge/issues/208)
