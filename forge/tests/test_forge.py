@@ -41,7 +41,7 @@ name: forgetest-MANGLE  # name of the service
 #   https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/#canary-deployments
 #
 # The default track is named 'stable'. Each track is concurrently
-# deployed in order ot enable multiple long lived canaries:
+# deployed in order to enable multiple long lived canaries:
 #
 # track: my-canary
 
