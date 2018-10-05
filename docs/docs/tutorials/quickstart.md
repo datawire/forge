@@ -34,7 +34,7 @@ Forge has been tested on Mac OS X, Fedora 25, and Ubuntu 16.04. To get started, 
 You will also need access to the following services either locally or remotely:
 
 * a Kubernetes cluster ([minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) is fine)
-* a Docker registry a Docker registry, such as Docker Hub or Google Container Registry
+* a Docker registry, such as Docker Hub or Google Container Registry
 
 #### Installing Forge
 
