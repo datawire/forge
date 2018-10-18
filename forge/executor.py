@@ -383,7 +383,7 @@ class executor(object):
         with self._make_current(None):
             msg = self.color(prefix) + text.replace(u"\n", u"\n" + self.color(prefix))
             if newline:
-                print msg
+                print msg.encode('utf-8')
             else:
                 sys.stdout.write(msg)
 
