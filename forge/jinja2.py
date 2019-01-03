@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-from .sops import decrypt, decrypt_cleanup
+from .sops import decrypt
 from .tasks import task, TaskError
 from jinja2 import Environment, FileSystemLoader, Template, TemplateError, TemplateNotFound, Undefined, UndefinedError
 import os, shutil
@@ -65,6 +65,14 @@ class WarnUndefined(Undefined):
         self.warn()
         return Undefined.__hash__(self)
 
+class DecryptingFSLoader(FileSystemLoader):
+    def get_source(self, env, template):
+        result = super(DecryptingFSLoader, self).get_source(env, template)
+        contents, filename, uptodate = result
+        if filename.endswith("-enc.yaml"):
+            contents = decrypt(filename).decode(self.encoding)
+        return contents, filename, uptodate
+
 def _do_render(env, root, name, variables):
     try:
         return env.get_template(name).render(**variables)
@@ -90,7 +98,7 @@ def render(source, target, predicate, **variables):
     recreated prior to rendering the template.
     """
     root = source if os.path.isdir(source) else os.path.dirname(source)
-    env = Environment(loader=FileSystemLoader(root),
+    env = Environment(loader=DecryptingFSLoader(root),
                       undefined=WarnUndefined)
     if os.path.isdir(source):
         if os.path.exists(target):
@@ -100,8 +108,6 @@ def render(source, target, predicate, **variables):
         for path, dirs, files in os.walk(source):
             for name in files:
                 if not predicate(name): continue
-                if name.endswith("-enc.yaml"):
-                    decrypt(path, name)
                 relpath = os.path.join(os.path.relpath(path, start=source), name)
                 rendered = _do_render(env, root, relpath, variables)
                 outfile = os.path.join(target, relpath)
@@ -110,16 +116,10 @@ def render(source, target, predicate, **variables):
                     os.makedirs(outdir)
                 with open(outfile, "write") as f:
                     f.write(rendered)
-                if name.endswith("-enc.yaml"):
-                    decrypt_cleanup(path, name)
     else:
-        if source.endswith("-enc.yaml"):
-            decrypt(path, source)
         rendered = _do_render(env, root, os.path.basename(source), variables)
         with open(target, "write") as f:
             f.write(rendered)
-        if source.endswith("-enc.yaml"):
-            decrypt_cleanup(path, source)
 
 @task()
 def renders(name, source, **variables):
