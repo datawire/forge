@@ -247,16 +247,18 @@ class Kubernetes(object):
     def delete(self, labels):
         # never try to delete namespaces or storage classes because they are shared resources
         all = ",".join(r for r in ALL if r not in ('ns', 'sc'))
-        lines = sh("kubectl", "get", all, '--all-namespaces', selector(labels), '-ogo-template={{range .items}}{{.kind}} {{.metadata.namespace}} {{.metadata.name}}{{"\\n"}}{{end}}').output.splitlines()
+        lines = sh("kubectl", "get", all, '--all-namespaces', selector(labels), '-ogo-template={{range .items}}{{.kind}},{{.metadata.namespace}},{{.metadata.name}}{{"\\n"}}{{end}}').output.splitlines()
 
         byns = {}
         for line in lines:
-            parts = line.split()
+            parts = line.split(',')
             if len(parts) == 2:
                 kind, name = parts
                 namespace = None
             else:
                 kind, namespace, name = parts
+                if namespace == '<no value>':
+                    namespace = None
             if namespace not in byns:
                 byns[namespace] = []
             byns[namespace].append((kind, name))
